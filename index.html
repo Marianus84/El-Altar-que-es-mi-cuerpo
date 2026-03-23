@@ -315,6 +315,41 @@
                 setSustentaculumData(newData);
             };
 
+            const exportBackup = () => {
+                const data = {
+                    altar: localStorage.getItem('altar_v3_history'),
+                    weight: localStorage.getItem('altar_weight_data'),
+                    kaizen: localStorage.getItem('kaizenData'),
+                    sust: localStorage.getItem('sustentaculumData'),
+                    exportDate: new Date().toISOString()
+                };
+                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `altare_integritatis_backup_${new Date().toLocaleDateString()}.json`;
+                a.click();
+            };
+
+            const importBackup = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.altar) localStorage.setItem('altar_v3_history', data.altar);
+                        if (data.weight) localStorage.setItem('altar_weight_data', data.weight);
+                        if (data.kaizen) localStorage.setItem('kaizenData', data.kaizen);
+                        if (data.sust) localStorage.setItem('sustentaculumData', data.sust);
+                        window.location.reload();
+                    } catch (err) {
+                        console.error("Errorem legere exemplar", err);
+                    }
+                };
+                reader.readAsText(file);
+            };
+
             return (
                 <div className="min-h-screen pb-20">
                     <header className="p-4 border-b border-stone-900/50 flex justify-between items-center backdrop-blur-xl bg-black/80 sticky top-0 z-50 overflow-x-auto no-scrollbar">
@@ -602,6 +637,22 @@
                                     <span className="sub-text">Recuerda que morirás</span>
                                     <p className="text-stone-400 font-serif italic text-base leading-relaxed">"Recuerda la carpeta <span className="text-red-800 underline font-bold">Mariano gordo</span>. Es la advertencia de lo que sucede cuando no hay ley."</p>
                                     <a href="https://drive.google.com/drive/folders/1wzkDMJnr8cfq36HvbRfRizRLzXdJWDWq" target="_blank" className="inline-block mt-4 text-[9px] text-red-900 uppercase border-b border-red-900/20">Videre Abyssum</a>
+                                </div>
+                                
+                                <div className="pt-10 border-t border-stone-900 space-y-4">
+                                    <h4 className="text-stone-600 text-[10px] font-bold uppercase tracking-widest text-center">Conservatio Progressus</h4>
+                                    <span className="sub-text text-center">Conservación del Progreso</span>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <button onClick={exportBackup} className="py-3 border border-stone-800 bg-stone-900/20 text-stone-400 text-[9px] uppercase tracking-widest hover:border-amber-600 transition-colors">
+                                            <span>Servare Exemplar</span>
+                                            <span className="block text-[6px] opacity-40">Guardar Backup</span>
+                                        </button>
+                                        <button onClick={() => fileInputRef.current.click()} className="py-3 border border-stone-800 bg-stone-900/20 text-stone-400 text-[9px] uppercase tracking-widest hover:border-amber-600 transition-colors">
+                                            <span>Legere Exemplar</span>
+                                            <span className="block text-[6px] opacity-40">Cargar Backup</span>
+                                        </button>
+                                        <input type="file" ref={fileInputRef} onChange={importBackup} className="hidden" accept=".json" />
+                                    </div>
                                 </div>
                             </div>
                         )}
