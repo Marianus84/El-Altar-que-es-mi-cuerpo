@@ -168,33 +168,19 @@
             };
 
             const exportBackup = () => {
-                try {
-                    const data = {
-                        history: localStorage.getItem('altar_v3_history'),
-                        weight: localStorage.getItem('altar_weight_data'),
-                        exportDate: new Date().toISOString()
-                    };
-                    
-                    // Usar text/plain para máxima compatibilidad en selectores de archivos móviles
-                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'text/plain;charset=utf-8' });
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    
-                    const dateStr = new Date().toISOString().split('T')[0];
-                    a.href = url;
-                    // Algunos móviles prefieren .txt para poder "ver" el archivo
-                    a.download = `altare_backup_${dateStr}.json`;
-                    
-                    document.body.appendChild(a);
-                    a.click();
-                    
-                    setTimeout(() => {
-                        document.body.removeChild(a);
-                        window.URL.revokeObjectURL(url);
-                    }, 150);
-                } catch (err) {
-                    console.error("Error al exportar:", err);
-                }
+                const data = {
+                    history: localStorage.getItem('altar_v3_history'),
+                    weight: localStorage.getItem('altar_weight_data'),
+                    exportDate: new Date().toISOString()
+                };
+                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `altare_integritatis_backup_${new Date().toLocaleDateString()}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
             };
 
             const importBackup = (event) => {
@@ -204,16 +190,8 @@
                 reader.onload = (e) => {
                     try {
                         const data = JSON.parse(e.target.result);
-                        
-                        if (data.history) {
-                            const historyValue = typeof data.history === 'string' ? data.history : JSON.stringify(data.history);
-                            localStorage.setItem('altar_v3_history', historyValue);
-                        }
-                        if (data.weight) {
-                            const weightValue = typeof data.weight === 'string' ? data.weight : JSON.stringify(data.weight);
-                            localStorage.setItem('altar_weight_data', weightValue);
-                        }
-                        
+                        if (data.history) localStorage.setItem('altar_v3_history', data.history);
+                        if (data.weight) localStorage.setItem('altar_weight_data', data.weight);
                         window.location.reload();
                     } catch (err) {
                         console.error("Error importando", err);
@@ -283,26 +261,33 @@
 
             return (
                 <div className="min-h-screen pb-20">
-                    <header className="p-6 border-b border-stone-900/50 flex justify-between items-center backdrop-blur-xl bg-black/80 sticky top-0 z-50">
+                    <header className="p-4 border-b border-stone-900/50 flex justify-between items-center backdrop-blur-xl bg-black/80 sticky top-0 z-50">
                         <div className="flex items-center space-x-2">
-                            <Icon name="shield" className="text-amber-600" size={18} />
-                            <div className="text-left">
-                                <h1 className="text-[10px] font-altar tracking-[0.3em] uppercase text-stone-400">Integritas</h1>
-                                <span className="sub-text">Integridad</span>
+                            <Icon name="shield" className="text-amber-600" size={16} />
+                            <div className="text-left hidden xs:block">
+                                <h1 className="text-[9px] font-altar tracking-[0.2em] uppercase text-stone-400">Integritas</h1>
                             </div>
                         </div>
-                        <nav className="flex space-x-4">
-                            <button onClick={() => setActiveTab('altar')} className={`text-[10px] tracking-widest uppercase font-bold text-center ${activeTab === 'altar' ? 'text-amber-500' : 'text-stone-600'}`}>
+                        
+                        {/* Status persistente */}
+                        <div className="flex flex-col items-center justify-center px-4 border-x border-stone-900/30">
+                            <div className="flex items-center space-x-2">
+                                <span className={`text-[9px] font-altar tracking-widest uppercase ${currentLevel.color}`}>{currentLevel.name}</span>
+                                <span className="text-stone-700 font-bold">|</span>
+                                <span className="text-[10px] font-bold text-amber-500 tracking-tighter">{currentStreak}D</span>
+                            </div>
+                            <span className="text-[6px] text-stone-600 uppercase tracking-[0.3em]">Status Aeternus</span>
+                        </div>
+
+                        <nav className="flex space-x-3">
+                            <button onClick={() => setActiveTab('altar')} className={`text-[9px] tracking-widest uppercase font-bold text-center ${activeTab === 'altar' ? 'text-amber-500' : 'text-stone-600'}`}>
                                 <span>Altare</span>
-                                <span className="block text-[6px] opacity-50">Altar</span>
                             </button>
-                            <button onClick={() => setActiveTab('transmutation')} className={`text-[10px] tracking-widest uppercase font-bold text-center ${activeTab === 'transmutation' ? 'text-amber-500' : 'text-stone-600'}`}>
+                            <button onClick={() => setActiveTab('transmutation')} className={`text-[9px] tracking-widest uppercase font-bold text-center ${activeTab === 'transmutation' ? 'text-amber-500' : 'text-stone-600'}`}>
                                 <span>Materia</span>
-                                <span className="block text-[6px] opacity-50">Materia</span>
                             </button>
-                            <button onClick={() => setActiveTab('identity')} className={`text-[10px] tracking-widest uppercase font-bold text-center ${activeTab === 'identity' ? 'text-amber-500' : 'text-stone-600'}`}>
+                            <button onClick={() => setActiveTab('identity')} className={`text-[9px] tracking-widest uppercase font-bold text-center ${activeTab === 'identity' ? 'text-amber-500' : 'text-stone-600'}`}>
                                 <span>Vota</span>
-                                <span className="block text-[6px] opacity-50">Votos</span>
                             </button>
                         </nav>
                     </header>
@@ -506,8 +491,7 @@
                                             <span>Legere Exemplar</span>
                                             <span className="text-[6px] opacity-40">Cargar Backup</span>
                                         </button>
-                                        {/* accept ampliado para mejor detección en móviles */}
-                                        <input type="file" ref={fileInputRef} onChange={importBackup} className="hidden" accept=".json,application/json,text/plain,.txt" />
+                                        <input type="file" ref={fileInputRef} onChange={importBackup} className="hidden" accept=".json" />
                                     </div>
                                 </div>
                             </div>
