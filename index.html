@@ -575,8 +575,7 @@
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.steps / sustentaculumData.goals.steps, 1) * 251.2)} className={`${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'text-amber-500' : 'text-stone-600'} transition-all duration-1000`} />
                                                 </svg>
                                                 <div className="text-center z-10">
-                                                    <Icon name="footprints" className={`${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'text-amber-500' : 'text-stone-700'} mx-auto mb-1`} size={16} />
-                                                    <span className="text-xs font-serif text-stone-200">{sustentaculumData.daily.steps}</span>
+                                                    <Icon name="footprints" className={`${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'text-amber-500' : 'text-stone-700'} mx-auto`} size={16} />
                                                 </div>
                                             </div>
                                             <div className="text-center">
@@ -602,8 +601,7 @@
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.protein / sustentaculumData.goals.protein, 1) * 251.2)} className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-stone-200' : 'text-stone-700'} transition-all duration-1000`} />
                                                 </svg>
                                                 <div className="text-center z-10">
-                                                    <Icon name="zap" className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto mb-1`} size={16} />
-                                                    <span className="text-xs font-serif text-stone-200">{sustentaculumData.daily.protein}g</span>
+                                                    <Icon name="zap" className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto`} size={16} />
                                                 </div>
                                             </div>
                                             <div className="text-center">
@@ -635,7 +633,7 @@
                                     <div className={`overflow-hidden transition-all duration-300 ${showSustGoals ? 'max-h-64 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
                                         <div className="grid grid-cols-2 gap-4 p-4 bg-stone-900/20 border border-stone-900 rounded">
                                             <div><label className="text-[8px] text-amber-600 uppercase tracking-widest mb-1 block">Meta Passus</label><input type="number" value={sustentaculumData.goals.steps} onChange={e => updateSustGoal('steps', e.target.value)} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
-                                            <div><label className="text-[8px] text-stone-400 uppercase tracking-widest mb-1 block">Meta Proteina</label><input type="number" value={sustentaculumData.goals.protein} onChange={e => updateSustGoal('protein', e.target.value)} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
+                                            <div><label className="text-[8px] text-stone-400 uppercase tracking-widest mb-1 block">Meta Proteinam</label><input type="number" value={sustentaculumData.goals.protein} onChange={e => updateSustGoal('protein', e.target.value)} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
                                         </div>
                                     </div>
                                 </div>
