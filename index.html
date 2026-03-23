@@ -198,7 +198,6 @@
                 if (savedSust) {
                     const parsed = JSON.parse(savedSust);
                     const today = new Date().toLocaleDateString();
-                    // Migración si es vieja versión
                     if (!parsed.historySteps) parsed.historySteps = [];
                     if (!parsed.historyProtein) parsed.historyProtein = [];
                     
@@ -212,81 +211,139 @@
             useEffect(() => {
                 localStorage.setItem('kaizenData', JSON.stringify(kaizenData));
                 localStorage.setItem('sustentaculumData', JSON.stringify(sustentaculumData));
-                if (activeTab === 'disciplina') renderKaizenChart();
-                if (window.lucide) window.lucide.createIcons();
+                
+                if (activeTab === 'disciplina') {
+                    const timer = setTimeout(() => renderKaizenChart(), 100);
+                    return () => clearTimeout(timer);
+                }
+                
+                if (window.lucide) {
+                    const timer = setTimeout(() => window.lucide.createIcons(), 50);
+                    return () => clearTimeout(timer);
+                }
             }, [activeTab, isClosed, kaizenData, chartFilter, sustentaculumData]);
 
             const renderKaizenChart = () => {
-                if (!chartRef.current || kaizenData.history.length === 0) return;
-                if (chartInstance.current) chartInstance.current.destroy();
-                const ctx = chartRef.current.getContext('2d');
-                const uniqueWeeks = [...new Set(kaizenData.history.map(h => h.week))].sort((a,b) => a-b);
-                const labels = uniqueWeeks.map(w => `Ebdomada ${w}`);
-                let names = chartFilter === 'all' ? [...new Set(kaizenData.history.map(h => h.name))] : [chartFilter];
-                const datasets = names.map((name, index) => ({
-                    label: name,
-                    data: uniqueWeeks.map(w => kaizenData.history.find(h => h.name === name && h.week === w)?.volume || null),
-                    borderColor: ['#d97706', '#78350f', '#f59e0b', '#44403c', '#ffffff', '#22c55e'][index % 6],
-                    backgroundColor: 'transparent',
-                    borderWidth: 2,
-                    tension: 0.3,
-                    pointRadius: 4,
-                    spanGaps: true
-                }));
-                chartInstance.current = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels, datasets },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: { legend: { display: chartFilter === 'all', position: 'bottom', labels: { color: '#a8a29e', font: { size: 10, family: 'Cinzel' } } } },
-                        scales: { y: { ticks: { color: '#57534e' }, grid: { color: '#1c1917' } }, x: { ticks: { color: '#57534e' }, grid: { display: false } } }
+                if (!chartRef.current || kaizenData.history.length === 0 || typeof Chart === 'undefined') return;
+                
+                try {
+                    if (chartInstance.current) {
+                        chartInstance.current.destroy();
                     }
-                });
+                    
+                    const ctx = chartRef.current.getContext('2d');
+                    const uniqueWeeks = [...new Set(kaizenData.history.map(h => h.week))].sort((a,b) => a-b);
+                    const labels = uniqueWeeks.map(w => `Ebdomada ${w}`);
+                    let names = chartFilter === 'all' ? [...new Set(kaizenData.history.map(h => h.name))] : [chartFilter];
+                    
+                    const datasets = names.map((name, index) => ({
+                        label: name,
+                        data: uniqueWeeks.map(w => kaizenData.history.find(h => h.name === name && h.week === w)?.volume || null),
+                        borderColor: ['#d97706', '#78350f', '#f59e0b', '#44403c', '#ffffff', '#22c55e'][index % 6],
+                        backgroundColor: 'transparent',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        spanGaps: true
+                    }));
+
+                    chartInstance.current = new Chart(ctx, {
+                        type: 'line',
+                        data: { labels, datasets },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { 
+                                legend: { 
+                                    display: chartFilter === 'all', 
+                                    position: 'bottom', 
+                                    labels: { color: '#a8a29e', font: { size: 10, family: 'Cinzel' } } 
+                                } 
+                            },
+                            scales: { 
+                                y: { ticks: { color: '#57534e' }, grid: { color: '#1c1917' } }, 
+                                x: { ticks: { color: '#57534e' }, grid: { display: false } } 
+                            }
+                        }
+                    });
+                } catch (e) {
+                    console.error("Chart error:", e);
+                }
             };
 
             const sealSteps = () => {
                 if (sustentaculumData.daily.steps < sustentaculumData.goals.steps || sustentaculumData.daily.stepsSealed) return;
-                const newData = { ...sustentaculumData };
-                newData.daily.stepsSealed = true;
-                const newStreak = newData.historySteps.length > 0 ? newData.historySteps[0].streak + 1 : 1;
-                newData.historySteps = [{ date: newData.daily.date, streak: newStreak }, ...newData.historySteps];
-                setSustentaculumData(newData);
+                setSustentaculumData(prev => {
+                    const newStreak = prev.historySteps.length > 0 ? prev.historySteps[0].streak + 1 : 1;
+                    return {
+                        ...prev,
+                        daily: { ...prev.daily, stepsSealed: true },
+                        historySteps: [{ date: prev.daily.date, streak: newStreak }, ...prev.historySteps]
+                    };
+                });
             };
 
             const sealProtein = () => {
                 if (sustentaculumData.daily.protein < sustentaculumData.goals.protein || sustentaculumData.daily.proteinSealed) return;
-                const newData = { ...sustentaculumData };
-                newData.daily.proteinSealed = true;
-                const newStreak = newData.historyProtein.length > 0 ? newData.historyProtein[0].streak + 1 : 1;
-                newData.historyProtein = [{ date: newData.daily.date, streak: newStreak }, ...newData.historyProtein];
-                setSustentaculumData(newData);
+                setSustentaculumData(prev => {
+                    const newStreak = prev.historyProtein.length > 0 ? prev.historyProtein[0].streak + 1 : 1;
+                    return {
+                        ...prev,
+                        daily: { ...prev.daily, proteinSealed: true },
+                        historyProtein: [{ date: prev.daily.date, streak: newStreak }, ...prev.historyProtein]
+                    };
+                });
             };
 
             const toggleExComplete = (index) => {
-                const newData = { ...kaizenData };
-                newData.exercises[index].completed = !newData.exercises[index].completed;
-                setKaizenData(newData);
+                setKaizenData(prev => ({
+                    ...prev,
+                    exercises: prev.exercises.map((ex, i) => 
+                        i === index ? { ...ex, completed: !ex.completed } : ex
+                    )
+                }));
             };
 
             const applyKaizenCycle = () => {
-                const newData = { ...kaizenData };
-                newData.exercises.forEach(ex => newData.history.push({ week: newData.week, name: ex.name, weight: ex.weight, sets: ex.sets, reps: ex.reps, volume: ex.weight * ex.sets * ex.reps }));
-                newData.week++;
-                newData.exercises.forEach(ex => {
-                    if (ex.reps >= 15) { ex.reps = 8; ex.sets += 1; } else { ex.reps += 1; }
-                    ex.completed = false;
+                setKaizenData(prev => {
+                    const newHistory = [...prev.history];
+                    prev.exercises.forEach(ex => newHistory.push({ 
+                        week: prev.week, 
+                        name: ex.name, 
+                        weight: ex.weight, 
+                        sets: ex.sets, 
+                        reps: ex.reps, 
+                        volume: ex.weight * ex.sets * ex.reps 
+                    }));
+                    
+                    const newExercises = prev.exercises.map(ex => {
+                        let reps = ex.reps;
+                        let sets = ex.sets;
+                        if (reps >= 15) { reps = 8; sets += 1; } else { reps += 1; }
+                        return { ...ex, reps, sets, completed: false };
+                    });
+
+                    return { ...prev, week: prev.week + 1, history: newHistory, exercises: newExercises };
                 });
-                setKaizenData(newData);
             };
 
             const saveNewEx = () => {
                 if (!tempEx.name || !tempEx.sets || !tempEx.reps) return;
-                const newData = { ...kaizenData };
-                const finalEx = { ...tempEx, weight: parseFloat(tempEx.weight) || 0, sets: parseInt(tempEx.sets), reps: parseInt(tempEx.reps), completed: false };
-                if (editingExIndex !== null) newData.exercises[editingExIndex] = finalEx;
-                else newData.exercises.push(finalEx);
-                setKaizenData(newData);
+                const finalEx = { 
+                    ...tempEx, 
+                    weight: parseFloat(tempEx.weight) || 0, 
+                    sets: parseInt(tempEx.sets) || 0, 
+                    reps: parseInt(tempEx.reps) || 0, 
+                    completed: false 
+                };
+                
+                setKaizenData(prev => {
+                    const newExs = [...prev.exercises];
+                    if (editingExIndex !== null) newExs[editingExIndex] = finalEx;
+                    else newExs.push(finalEx);
+                    return { ...prev, exercises: newExs };
+                });
+                
                 setIsExFormOpen(false);
                 setEditingExIndex(null);
                 setTempEx({ name: '', muscles: [], weight: '', sets: '', reps: '' });
@@ -294,7 +351,11 @@
 
             const muscleImpact = useMemo(() => {
                 const hits = {};
-                kaizenData.exercises.forEach(ex => { if (ex.completed && ex.muscles) ex.muscles.forEach(m => hits[m] = (hits[m] || 0) + 1); });
+                kaizenData.exercises.forEach(ex => { 
+                    if (ex.completed && ex.muscles) {
+                        ex.muscles.forEach(m => hits[m] = (hits[m] || 0) + 1); 
+                    }
+                });
                 return hits;
             }, [kaizenData.exercises]);
 
@@ -304,15 +365,17 @@
             const remainingWeight = currentWeight > 0 ? (currentWeight - targetWeight).toFixed(1) : 0;
 
             const updateSustDaily = (field, val) => {
-                const newData = { ...sustentaculumData };
-                newData.daily[field] = parseFloat(val) || 0;
-                setSustentaculumData(newData);
+                setSustentaculumData(prev => ({
+                    ...prev,
+                    daily: { ...prev.daily, [field]: parseFloat(val) || 0 }
+                }));
             };
 
             const updateSustGoal = (field, val) => {
-                const newData = { ...sustentaculumData };
-                newData.goals[field] = parseFloat(val) || 0;
-                setSustentaculumData(newData);
+                setSustentaculumData(prev => ({
+                    ...prev,
+                    goals: { ...prev.goals, [field]: parseFloat(val) || 0 }
+                }));
             };
 
             const exportBackup = () => {
@@ -349,6 +412,13 @@
                 };
                 reader.readAsText(file);
             };
+
+            // Ordenar ejercicios para que los completados vayan abajo
+            const sortedExercises = useMemo(() => {
+                return kaizenData.exercises
+                    .map((ex, originalIndex) => ({ ...ex, originalIndex }))
+                    .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1));
+            }, [kaizenData.exercises]);
 
             return (
                 <div className="min-h-screen pb-20">
@@ -443,12 +513,12 @@
                                     ))}
                                 </div>
                                 <div className="space-y-3">
-                                    {kaizenData.exercises.map((ex, idx) => (
-                                        <div key={idx} className={`p-4 border transition-all ${ex.completed ? 'border-amber-900/40 bg-amber-950/5' : 'border-stone-900'}`}>
+                                    {sortedExercises.map((ex) => (
+                                        <div key={ex.originalIndex} className={`p-4 border transition-all ${ex.completed ? 'border-amber-900/40 bg-amber-950/5 opacity-60' : 'border-stone-900'}`}>
                                             <div className="flex items-center justify-between">
-                                                <div className="flex items-center space-x-3 cursor-pointer" onClick={() => toggleExComplete(idx)}>
+                                                <div className="flex items-center space-x-3 cursor-pointer" onClick={() => toggleExComplete(ex.originalIndex)}>
                                                     <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${ex.completed ? 'bg-amber-600 border-amber-600' : 'border-stone-700'}`}>{ex.completed && <Icon name="check" size={10} className="text-black" />}</div>
-                                                    <div><h4 className={`text-sm font-serif italic ${ex.completed ? 'text-amber-200' : 'text-stone-300'}`}>{ex.name}</h4><span className="text-[8px] text-amber-600/60 uppercase tracking-widest">{ex.muscles?.join(', ')}</span></div>
+                                                    <div><h4 className={`text-sm font-serif italic ${ex.completed ? 'text-stone-500' : 'text-stone-300'}`}>{ex.name}</h4><span className="text-[8px] text-amber-600/60 uppercase tracking-widest">{ex.muscles?.join(', ')}</span></div>
                                                 </div>
                                                 <div className="text-right text-[10px] text-stone-500 uppercase tracking-tighter">{ex.weight}kg — {ex.sets}x{ex.reps}</div>
                                             </div>
@@ -510,7 +580,7 @@
                                             <div className="relative w-24 h-24 flex items-center justify-center">
                                                 <svg className="absolute inset-0 w-full h-full -rotate-90">
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="2" fill="transparent" className="text-stone-900" />
-                                                    <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.protein / sustentaculumData.goals.protein, 1) * 251.2)} className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-stone-200' : 'text-stone-700'} transition-all duration-1000`} />
+                                                    <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.protein / sustentaculumData.goals.protein, 1) * 251.2)} className={`${sustentaculumData.daily.protein >= sustententaculumData.goals.protein ? 'text-stone-200' : 'text-stone-700'} transition-all duration-1000`} />
                                                 </svg>
                                                 <div className="text-center z-10">
                                                     <Icon name="zap" className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto mb-1`} size={16} />
