@@ -88,6 +88,10 @@
             const fileInputRef = useRef(null);
             const chartRef = useRef(null);
             const chartInstance = useRef(null);
+            
+            // Ref para detectar el inicio del gesto táctil
+            const touchStartX = useRef(null);
+            const TABS_ORDER = ['altar', 'disciplina', 'sustentaculum', 'transmutation', 'identity'];
 
             const [kaizenData, setKaizenData] = useState({
                 week: 1,
@@ -202,6 +206,33 @@
                     return () => clearTimeout(timer);
                 }
             }, [activeTab, isClosed, kaizenData, chartFilter, sustentaculumData]);
+
+            const handleTouchStart = (e) => {
+                touchStartX.current = e.touches[0].clientX;
+            };
+
+            const handleTouchEnd = (e) => {
+                if (touchStartX.current === null) return;
+                
+                const touchEndX = e.changedTouches[0].clientX;
+                const deltaX = touchStartX.current - touchEndX;
+                const threshold = 70; // Sensibilidad del gesto
+                
+                // Si estamos en el ritual de cierre, bloqueamos el swipe para evitar cierres accidentales
+                if (activeTab === 'ritual') return;
+
+                if (Math.abs(deltaX) > threshold) {
+                    const currentIndex = TABS_ORDER.indexOf(activeTab);
+                    if (deltaX > 0 && currentIndex < TABS_ORDER.length - 1) {
+                        // Swipe Izquierda -> Siguiente pestaña
+                        setActiveTab(TABS_ORDER[currentIndex + 1]);
+                    } else if (deltaX < 0 && currentIndex > 0) {
+                        // Swipe Derecha -> Anterior pestaña
+                        setActiveTab(TABS_ORDER[currentIndex - 1]);
+                    }
+                }
+                touchStartX.current = null;
+            };
 
             const renderKaizenChart = () => {
                 if (!chartRef.current || kaizenData.history.length === 0 || typeof Chart === 'undefined') return;
@@ -345,7 +376,7 @@
             }, [kaizenData.exercises]);
 
             return (
-                <div className="min-h-screen pb-20">
+                <div className="min-h-screen pb-20" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
                     <header className="p-4 border-b border-stone-900/50 flex flex-nowrap items-center backdrop-blur-xl bg-black/80 sticky top-0 z-50">
                         <div className="flex items-center space-x-2 flex-shrink-0 mr-4">
                             <Icon name="shield" className="text-amber-600" size={16} />
@@ -434,7 +465,6 @@
                                     <span className="text-[8px] text-stone-600 uppercase tracking-widest">SEMANA {kaizenData.week}</span>
                                 </div>
                                 
-                                {/* CVADRICVLA DE MVS開VLOS */}
                                 <div className="grid grid-cols-3 gap-1 mb-4">
                                     {muscleList.map(m => {
                                         const hits = muscleImpact[m.id] || 0;
