@@ -89,7 +89,6 @@
             const chartRef = useRef(null);
             const chartInstance = useRef(null);
             
-            // Ref para detectar el inicio del gesto táctil
             const touchStartX = useRef(null);
             const TABS_ORDER = ['altar', 'disciplina', 'sustentaculum', 'transmutation', 'identity'];
 
@@ -213,23 +212,14 @@
 
             const handleTouchEnd = (e) => {
                 if (touchStartX.current === null) return;
-                
                 const touchEndX = e.changedTouches[0].clientX;
                 const deltaX = touchStartX.current - touchEndX;
-                const threshold = 70; // Sensibilidad del gesto
-                
-                // Si estamos en el ritual de cierre, bloqueamos el swipe para evitar cierres accidentales
+                const threshold = 70;
                 if (activeTab === 'ritual') return;
-
                 if (Math.abs(deltaX) > threshold) {
                     const currentIndex = TABS_ORDER.indexOf(activeTab);
-                    if (deltaX > 0 && currentIndex < TABS_ORDER.length - 1) {
-                        // Swipe Izquierda -> Siguiente pestaña
-                        setActiveTab(TABS_ORDER[currentIndex + 1]);
-                    } else if (deltaX < 0 && currentIndex > 0) {
-                        // Swipe Derecha -> Anterior pestaña
-                        setActiveTab(TABS_ORDER[currentIndex - 1]);
-                    }
+                    if (deltaX > 0 && currentIndex < TABS_ORDER.length - 1) setActiveTab(TABS_ORDER[currentIndex + 1]);
+                    else if (deltaX < 0 && currentIndex > 0) setActiveTab(TABS_ORDER[currentIndex - 1]);
                 }
                 touchStartX.current = null;
             };
@@ -382,7 +372,7 @@
                             <Icon name="shield" className="text-amber-600" size={16} />
                             <div className="text-left hidden xs:block">
                                 <h1 className="text-[9px] font-altar tracking-[0.2em] uppercase text-stone-400">INTEGRITAS</h1>
-                                <span className="block text-[7px] text-stone-500 tracking-widest uppercase mt-0.5">INTEGRIDAD</span>
+                                <span className="block text-[7px] text-stone-500 tracking-widest uppercase mt-0.5 font-bold">INTEGRIDAD</span>
                             </div>
                         </div>
                         
@@ -404,7 +394,9 @@
                                     {id: 'transmutation', lat: 'MATERIA', es: 'MATERIA'},
                                     {id: 'identity', lat: 'VOTA', es: 'VOTOS'}
                                 ].map(tab => (
-                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap text-[10px] tracking-widest uppercase font-bold text-center flex-shrink-0 transition-colors ${activeTab === tab.id ? 'text-amber-500' : 'text-stone-600'}`}>
+                                    <button key={tab.id} 
+                                            onClick={() => setActiveTab(tab.id)} 
+                                            className={`whitespace-nowrap text-[10px] tracking-widest uppercase font-bold text-center flex-shrink-0 transition-all duration-300 pb-1 border-b-2 ${activeTab === tab.id ? 'text-orange-500 border-orange-500 scale-105' : 'text-stone-600 border-transparent'}`}>
                                         <span className="block">{tab.lat}</span>
                                         <span className="block text-[6px] opacity-50 font-normal">{tab.es}</span>
                                     </button>
@@ -545,16 +537,8 @@
                                                 <input type="number" disabled={sustentaculumData.daily.stepsSealed} value={sustentaculumData.daily.steps || ''} onChange={e => setSustentaculumData(prev => ({...prev, daily: {...prev.daily, steps: parseFloat(e.target.value) || 0}}))} className="block w-20 bg-transparent border-b border-stone-800 text-center text-xs outline-none mt-1 disabled:opacity-50" />
                                             </div>
                                         </div>
-                                        {!sustentaculumData.daily.stepsSealed ? (
-                                            <button onClick={sealSteps} disabled={sustentaculumData.daily.steps < sustentaculumData.goals.steps} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'bg-amber-600/20 text-amber-500 border-amber-600' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PASSVS</button>
-                                        ) : (
-                                            <div className="text-center flex flex-col items-center">
-                                                <span className={`text-[8px] font-altar uppercase tracking-widest ${stepsLevel.color}`}>{stepsLevel.name}</span>
-                                                <span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {stepsStreak}</span>
-                                            </div>
-                                        )}
+                                        {!sustentaculumData.daily.stepsSealed ? (<button onClick={sealSteps} disabled={sustentaculumData.daily.steps < sustentaculumData.goals.steps} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'bg-amber-600/20 text-amber-500 border-amber-600' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PASSVS</button>) : (<div className="text-center flex flex-col items-center"><span className={`text-[8px] font-altar uppercase tracking-widest ${stepsLevel.color}`}>{stepsLevel.name}</span><span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {stepsStreak}</span></div>)}
                                     </div>
-
                                     <div className="flex flex-col items-center space-y-4">
                                         <div className={`flex flex-col items-center space-y-3 transition-all duration-700 ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'glow-success' : ''}`}>
                                             <div className="relative w-24 h-24 flex items-center justify-center">
@@ -569,14 +553,7 @@
                                                 <input type="number" disabled={sustentaculumData.daily.proteinSealed} value={sustentaculumData.daily.protein || ''} onChange={e => setSustentaculumData(prev => ({...prev, daily: {...prev.daily, protein: parseFloat(e.target.value) || 0}}))} className="block w-20 bg-transparent border-b border-stone-800 text-center text-xs outline-none mt-1 disabled:opacity-50" />
                                             </div>
                                         </div>
-                                        {!sustentaculumData.daily.proteinSealed ? (
-                                            <button onClick={sealProtein} disabled={sustentaculumData.daily.protein < sustentaculumData.goals.protein} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'bg-stone-200/20 text-white border-white' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PROTEINAM</button>
-                                        ) : (
-                                            <div className="text-center flex flex-col items-center">
-                                                <span className={`text-[8px] font-altar uppercase tracking-widest ${proteinLevel.color}`}>{proteinLevel.name}</span>
-                                                <span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {proteinStreak}</span>
-                                            </div>
-                                        )}
+                                        {!sustentaculumData.daily.proteinSealed ? (<button onClick={sealProtein} disabled={sustentaculumData.daily.protein < sustentaculumData.goals.protein} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'bg-stone-200/20 text-white border-white' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PROTEINAM</button>) : (<div className="text-center flex flex-col items-center"><span className={`text-[8px] font-altar uppercase tracking-widest ${proteinLevel.color}`}>{proteinLevel.name}</span><span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {proteinStreak}</span></div>)}
                                     </div>
                                 </div>
                                 
