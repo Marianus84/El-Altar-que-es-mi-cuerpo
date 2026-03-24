@@ -135,29 +135,29 @@
             ];
 
             const [ritualSteps, setRitualSteps] = useState([
-                { id: 1, text: "AGNOSCERE NECESSITATES BIOLOGICAM EXPLETAM ESSE.", sub: "RECONOCER QUE EL REQVERIMIENTO BIOLOGICO HA SIDO SATISFECHO.", completed: false },
-                { id: 2, text: "MVNDA OMNIA RELIQVIA ALIMENTORVM.", sub: "LIMPIEZA TOTAL DE LOS RESTOS DEL SVSTENTO.", completed: false },
-                { id: 3, text: "OBSIGNATIO ORIS: DENTES PENITVS LAVARE.", sub: "SELLADO BVCAL: LAVADO PROFVNDO DE DIENTES.", completed: false },
-                { id: 4, text: "BAPTISMVS IEIVNII CVM POTIONE VEL AQVA.", sub: "BAVTISMO DE AYVNO CON INFVSION O AGVA.", completed: false },
-                { id: 5, text: "DECLARARE: 'LEX MEA ABSOLVTAS EST VSQVE AD CRASTINVM'.", sub: "DECLARAR: 'MI LEY ES ABSOLVTA HASTA MAÑANA'.", completed: false }
+                { id: 1, text: "AGNOSCERE NECESSITATES BIOLOGICAM EXPLETAM ESSE.", sub: "RECONOCER QUE EL REQUERIMIENTO BIOLOGICO HA SIDO SATISFECHO.", completed: false },
+                { id: 2, text: "MVNDA OMNIA RELIQVIA ALIMENTORVM.", sub: "LIMPIEZA TOTAL DE LOS RESTOS DEL SUSTENTO.", completed: false },
+                { id: 3, text: "OBSIGNATIO ORIS: DENTES PENITVS LAVARE.", sub: "SELLADO BUCAL: LAVADO PROFUNDO DE DIENTES.", completed: false },
+                { id: 4, text: "BAPTISMVS IEIVNII CVM POTIONE VEL AQVA.", sub: "BAUTISMO DE AYUNO CON INFUSION O AGUA.", completed: false },
+                { id: 5, text: "DECLARARE: 'LEX MEA ABSOLVTAS EST VSQVE AD CRASTINVM'.", sub: "DECLARAR: 'MI LEY ES ABSOLUTA HASTA MAÑANA'.", completed: false }
             ]);
 
             const altarLevels = [
                 { min: 0, name: "NOVICIVS", sub: "NEOFITO", color: "text-stone-500", glow: "bg-amber-500/10", shadow: "glow-lv0" },
-                { min: 3, name: "CVSTOS LEGIS", sub: "GVARDIAN DE LA LEY", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 3, name: "CVSTOS LEGIS", sub: "GUARDIAN DE LA LEY", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
                 { min: 7, name: "TEMPLARIVS ORDINIS", sub: "TEMPLARIO DEL ORDEN", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 30, name: "MAGISTER VOLVNTATIS", sub: "MAESTRO DE LA VOLVNTAD", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 90, name: "ENS LVCIS", sub: "SER DE LVZ", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 180, name: "ARCHITECTVS FATI", sub: "ARQVITECTO DEL DESTINO", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 365, name: "EGO SVPREMVS", sub: "EL YO SVPREMO", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" }
+                { min: 30, name: "MAGISTER VOLVNTATIS", sub: "MAESTRO DE LA VOLUNTAD", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 90, name: "ENS LVCIS", sub: "SER DE LUZ", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 180, name: "ARCHITECTVS FATI", sub: "ARQUITECTO DEL DESTINO", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 365, name: "EGO SVPREMVS", sub: "EL YO SUPREMO", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" }
             ];
 
             const sustLevels = [
-                { min: 0, name: "LIXAE", sub: "AGVADOR", color: "text-stone-500" },
+                { min: 0, name: "LIXAE", sub: "AGUADOR", color: "text-stone-500" },
                 { min: 7, name: "VIATOR", sub: "VIAJERO", color: "text-stone-400" },
                 { min: 30, name: "CVRSOR", sub: "CORREDOR", color: "text-stone-200" },
                 { min: 90, name: "HOPLITA", sub: "HOPLITA", color: "text-amber-700" },
-                { min: 180, name: "CENTVRIO", sub: "CENTVRION", color: "text-amber-500" },
+                { min: 180, name: "CENTVRIO", sub: "CENTURION", color: "text-amber-500" },
                 { min: 365, name: "INVICTVS", sub: "INVICTO", color: "text-white brightness-125 font-bold" }
             ];
 
@@ -483,7 +483,7 @@
                                 {[
                                     {id: 'altar', lat: 'ALTARE', es: 'ALTAR'},
                                     {id: 'disciplina', lat: 'DISCIPLINA', es: 'KAIZEN'},
-                                    {id: 'sustentaculum', lat: 'SVSTENTACVLVM', es: 'SVSTENTO'},
+                                    {id: 'sustentaculum', lat: 'SVSTENTACVLVM', es: 'SUSTENTO'},
                                     {id: 'transmutation', lat: 'MATERIA', es: 'MATERIA'},
                                     {id: 'identity', lat: 'VOTA', es: 'VOTOS'}
                                 ].map(tab => (
@@ -527,7 +527,7 @@
                                     <div className="w-full space-y-4">
                                         <button onClick={() => setActiveTab('ritual')} className="w-full py-4 border border-stone-700 bg-stone-900/50 text-stone-300 font-altar tracking-[0.2em] uppercase text-xs hover:border-amber-500 transition-all">
                                             <span>INCIPERE RITVM CLAVSVRAE</span>
-                                            <span className="block text-[7px] opacity-50 mt-1 uppercase">INICIAR RITVAL DE CIERRE</span>
+                                            <span className="block text-[7px] opacity-50 mt-1 uppercase">INICIAR RITUAL DE CIERRE</span>
                                         </button>
                                         <button 
                                             onClick={handleGraceDay}
@@ -705,12 +705,12 @@
                             <div className="space-y-10 fade-in">
                                 <div className="p-6 border border-amber-900/30 bg-amber-950/5 relative overflow-hidden text-center">
                                     <h3 className="text-amber-600 text-[9px] font-bold uppercase tracking-[0.3em] mb-4 font-altar">GLORĬA ET VICTŌRIA</h3>
-                                    <p className="text-stone-300 font-serif italic text-base leading-relaxed uppercase">"VISVALIZA TV ASCENSO. LA CARPETA <span className="text-amber-500 underline font-bold">MARIANO FIT</span> ES EL TESTIMONIO DE TV GLORIA."</p>
+                                    <p className="text-stone-300 font-serif italic text-base leading-relaxed uppercase">"VISUALIZA TU ASCENSO. LA CARPETA <span className="text-amber-500 underline font-bold">MARIANO FIT</span> ES EL TESTIMONIO DE TV GLORIA."</p>
                                     <a href="https://drive.google.com/drive/folders/1wxD5-44Rj8GVBSCHtKUBf5d12U4K3cOQ" target="_blank" className="inline-block mt-4 text-[9px] text-amber-600 uppercase border-b border-amber-600/20 font-bold tracking-widest transition-opacity hover:opacity-70">VIDERE TRIVMPHVM</a>
                                 </div>
                                 <div className="p-6 border border-red-950/30 bg-red-950/5 relative overflow-hidden text-center">
                                     <h3 className="text-red-900 text-[9px] font-bold uppercase tracking-[0.3em] mb-4 font-altar">MEMENTŌ MORĪ</h3>
-                                    <p className="text-stone-400 font-serif italic text-base leading-relaxed uppercase">"RECVERDA LA CARPETA <span className="text-red-800 underline font-bold">MARIANO GORDO</span>. ES LA ADVERTENCIA DE LO QVE SVCEDE CVANDO NON HAY LEX."</p>
+                                    <p className="text-stone-400 font-serif italic text-base leading-relaxed uppercase">"RECUERDA LA CARPETA <span className="text-red-800 underline font-bold">MARIANO GORDO</span>. ES LA ADVERTENCIA DE LO QVE SUCEDE CUANDO NON HAY LEX."</p>
                                     <a href="https://drive.google.com/drive/folders/1wzkDMJnr8cfq36HvbRfRizRLzXdJWDWq" target="_blank" className="inline-block mt-4 text-[9px] text-red-900 uppercase border-b border-red-900/20 font-bold tracking-widest transition-opacity hover:opacity-70">VIDERE ABYSSVM</a>
                                 </div>
                                 <div className="pt-10 border-t border-stone-900 space-y-4">
