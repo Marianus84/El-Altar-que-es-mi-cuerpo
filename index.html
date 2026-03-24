@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Altare Integritatis</title>
+    <title>ALTARE INTEGRITATIS</title>
     <!-- React y Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -76,7 +76,6 @@
         const { useState, useEffect, useMemo, useRef } = React;
 
         const Icon = ({ name, size = 20, className = "" }) => {
-            // Implementación SVG nativa para el lápiz para asegurar visibilidad
             if (name === 'pencil') {
                 return (
                     <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
@@ -89,39 +88,33 @@
 
         const App = () => {
             const [activeTab, setActiveTab] = useState('altar');
-            
-            // Altare States
             const [isClosed, setIsClosed] = useState(false);
             const [history, setHistory] = useState([]);
-            
-            // Materia (Peso) States
             const [targetWeight, setTargetWeight] = useState(80);
             const [weightHistory, setWeightHistory] = useState([]);
             const [newWeight, setNewWeight] = useState('');
-            
             const fileInputRef = useRef(null);
             const chartRef = useRef(null);
             const chartInstance = useRef(null);
 
-            // Disciplina (Kaizen) States
             const [kaizenData, setKaizenData] = useState({
                 week: 1,
                 history: [],
                 exercises: [
-                    { name: "Romanian Deadlifts", muscles: ["Dorsum", "Crura"], weight: 16, sets: 3, reps: 6, completed: false },
-                    { name: "Gorilla Rows", muscles: ["Dorsum", "Brachia"], weight: 16, sets: 3, reps: 10, completed: false },
-                    { name: "Goblet Squats", muscles: ["Crura", "Corpus"], weight: 16, sets: 3, reps: 6, completed: false },
-                    { name: "2 Handed Swing", muscles: ["Corpus", "Crura", "Dorsum"], weight: 16, sets: 3, reps: 10, completed: false },
-                    { name: "Overhead Press", muscles: ["Humeri", "Brachia"], weight: 16, sets: 3, reps: 8, completed: false },
-                    { name: "Reverse Lunge", muscles: ["Crura"], weight: 16, sets: 3, reps: 6, completed: false }
+                    { name: "ROMANIAN DEADLIFTS", muscles: ["DORSVM", "CRVRA"], weight: 16, sets: 3, reps: 6, completed: false },
+                    { name: "GORILLA ROWS", muscles: ["DORSVM", "BRACHIA"], weight: 16, sets: 3, reps: 10, completed: false },
+                    { name: "GOBLET SQVATS", muscles: ["CRVRA", "CORPVS"], weight: 16, sets: 3, reps: 6, completed: false },
+                    { name: "2 HANDED SWING", muscles: ["CORPVS", "CRVRA", "DORSVM"], weight: 16, sets: 3, reps: 10, completed: false },
+                    { name: "OVERHEAD PRESS", muscles: ["HVMERI", "BRACHIA"], weight: 16, sets: 3, reps: 8, completed: false },
+                    { name: "REVERSE LVNGE", muscles: ["CRVRA"], weight: 16, sets: 3, reps: 6, completed: false }
                 ]
             });
+
             const [isExFormOpen, setIsExFormOpen] = useState(false);
             const [editingExIndex, setEditingExIndex] = useState(null);
             const [tempEx, setTempEx] = useState({ name: '', muscles: [], weight: '', sets: '', reps: '' });
             const [chartFilter, setChartFilter] = useState('all');
 
-            // Sustentaculum States
             const [sustentaculumData, setSustentaculumData] = useState({
                 goals: { steps: 10000, protein: 150 },
                 daily: { steps: 0, protein: 0, date: new Date().toLocaleDateString(), stepsSealed: false, proteinSealed: false },
@@ -131,61 +124,55 @@
             const [showSustGoals, setShowSustGoals] = useState(false);
 
             const gospels = [
-                { verse: "Thermodynamica I:I", text: "Energia neque creatur neque deletur, tantum mutatur. Si altare non clauditur, excessus onus praeteriti fit.", sub: "La energía no se crea ni se destruye, solo se transforma. Si el altar no se cierra, el exceso se convierte en el lastre del pasado." },
-                { verse: "Homeostasis IV:XII", text: "Silentium gastricum est nuntius claritatis mentis. In ieiunio, corpus se ipsum sanat.", sub: "El silencio gástrico es el heraldo de la claridad mental. En el ayuno, el cuerpo se cura a sí mismo." },
-                { verse: "Insulina II:V", text: "Noli gigantem dormientem extra horam suam excitare. Requies est unica via ad propria deposita comburenda.", sub: "No provoques al gigante dormido fuera de su hora. El reposo es la única vía hacia la quema de tus propios depósitos." }
+                { verse: "THERMODYNAMICA I:I", text: "ENERGIA NEQVE CREATVR NEQVE DELETVR, TANTVM MVTATVR. SI ALTARE NON CLAVDITVR, EXCESSVS ONVS PRAETERITI FIT.", sub: "La energía no se crea ni se destruye, solo se transforma. Si el altar no se cierra, el exceso se convierte en el lastre del pasado." },
+                { verse: "HOMEOSTASIS IV:XII", text: "SILENTIVM GASTRICVM EST NVNTIVS CLARITATIS MENTIS. IN IEIVNIO, CORPVS SE IPSVM SANAT.", sub: "El silencio gástrico es el heraldo de la claridad mental. En el ayuno, el cuerpo se cura a sí mismo." },
+                { verse: "INSVLINA II:V", text: "NOLI GIGANTEM DORMIENTEM EXTRA HORAM SVAM EXCITARE. REQVIES EST VNICA VIA AD PROPRIA DEPOSITA COMBVRENDA.", sub: "No provoques al gigante dormido fuera de su hora. El reposo es la única vía hacia la quema de tus propios depósitos." }
             ];
 
             const [ritualSteps, setRitualSteps] = useState([
-                { id: 1, text: "Agnoscere necessitatem biologicam expletam esse.", sub: "Reconocer que el requerimiento biológico ha sido satisfecho.", completed: false },
-                { id: 2, text: "Munda omnia reliquia alimentorum.", sub: "Limpieza total de los restos del sustento.", completed: false },
-                { id: 3, text: "Obsignatio Oris: dentes penitus lavare.", sub: "Sellado Bucal: Lavado profundo de dientes.", completed: false },
-                { id: 4, text: "Baptismus ieiunii cum potione vel aqua.", sub: "Bautismo de ayuno con infusión o agua.", completed: false },
-                { id: 5, text: "Declarare: 'Lex mea absoluta est usque ad crastinum'.", sub: "Declarar: 'Mi ley es absoluta hasta mañana'.", completed: false }
+                { id: 1, text: "AGNOSCERE NECESSITATEM BIOLOGICAM EXPLETAM ESSE.", sub: "Reconocer que el requerimiento biológico ha sido satisfecho.", completed: false },
+                { id: 2, text: "MVNDA OMNIA RELIQVIA ALIMENTORVM.", sub: "Limpieza total de los restos del sustento.", completed: false },
+                { id: 3, text: "OBSIGNATIO ORIS: DENTES PENITVS LAVARE.", sub: "Sellado Bucal: Lavado profundo de dientes.", completed: false },
+                { id: 4, text: "BAPTISMVS IEIVNII CVM POTIONE VEL AQVA.", sub: "Bautismo de ayuno con infusión o agua.", completed: false },
+                { id: 5, text: "DECLARARE: 'LEX MEA ABSOLVTAS EST VSQVE AD CRASTINVM'.", sub: "Declarar: 'Mi ley es absoluta hasta mañana'.", completed: false }
             ]);
 
             const altarLevels = [
-                { min: 0, name: "Novicius", sub: "Neófito", color: "text-stone-500", glow: "bg-amber-500/10", shadow: "glow-lv0" },
-                { min: 3, name: "Custos Legis", sub: "Guardián de la Ley", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 7, name: "Templarius Ordinis", sub: "Templario del Orden", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 30, name: "Magister Voluntatis", sub: "Maestro de la Voluntad", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 90, name: "Ens Lucis", sub: "Ser de Luz", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 180, name: "Architectus Fati", sub: "Arquitecto del Destino", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 365, name: "Ego Supremus", sub: "El Yo Supremo", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" }
+                { min: 0, name: "NOVICIVS", sub: "Neófito", color: "text-stone-500", glow: "bg-amber-500/10", shadow: "glow-lv0" },
+                { min: 3, name: "CVSTOS LEGIS", sub: "Guardián de la Ley", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 7, name: "TEMPLARIVS ORDINIS", sub: "Templario del Orden", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 30, name: "MAGISTER VOLVNTATIS", sub: "Maestro de la Voluntad", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 90, name: "ENS LVCIS", sub: "Ser de Luz", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 180, name: "ARCHITECTVS FATI", sub: "Arquitecto del Destino", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 365, name: "EGO SVPREMVS", sub: "El Yo Supremo", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" }
             ];
 
             const sustLevels = [
-                { min: 0, name: "Lixae", sub: "Aguador", color: "text-stone-500" },
-                { min: 7, name: "Viator", sub: "Viajero", color: "text-stone-400" },
-                { min: 30, name: "Cursor", sub: "Corredor", color: "text-stone-200" },
-                { min: 90, name: "Hoplita", sub: "Hoplita", color: "text-amber-700" },
-                { min: 180, name: "Centurio", sub: "Centurión", color: "text-amber-500" },
-                { min: 365, name: "Invictus", sub: "Invicto", color: "text-white brightness-125 font-bold" }
+                { min: 0, name: "LIXAE", sub: "Aguador", color: "text-stone-500" },
+                { min: 7, name: "VIATOR", sub: "Viajero", color: "text-stone-400" },
+                { min: 30, name: "CRVSOR", sub: "Corredor", color: "text-stone-200" },
+                { min: 90, name: "HOPLITA", sub: "Hoplita", color: "text-amber-700" },
+                { min: 180, name: "CENTVRIO", sub: "Centurión", color: "text-amber-500" },
+                { min: 365, name: "INVICTVS", sub: "Invicto", color: "text-white brightness-125 font-bold" }
             ];
 
             const muscleList = [
-                { id: "Humeri", label: "Humeri", es: "Hombros" },
-                { id: "Pectus", label: "Pectus", es: "Pecho" },
-                { id: "Dorsum", label: "Dorsum", es: "Espalda" },
-                { id: "Brachia", label: "Brachia", es: "Brazos" },
-                { id: "Corpus", label: "Corpus", es: "Core" },
-                { id: "Crura", label: "Crura", es: "Piernas" }
+                { id: "HVMERI", label: "HVMERI", es: "Hombros" },
+                { id: "PECTVS", label: "PECTVS", es: "Pecho" },
+                { id: "DORSVM", label: "DORSVM", es: "Espalda" },
+                { id: "BRACHIA", label: "BRACHIA", es: "Brazos" },
+                { id: "CORPVS", label: "CORPVS", es: "Core" },
+                { id: "CRVRA", label: "CRVRA", es: "Piernas" }
             ];
 
             const currentStreak = history.length > 0 ? history[0].streak : 0;
             const currentAltarLevel = altarLevels.slice().reverse().find(l => currentStreak >= l.min) || altarLevels[0];
-
             const stepsStreak = sustentaculumData.historySteps?.length > 0 ? sustentaculumData.historySteps[0].streak : 0;
             const proteinStreak = sustentaculumData.historyProtein?.length > 0 ? sustentaculumData.historyProtein[0].streak : 0;
-
             const stepsLevel = sustLevels.slice().reverse().find(l => stepsStreak >= l.min) || sustLevels[0];
             const proteinLevel = sustLevels.slice().reverse().find(l => proteinStreak >= l.min) || sustLevels[0];
 
             useEffect(() => {
-                loadLocalData();
-            }, []);
-
-            const loadLocalData = () => {
                 const savedInt = localStorage.getItem('altar_v3_history');
                 if (savedInt) {
                     const parsed = JSON.parse(savedInt);
@@ -200,30 +187,24 @@
                 }
                 const savedKaizen = localStorage.getItem('kaizenData');
                 if (savedKaizen) setKaizenData(JSON.parse(savedKaizen));
-                
                 const savedSust = localStorage.getItem('sustentaculumData');
                 if (savedSust) {
                     const parsed = JSON.parse(savedSust);
                     const today = new Date().toLocaleDateString();
-                    if (!parsed.historySteps) parsed.historySteps = [];
-                    if (!parsed.historyProtein) parsed.historyProtein = [];
-                    
                     if (parsed.daily.date !== today) {
                         parsed.daily = { steps: 0, protein: 0, date: today, stepsSealed: false, proteinSealed: false };
                     }
                     setSustentaculumData(parsed);
                 }
-            };
+            }, []);
 
             useEffect(() => {
                 localStorage.setItem('kaizenData', JSON.stringify(kaizenData));
                 localStorage.setItem('sustentaculumData', JSON.stringify(sustentaculumData));
-                
                 if (activeTab === 'disciplina') {
                     const timer = setTimeout(() => renderKaizenChart(), 100);
                     return () => clearTimeout(timer);
                 }
-                
                 if (window.lucide) {
                     const timer = setTimeout(() => window.lucide.createIcons(), 50);
                     return () => clearTimeout(timer);
@@ -232,17 +213,12 @@
 
             const renderKaizenChart = () => {
                 if (!chartRef.current || kaizenData.history.length === 0 || typeof Chart === 'undefined') return;
-                
                 try {
-                    if (chartInstance.current) {
-                        chartInstance.current.destroy();
-                    }
-                    
+                    if (chartInstance.current) chartInstance.current.destroy();
                     const ctx = chartRef.current.getContext('2d');
                     const uniqueWeeks = [...new Set(kaizenData.history.map(h => h.week))].sort((a,b) => a-b);
-                    const labels = uniqueWeeks.map(w => `Ebdomada ${w}`);
+                    const labels = uniqueWeeks.map(w => `EBDOMADA ${w}`);
                     let names = chartFilter === 'all' ? [...new Set(kaizenData.history.map(h => h.name))] : [chartFilter];
-                    
                     const datasets = names.map((name, index) => ({
                         label: name,
                         data: uniqueWeeks.map(w => kaizenData.history.find(h => h.name === name && h.week === w)?.volume || null),
@@ -253,40 +229,24 @@
                         pointRadius: 4,
                         spanGaps: true
                     }));
-
                     chartInstance.current = new Chart(ctx, {
                         type: 'line',
                         data: { labels, datasets },
                         options: {
                             responsive: true,
                             maintainAspectRatio: false,
-                            plugins: { 
-                                legend: { 
-                                    display: chartFilter === 'all', 
-                                    position: 'bottom', 
-                                    labels: { color: '#a8a29e', font: { size: 10, family: 'Cinzel' } } 
-                                } 
-                            },
-                            scales: { 
-                                y: { ticks: { color: '#57534e' }, grid: { color: '#1c1917' } }, 
-                                x: { ticks: { color: '#57534e' }, grid: { display: false } } 
-                            }
+                            plugins: { legend: { display: chartFilter === 'all', position: 'bottom', labels: { color: '#a8a29e', font: { size: 10, family: 'Cinzel' } } } },
+                            scales: { y: { ticks: { color: '#57534e' }, grid: { color: '#1c1917' } }, x: { ticks: { color: '#57534e' }, grid: { display: false } } }
                         }
                     });
-                } catch (e) {
-                    console.error("Chart error:", e);
-                }
+                } catch (e) { console.error("Chart error:", e); }
             };
 
             const sealSteps = () => {
                 if (sustentaculumData.daily.steps < sustentaculumData.goals.steps || sustentaculumData.daily.stepsSealed) return;
                 setSustentaculumData(prev => {
                     const newStreak = prev.historySteps.length > 0 ? prev.historySteps[0].streak + 1 : 1;
-                    return {
-                        ...prev,
-                        daily: { ...prev.daily, stepsSealed: true },
-                        historySteps: [{ date: prev.daily.date, streak: newStreak }, ...prev.historySteps]
-                    };
+                    return { ...prev, daily: { ...prev.daily, stepsSealed: true }, historySteps: [{ date: prev.daily.date, streak: newStreak }, ...prev.historySteps] };
                 });
             };
 
@@ -294,26 +254,19 @@
                 if (sustentaculumData.daily.protein < sustentaculumData.goals.protein || sustentaculumData.daily.proteinSealed) return;
                 setSustentaculumData(prev => {
                     const newStreak = prev.historyProtein.length > 0 ? prev.historyProtein[0].streak + 1 : 1;
-                    return {
-                        ...prev,
-                        daily: { ...prev.daily, proteinSealed: true },
-                        historyProtein: [{ date: prev.daily.date, streak: newStreak }, ...prev.historyProtein]
-                    };
+                    return { ...prev, daily: { ...prev.daily, proteinSealed: true }, historyProtein: [{ date: prev.daily.date, streak: newStreak }, ...prev.historyProtein] };
                 });
             };
 
             const toggleExComplete = (index) => {
                 setKaizenData(prev => ({
                     ...prev,
-                    exercises: prev.exercises.map((ex, i) => 
-                        i === index ? { ...ex, completed: !ex.completed } : ex
-                    )
+                    exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, completed: !ex.completed } : ex)
                 }));
             };
 
             const startEditExercise = (index) => {
-                const ex = kaizenData.exercises[index];
-                setTempEx({ ...ex });
+                setTempEx({ ...kaizenData.exercises[index] });
                 setEditingExIndex(index);
                 setIsExFormOpen(true);
             };
@@ -321,80 +274,28 @@
             const applyKaizenCycle = () => {
                 setKaizenData(prev => {
                     const newHistory = [...prev.history];
-                    prev.exercises.forEach(ex => newHistory.push({ 
-                        week: prev.week, 
-                        name: ex.name, 
-                        weight: ex.weight, 
-                        sets: ex.sets, 
-                        reps: ex.reps, 
-                        volume: ex.weight * ex.sets * ex.reps 
-                    }));
-                    
+                    prev.exercises.forEach(ex => newHistory.push({ week: prev.week, name: ex.name, weight: ex.weight, sets: ex.sets, reps: ex.reps, volume: ex.weight * ex.sets * ex.reps }));
                     const newExercises = prev.exercises.map(ex => {
                         let reps = ex.reps;
                         let sets = ex.sets;
-                        if (reps >= 15) { 
-                            reps = 8; 
-                            sets += 1; 
-                        } else { 
-                            reps += 1; 
-                        }
+                        if (reps >= 15) { reps = 8; sets += 1; } else { reps += 1; }
                         return { ...ex, reps, sets, completed: false };
                     });
-
                     return { ...prev, week: prev.week + 1, history: newHistory, exercises: newExercises };
                 });
             };
 
             const saveNewEx = () => {
                 if (!tempEx.name || !tempEx.sets || !tempEx.reps) return;
-                const finalEx = { 
-                    ...tempEx, 
-                    weight: parseFloat(tempEx.weight) || 0, 
-                    sets: parseInt(tempEx.sets) || 0, 
-                    reps: parseInt(tempEx.reps) || 0, 
-                    completed: tempEx.completed || false 
-                };
-                
+                const finalEx = { ...tempEx, weight: parseFloat(tempEx.weight) || 0, sets: parseInt(tempEx.sets) || 0, reps: parseInt(tempEx.reps) || 0, completed: tempEx.completed || false };
                 setKaizenData(prev => {
                     const newExs = [...prev.exercises];
                     if (editingExIndex !== null) newExs[editingExIndex] = finalEx;
                     else newExs.push(finalEx);
                     return { ...prev, exercises: newExs };
                 });
-                
                 setIsExFormOpen(false);
                 setEditingExIndex(null);
-                setTempEx({ name: '', muscles: [], weight: '', sets: '', reps: '' });
-            };
-
-            const muscleImpact = useMemo(() => {
-                const hits = {};
-                kaizenData.exercises.forEach(ex => { 
-                    if (ex.completed && ex.muscles) {
-                        ex.muscles.forEach(m => hits[m] = (hits[m] || 0) + 1); 
-                    }
-                });
-                return hits;
-            }, [kaizenData.exercises]);
-
-            const maxHits = Math.max(...Object.values(muscleImpact), 0) || 1;
-            const currentWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].value : 0;
-            const lostWeight = weightHistory.length > 0 ? (weightHistory[0].value - currentWeight).toFixed(1) : 0;
-            const remainingWeight = currentWeight > 0 ? (currentWeight - targetWeight).toFixed(1) : 0;
-
-            const updateSustDaily = (field, val) => {
-                setSustentaculumData(prev => ({
-                    ...prev,
-                    daily: { ...prev.daily, [field]: parseFloat(val) || 0 }
-                }));
-            };
-
-            const updateSustGoal = (field, val) => {
-                setSustentaculumData(prev => ({
-                    ...prev,
-                    goals: { ...prev.goals, [field]: parseFloat(val) || 0 }
-                }));
             };
 
             const exportBackup = () => {
@@ -425,12 +326,21 @@
                         if (data.kaizen) localStorage.setItem('kaizenData', data.kaizen);
                         if (data.sust) localStorage.setItem('sustentaculumData', data.sust);
                         window.location.reload();
-                    } catch (err) {
-                        console.error("Errorem legere exemplar", err);
-                    }
+                    } catch (err) { console.error("ERROREM LEGERE EXEMPLAR", err); }
                 };
                 reader.readAsText(file);
             };
+
+            const muscleImpact = useMemo(() => {
+                const hits = {};
+                kaizenData.exercises.forEach(ex => { if (ex.completed && ex.muscles) ex.muscles.forEach(m => hits[m] = (hits[m] || 0) + 1); });
+                return hits;
+            }, [kaizenData.exercises]);
+
+            const maxHits = Math.max(...Object.values(muscleImpact), 0) || 1;
+            const currentWeight = weightHistory.length > 0 ? weightHistory[weightHistory.length - 1].value : 0;
+            const lostWeight = weightHistory.length > 0 ? (weightHistory[0].value - currentWeight).toFixed(1) : 0;
+            const remainingWeight = currentWeight > 0 ? (currentWeight - targetWeight).toFixed(1) : 0;
 
             const sortedExercises = useMemo(() => {
                 return kaizenData.exercises
@@ -440,33 +350,33 @@
 
             return (
                 <div className="min-h-screen pb-20">
-                    <header className="p-4 border-b border-stone-900/50 flex flex-nowrap justify-between items-center backdrop-blur-xl bg-black/80 sticky top-0 z-50 overflow-x-auto no-scrollbar">
-                        <div className="flex items-center space-x-2 flex-shrink-0">
+                    <header className="p-4 border-b border-stone-900/50 flex flex-nowrap items-center backdrop-blur-xl bg-black/80 sticky top-0 z-50 overflow-x-auto no-scrollbar touch-pan-x">
+                        <div className="flex items-center space-x-2 flex-shrink-0 mr-4">
                             <Icon name="shield" className="text-amber-600" size={16} />
                             <div className="text-left hidden xs:block">
-                                <h1 className="text-[9px] font-altar tracking-[0.2em] uppercase text-stone-400">Integritas</h1>
+                                <h1 className="text-[9px] font-altar tracking-[0.2em] uppercase text-stone-400">INTEGRITAS</h1>
                                 <span className="sub-text">Integridad</span>
                             </div>
                         </div>
                         
-                        <div className="flex flex-col items-center justify-center px-4 border-x border-stone-900/30 flex-shrink-0">
+                        <div className="flex flex-col items-center justify-center px-4 border-x border-stone-900/30 flex-shrink-0 mr-4">
                             <div className="flex items-center space-x-2">
                                 <span className={`text-[9px] font-altar tracking-widest uppercase ${currentAltarLevel.color}`}>{currentAltarLevel.name}</span>
                                 <span className="text-stone-700 font-bold">|</span>
                                 <span className="text-[10px] font-bold text-amber-500 tracking-tighter">{currentStreak}D</span>
                             </div>
-                            <span className="text-[6px] text-stone-600 uppercase tracking-[0.3em]">Status Aeternus</span>
+                            <span className="text-[6px] text-stone-600 uppercase tracking-[0.3em]">STATVS AETERNVS</span>
                         </div>
 
-                        <nav className="flex space-x-4 flex-shrink-0 flex-nowrap ml-4">
+                        <nav className="flex space-x-6 flex-shrink-0 flex-nowrap pr-10">
                             {[
-                                {id: 'altar', lat: 'Altare', es: 'Altar'},
-                                {id: 'disciplina', lat: 'Disciplina', es: 'Kaizen'},
-                                {id: 'sustentaculum', lat: 'Sustento', es: 'Sustento'},
-                                {id: 'transmutation', lat: 'Materia', es: 'Materia'},
-                                {id: 'identity', lat: 'Vota', es: 'Votos'}
+                                {id: 'altar', lat: 'ALTARE', es: 'Altar'},
+                                {id: 'disciplina', lat: 'DISCIPLINA', es: 'Kaizen'},
+                                {id: 'sustentaculum', lat: 'SVSTENTACVLVM', es: 'Sustento'},
+                                {id: 'transmutation', lat: 'MATERIA', es: 'Materia'},
+                                {id: 'identity', lat: 'VOTA', es: 'Votos'}
                             ].map(tab => (
-                                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap text-[10px] tracking-widest uppercase font-bold text-center ${activeTab === tab.id ? 'text-amber-500' : 'text-stone-600'}`}>
+                                <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap text-[10px] tracking-widest uppercase font-bold text-center flex-shrink-0 ${activeTab === tab.id ? 'text-amber-500' : 'text-stone-600'}`}>
                                     <span>{tab.lat}</span>
                                     <span className="block text-[6px] opacity-50">{tab.es}</span>
                                 </button>
@@ -483,30 +393,30 @@
                                         {isClosed ? <Icon name="moon" size={48} className={`${currentAltarLevel.color.split(' ')[0]} animate-pulse`} /> : <Icon name="sun" size={48} className="text-stone-600" />}
                                         <div className="mt-4 flex flex-col items-center">
                                             <span className={`text-[8px] tracking-[0.4em] uppercase font-bold ${isClosed ? currentAltarLevel.color : 'text-stone-500'}`}>
-                                                {isClosed ? "Sacratum" : "Vigilia"}
+                                                {isClosed ? "SACRATVM" : "VIGILIA"}
                                             </span>
                                             <span className="text-[6px] opacity-40 uppercase tracking-widest">{isClosed ? "Consagrado" : "Vigilia"}</span>
                                         </div>
                                     </div>
                                     {isClosed && (
                                         <div className="mt-4 animate-bounce flex flex-col items-center">
-                                            <span className={`text-[10px] font-altar tracking-widest uppercase ${currentAltarLevel.color}`}>Gradus: {currentAltarLevel.name}</span>
+                                            <span className={`text-[10px] font-altar tracking-widest uppercase ${currentAltarLevel.color}`}>GRADVS: {currentAltarLevel.name}</span>
                                             <span className="text-[7px] opacity-60 uppercase tracking-widest">Nivel: {currentAltarLevel.sub}</span>
                                         </div>
                                     )}
                                 </div>
                                 <div className="text-center space-y-2">
-                                    <h2 className="text-3xl font-serif text-stone-200 italic">{isClosed ? "Lex obsignata est" : "Templum ordinem postulat"}</h2>
+                                    <h2 className="text-3xl font-serif text-stone-200 italic uppercase">{isClosed ? "LEX OBSIGNATA EST" : "TEMPLVM ORDINEM POSTVLAT"}</h2>
                                     <span className="text-[10px] text-stone-600 uppercase tracking-widest block italic">{isClosed ? "(la ley ha sido sellada)" : "(el templo reclama orden)"}</span>
                                 </div>
                                 {!isClosed ? (
                                     <button onClick={() => setActiveTab('ritual')} className="w-full py-4 border border-stone-700 bg-stone-900/50 text-stone-300 font-altar tracking-[0.2em] uppercase text-xs hover:border-amber-500 transition-all">
-                                        <span>Incipere Ritum Clausurae</span>
+                                        <span>INCIPERE RITVM CLAVSVRAE</span>
                                         <span className="block text-[7px] opacity-50 mt-1">Iniciar Ritual de Cierre</span>
                                     </button>
                                 ) : (
                                     <div className="flex flex-col items-center space-y-1">
-                                        <div className="px-6 py-2 border border-amber-900/50 bg-amber-950/10 text-amber-500 text-[10px] font-bold tracking-[0.3em] uppercase">Series: {currentStreak} Dies</div>
+                                        <div className="px-6 py-2 border border-amber-900/50 bg-amber-950/10 text-amber-500 text-[10px] font-bold tracking-[0.3em] uppercase">SERIES: {currentStreak} DIES</div>
                                         <span className="text-[7px] text-amber-700 uppercase tracking-widest">Racha: {currentStreak} Días</span>
                                     </div>
                                 )}
@@ -521,13 +431,13 @@
                         {activeTab === 'disciplina' && (
                             <div className="space-y-8 fade-in">
                                 <div className="text-center">
-                                    <h2 className="text-xl font-altar text-stone-200 tracking-[0.2em] uppercase">Melioratio Kaizen</h2>
-                                    <div className="text-amber-600 text-[10px] font-bold tracking-widest uppercase mt-1">Ebdomada {kaizenData.week}</div>
+                                    <h2 className="text-xl font-altar text-stone-200 tracking-[0.2em] uppercase">MELIORATIO KAIZEN</h2>
+                                    <div className="text-amber-600 text-[10px] font-bold tracking-widest uppercase mt-1">EBDOMADA {kaizenData.week}</div>
                                     <span className="text-[8px] text-stone-600 uppercase tracking-widest">Semana {kaizenData.week}</span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-1 mb-4">
                                     {muscleList.map(m => (
-                                        <div key={m.id} className="muscle-zone text-center border" style={{ backgroundColor: (muscleImpact[m.id] || 0) > 0 ? `rgba(217, 119, 6, ${0.1 + ((muscleImpact[m.id] || 0)/maxHits) * 0.4})` : 'transparent', borderColor: (muscleImpact[m.id] || 0) > 0 ? '#d97706' : '#292524', color: (muscleImpact[m.id] || 0) > 0 ? '#d6d3d1' : '#444' }}>{m.label}</div>
+                                        <div key={m.id} className="muscle-zone text-center border text-[10px] font-bold" style={{ backgroundColor: (muscleImpact[m.id] || 0) > 0 ? `rgba(217, 119, 6, ${0.1 + ((muscleImpact[m.id] || 0)/maxHits) * 0.4})` : 'transparent', borderColor: (muscleImpact[m.id] || 0) > 0 ? '#d97706' : '#292524', color: (muscleImpact[m.id] || 0) > 0 ? '#d6d3d1' : '#444' }}>{m.label}</div>
                                     ))}
                                 </div>
                                 <div className="space-y-3">
@@ -538,34 +448,26 @@
                                                     <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center ${ex.completed ? 'bg-amber-600 border-amber-600' : 'border-stone-700'}`}>{ex.completed && <Icon name="check" size={10} className="text-black" />}</div>
                                                     <div className="truncate">
                                                         <h4 className={`text-sm font-serif italic truncate ${ex.completed ? 'text-stone-500' : 'text-stone-300'}`}>{ex.name}</h4>
-                                                        <span className="text-[8px] text-amber-600/60 uppercase tracking-widest">{ex.muscles?.join(', ')}</span>
+                                                        <span className="text-[8px] text-amber-600/60 uppercase tracking-widest font-bold">{ex.muscles?.join(', ')}</span>
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center space-x-4 flex-shrink-0">
-                                                    <div className="text-right text-[10px] text-stone-500 uppercase tracking-tighter">
-                                                        {ex.weight}kg — {ex.sets}x{ex.reps}
-                                                    </div>
-                                                    <button onClick={(e) => { e.stopPropagation(); startEditExercise(ex.originalIndex); }} className="p-2 bg-stone-900 border border-stone-800 rounded text-stone-400 hover:text-amber-500 hover:border-amber-500 transition-all flex items-center justify-center">
-                                                        <Icon name="pencil" size={14} />
-                                                    </button>
+                                                    <div className="text-right text-[10px] text-stone-500 uppercase tracking-tighter font-bold">{ex.weight}KG — {ex.sets}X{ex.reps}</div>
+                                                    <button onClick={(e) => { e.stopPropagation(); startEditExercise(ex.originalIndex); }} className="p-2 bg-stone-900 border border-stone-800 rounded text-stone-400 hover:text-amber-500 hover:border-amber-500 transition-all flex items-center justify-center"><Icon name="pencil" size={14} /></button>
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                                <button onClick={() => { setEditingExIndex(null); setTempEx({ name: '', muscles: [], weight: '', sets: '', reps: '' }); setIsExFormOpen(true); }} className="w-full py-4 border border-stone-800 text-stone-500 text-[10px] font-altar tracking-widest uppercase hover:text-amber-600 transition-colors">+ Adde Disciplinam</button>
-                                <button disabled={!kaizenData.exercises.every(e => e.completed)} onClick={applyKaizenCycle} className={`w-full py-5 font-altar tracking-[0.2em] uppercase text-xs transition-all ${kaizenData.exercises.every(e => e.completed) ? 'bg-amber-600 text-black shadow-lg' : 'bg-stone-900 text-stone-700'}`}>Perfĭcere Cyclum (KAIZEN +1)</button>
+                                <button onClick={() => { setEditingExIndex(null); setTempEx({ name: '', muscles: [], weight: '', sets: '', reps: '' }); setIsExFormOpen(true); }} className="w-full py-4 border border-stone-800 text-stone-500 text-[10px] font-altar tracking-widest uppercase hover:text-amber-600 transition-colors">+ ADDE DISCIPLINAM</button>
+                                <button disabled={!kaizenData.exercises.every(e => e.completed)} onClick={applyKaizenCycle} className={`w-full py-5 font-altar tracking-[0.2em] uppercase text-xs transition-all ${kaizenData.exercises.every(e => e.completed) ? 'bg-amber-600 text-black shadow-lg' : 'bg-stone-900 text-stone-700'}`}>PERFICERE CYCLVM (KAIZEN +1)</button>
                                 <div className="h-48 w-full bg-stone-950/20 p-2 border border-stone-900 rounded"><canvas ref={chartRef}></canvas></div>
                             </div>
                         )}
 
                         {activeTab === 'sustentaculum' && (
                             <div className="space-y-8 fade-in">
-                                <div className="text-center">
-                                    <h2 className="text-xl font-altar text-stone-200 tracking-[0.2em] uppercase">Sustentaculum Biologicum</h2>
-                                    <span className="text-[10px] text-stone-600 uppercase tracking-widest">Sustento Biológico</span>
-                                </div>
-                                
+                                <div className="text-center"><h2 className="text-xl font-altar text-stone-200 tracking-[0.2em] uppercase">SVSTENTACVLVM BIOLOGICVM</h2><span className="text-[10px] text-stone-600 uppercase tracking-widest">Sustento Biológico</span></div>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="flex flex-col items-center space-y-4">
                                         <div className={`flex flex-col items-center space-y-3 transition-all duration-700 ${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'glow-success' : ''}`}>
@@ -574,25 +476,12 @@
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="2" fill="transparent" className="text-stone-900" />
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.steps / sustentaculumData.goals.steps, 1) * 251.2)} className={`${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'text-amber-500' : 'text-stone-600'} transition-all duration-1000`} />
                                                 </svg>
-                                                <div className="text-center z-10">
-                                                    <Icon name="footprints" className={`${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'text-amber-500' : 'text-stone-700'} mx-auto`} size={16} />
-                                                </div>
+                                                <div className="text-center z-10"><Icon name="footprints" className={`${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'text-amber-500' : 'text-stone-700'} mx-auto`} size={16} /></div>
                                             </div>
-                                            <div className="text-center">
-                                                <span className="text-[8px] text-stone-600 uppercase tracking-widest">Passus</span>
-                                                <input type="number" disabled={sustentaculumData.daily.stepsSealed} value={sustentaculumData.daily.steps || ''} onChange={e => updateSustDaily('steps', e.target.value)} className="block w-20 bg-transparent border-b border-stone-800 text-center text-xs outline-none mt-1 disabled:opacity-50" />
-                                            </div>
+                                            <div className="text-center"><span className="text-[8px] text-stone-600 uppercase tracking-widest font-bold">PASSVS</span><input type="number" disabled={sustentaculumData.daily.stepsSealed} value={sustentaculumData.daily.steps || ''} onChange={e => setSustentaculumData(prev => ({...prev, daily: {...prev.daily, steps: parseFloat(e.target.value) || 0}}))} className="block w-20 bg-transparent border-b border-stone-800 text-center text-xs outline-none mt-1 disabled:opacity-50" /></div>
                                         </div>
-                                        {!sustentaculumData.daily.stepsSealed ? (
-                                            <button onClick={sealSteps} disabled={sustentaculumData.daily.steps < sustentaculumData.goals.steps} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'bg-amber-600/20 text-amber-500 border-amber-600' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>Obsignare Passus</button>
-                                        ) : (
-                                            <div className="text-center flex flex-col items-center">
-                                                <span className={`text-[8px] font-altar uppercase tracking-widest ${stepsLevel.color}`}>{stepsLevel.name}</span>
-                                                <span className="text-[6px] text-stone-600 uppercase tracking-widest">Series: {stepsStreak}</span>
-                                            </div>
-                                        )}
+                                        {!sustentaculumData.daily.stepsSealed ? (<button onClick={sealSteps} disabled={sustentaculumData.daily.steps < sustentaculumData.goals.steps} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'bg-amber-600/20 text-amber-500 border-amber-600' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PASSVS</button>) : (<div className="text-center flex flex-col items-center"><span className={`text-[8px] font-altar uppercase tracking-widest ${stepsLevel.color}`}>{stepsLevel.name}</span><span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {stepsStreak}</span></div>)}
                                     </div>
-
                                     <div className="flex flex-col items-center space-y-4">
                                         <div className={`flex flex-col items-center space-y-3 transition-all duration-700 ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'glow-success' : ''}`}>
                                             <div className="relative w-24 h-24 flex items-center justify-center">
@@ -600,98 +489,74 @@
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="2" fill="transparent" className="text-stone-900" />
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.protein / sustentaculumData.goals.protein, 1) * 251.2)} className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-stone-200' : 'text-stone-700'} transition-all duration-1000`} />
                                                 </svg>
-                                                <div className="text-center z-10">
-                                                    <Icon name="zap" className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto`} size={16} />
-                                                </div>
+                                                <div className="text-center z-10"><Icon name="zap" className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto`} size={16} /></div>
                                             </div>
-                                            <div className="text-center">
-                                                <span className="text-[8px] text-stone-600 uppercase tracking-widest">Proteina</span>
-                                                <input type="number" disabled={sustentaculumData.daily.proteinSealed} value={sustentaculumData.daily.protein || ''} onChange={e => updateSustDaily('protein', e.target.value)} className="block w-20 bg-transparent border-b border-stone-800 text-center text-xs outline-none mt-1 disabled:opacity-50" />
-                                            </div>
+                                            <div className="text-center"><span className="text-[8px] text-stone-600 uppercase tracking-widest font-bold">PROTEINA</span><input type="number" disabled={sustentaculumData.daily.proteinSealed} value={sustentaculumData.daily.protein || ''} onChange={e => setSustentaculumData(prev => ({...prev, daily: {...prev.daily, protein: parseFloat(e.target.value) || 0}}))} className="block w-20 bg-transparent border-b border-stone-800 text-center text-xs outline-none mt-1 disabled:opacity-50" /></div>
                                         </div>
-                                        {!sustentaculumData.daily.proteinSealed ? (
-                                            <button onClick={sealProtein} disabled={sustentaculumData.daily.protein < sustentaculumData.goals.protein} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'bg-stone-200/20 text-white border-white' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>Obsignare Proteinam</button>
-                                        ) : (
-                                            <div className="text-center flex flex-col items-center">
-                                                <span className={`text-[8px] font-altar uppercase tracking-widest ${proteinLevel.color}`}>{proteinLevel.name}</span>
-                                                <span className="text-[6px] text-stone-600 uppercase tracking-widest">Series: {proteinStreak}</span>
-                                            </div>
-                                        )}
+                                        {!sustentaculumData.daily.proteinSealed ? (<button onClick={sealProtein} disabled={sustentaculumData.daily.protein < sustentaculumData.goals.protein} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'bg-stone-200/20 text-white border-white' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PROTEINAM</button>) : (<div className="text-center flex flex-col items-center"><span className={`text-[8px] font-altar uppercase tracking-widest ${proteinLevel.color}`}>{proteinLevel.name}</span><span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {proteinStreak}</span></div>)}
                                     </div>
                                 </div>
-                                
-                                <div className="p-6 border border-stone-900 bg-stone-950/20 text-center italic font-serif text-xs text-stone-500">
-                                    "Passus per passum, munitio corporis tui. Proteina est lateris tui templi."
-                                    <span className="block text-[8px] opacity-40 uppercase tracking-widest mt-2">(Paso a paso, la defensa de tu cuerpo. La proteína es el ladrillo de tu templo.)</span>
-                                </div>
-
+                                <div className="p-6 border border-stone-900 bg-stone-950/20 text-center italic font-serif text-xs text-stone-500 uppercase font-bold">"PASSVS PER PASSVM, MVNITIO CORPORIS TVI. PROTEINA EST LATERIS TVI TEMPLI."</div>
                                 <div className="pt-4 border-t border-stone-900/50">
-                                    <button onClick={() => setShowSustGoals(!showSustGoals)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em]">
-                                        <div className="text-left"><span>Metas Sacras</span><span className="block text-[6px] opacity-50">Objetivos Diarios</span></div>
-                                        <Icon name={showSustGoals ? "chevron-up" : "chevron-down"} size={14} />
-                                    </button>
-                                    <div className={`overflow-hidden transition-all duration-300 ${showSustGoals ? 'max-h-64 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
-                                        <div className="grid grid-cols-2 gap-4 p-4 bg-stone-900/20 border border-stone-900 rounded">
-                                            <div><label className="text-[8px] text-amber-600 uppercase tracking-widest mb-1 block">Meta Passus</label><input type="number" value={sustentaculumData.goals.steps} onChange={e => updateSustGoal('steps', e.target.value)} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
-                                            <div><label className="text-[8px] text-stone-400 uppercase tracking-widest mb-1 block">Meta Proteinam</label><input type="number" value={sustentaculumData.goals.protein} onChange={e => updateSustGoal('protein', e.target.value)} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
-                                        </div>
-                                    </div>
+                                    <button onClick={() => setShowSustGoals(!showSustGoals)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold"><div className="text-left"><span>METAS SACRAS</span></div><Icon name={showSustGoals ? "chevron-up" : "chevron-down"} size={14} /></button>
+                                    <div className={`overflow-hidden transition-all duration-300 ${showSustGoals ? 'max-h-64 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}><div className="grid grid-cols-2 gap-4 p-4 bg-stone-900/20 border border-stone-900 rounded">
+                                        <div><label className="text-[8px] text-amber-600 uppercase tracking-widest block font-bold">META PASSVS</label><input type="number" value={sustentaculumData.goals.steps} onChange={e => setSustentaculumData(prev => ({...prev, goals: {...prev.goals, steps: parseFloat(e.target.value) || 0}}))} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
+                                        <div><label className="text-[8px] text-stone-400 uppercase tracking-widest block font-bold">META PROTEINAM</label><input type="number" value={sustentaculumData.goals.protein} onChange={e => setSustentaculumData(prev => ({...prev, goals: {...prev.goals, protein: parseFloat(e.target.value) || 0}}))} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
+                                    </div></div>
                                 </div>
                             </div>
                         )}
 
                         {activeTab === 'transmutation' && (
                             <div className="space-y-8 fade-in">
-                                <div className="text-center"><h2 className="text-xl font-altar text-stone-200 tracking-widest uppercase">Gubernare Materiam</h2><span className="text-[10px] text-stone-600 uppercase tracking-widest">(Gobernar la Materia)</span></div>
+                                <div className="text-center"><h2 className="text-xl font-altar text-stone-200 tracking-widest uppercase">GVBERNARE MATERIAM</h2><span className="text-[10px] text-stone-600 uppercase tracking-widest">(Gobernar la Materia)</span></div>
                                 <div className="grid grid-cols-2 gap-3">
-                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">Praesens</p><p className="text-lg font-serif text-stone-200">{currentWeight} KG</p></div>
-                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">Meta</p><p className="text-lg font-serif text-amber-600">{targetWeight} KG</p></div>
-                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">Amissum</p><p className="text-lg font-serif text-green-900">-{lostWeight} KG</p></div>
-                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">Reliquum</p><p className="text-lg font-serif text-amber-900">{remainingWeight} KG</p></div>
+                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">PRAESENS</p><p className="text-lg font-serif text-stone-200">{currentWeight} KG</p></div>
+                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">META</p><p className="text-lg font-serif text-amber-600">{targetWeight} KG</p></div>
+                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">AMISSVM</p><p className="text-lg font-serif text-green-900">-{lostWeight} KG</p></div>
+                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">RELIQVVM</p><p className="text-lg font-serif text-amber-900">{remainingWeight} KG</p></div>
                                 </div>
                                 <div className="border-b border-stone-800 pb-2 flex items-center justify-between">
-                                    <input type="number" value={newWeight} onChange={(e) => setNewWeight(e.target.value)} placeholder="Consignare Pondus (KG)" className="bg-transparent border-none outline-none text-stone-300 w-full font-serif italic text-sm" />
-                                    <button onClick={() => { if(!newWeight) return; const updated = [...weightHistory, {date: new Date().toLocaleDateString(), value: parseFloat(newWeight)}]; setWeightHistory(updated); localStorage.setItem('altar_weight_data', JSON.stringify({history: updated, target: targetWeight})); setNewWeight(''); }} className="text-amber-600 text-[9px] font-bold uppercase tracking-widest">Consignare</button>
+                                    <input type="number" value={newWeight} onChange={(e) => setNewWeight(e.target.value)} placeholder="CONSIGNARE PONDVS (KG)" className="bg-transparent border-none outline-none text-stone-300 w-full font-serif italic text-sm uppercase" />
+                                    <button onClick={() => { if(!newWeight) return; const updated = [...weightHistory, {date: new Date().toLocaleDateString(), value: parseFloat(newWeight)}]; setWeightHistory(updated); localStorage.setItem('altar_weight_data', JSON.stringify({history: updated, target: targetWeight})); setNewWeight(''); }} className="text-amber-600 text-[9px] font-bold uppercase tracking-widest">CONSIGNARE</button>
                                 </div>
                             </div>
                         )}
 
                         {activeTab === 'ritual' && (
                             <div className="space-y-6 fade-in">
-                                <div className="text-center"><h2 className="text-xl font-serif text-stone-200">Via Clausurae</h2></div>
-                                <div className="space-y-3">
-                                    {ritualSteps.map(step => (
-                                        <div key={step.id} onClick={() => setRitualSteps(ritualSteps.map(s => s.id === step.id ? {...s, completed: !s.completed} : s))} className={`p-4 border transition-all ${step.completed ? 'border-amber-900 bg-amber-950/5 text-amber-200' : 'border-stone-900 text-stone-500'}`}>
-                                            <div className="flex items-center space-x-4"><div className={`w-4 h-4 rounded-full border ${step.completed ? 'bg-amber-500 border-amber-500' : 'border-stone-800'}`}></div><div><span className="text-sm font-serif italic">{step.text}</span><span className="text-[9px] opacity-60 block italic">{step.sub}</span></div></div>
-                                        </div>
-                                    ))}
-                                </div>
+                                <div className="text-center"><h2 className="text-xl font-serif text-stone-200 uppercase">VIA CLAVSVRAE</h2></div>
+                                <div className="space-y-3 font-bold">{ritualSteps.map(step => (
+                                    <div key={step.id} onClick={() => setRitualSteps(ritualSteps.map(s => s.id === step.id ? {...s, completed: !s.completed} : s))} className={`p-4 border transition-all ${step.completed ? 'border-amber-900 bg-amber-950/5 text-amber-200' : 'border-stone-900 text-stone-500'}`}>
+                                        <div className="flex items-center space-x-4"><div className={`w-4 h-4 rounded-full border ${step.completed ? 'bg-amber-500 border-amber-500' : 'border-stone-800'}`}></div><div><span className="text-sm font-serif italic">{step.text}</span><span className="text-[9px] opacity-60 block italic uppercase">{step.sub}</span></div></div>
+                                    </div>
+                                ))}</div>
                                 <button disabled={!ritualSteps.every(s => s.completed)} onClick={() => {
                                     const newEntry = {date: new Date().toLocaleDateString(), streak: history.length > 0 ? history[0].streak + 1 : 1};
                                     const updated = [newEntry, ...history];
                                     setHistory(updated); localStorage.setItem('altar_v3_history', JSON.stringify(updated));
                                     setIsClosed(true); setActiveTab('altar');
-                                }} className={`w-full py-5 font-altar tracking-widest uppercase text-xs ${ritualSteps.every(s => s.completed) ? 'bg-amber-600 text-black' : 'bg-stone-900 text-stone-700'}`}>Obsignare Promissum</button>
+                                }} className={`w-full py-5 font-altar tracking-widest uppercase text-xs ${ritualSteps.every(s => s.completed) ? 'bg-amber-600 text-black' : 'bg-stone-900 text-stone-700'}`}>OBSIGNARE PROMISSVM</button>
                             </div>
                         )}
 
                         {activeTab === 'identity' && (
                             <div className="space-y-10 fade-in">
                                 <div className="p-6 border border-amber-900/30 bg-amber-950/5 relative overflow-hidden text-center">
-                                    <h3 className="text-amber-600 text-[9px] font-bold uppercase tracking-[0.3em] mb-4">Glorĭa et Victōria</h3>
-                                    <p className="text-stone-300 font-serif italic text-base leading-relaxed">"Visualiza tu ascenso. La carpeta <span className="text-amber-500 underline font-bold">Mariano FIT</span> es el testimonio de tu gloria."</p>
-                                    <a href="https://drive.google.com/drive/folders/1wxD5-44Rj8GVBSCHtKUBf5d12U4K3cOQ" target="_blank" className="inline-block mt-4 text-[9px] text-amber-600 uppercase border-b border-amber-600/20">Videre Triumphum</a>
+                                    <h3 className="text-amber-600 text-[9px] font-bold uppercase tracking-[0.3em] mb-4 font-altar">GLORĬA ET VICTŌRIA</h3>
+                                    <p className="text-stone-300 font-serif italic text-base leading-relaxed uppercase">"VISVALIZA TV ASCENSO. LA CARPETA <span className="text-amber-500 underline font-bold">MARIANO FIT</span> ES EL TESTIMONIO DE TV GLORIA."</p>
+                                    <a href="https://drive.google.com/drive/folders/1wxD5-44Rj8GVBSCHtKUBf5d12U4K3cOQ" target="_blank" className="inline-block mt-4 text-[9px] text-amber-600 uppercase border-b border-amber-600/20 font-bold">VIDERE TRIVMPHVM</a>
                                 </div>
                                 <div className="p-6 border border-red-950/30 bg-red-950/5 relative overflow-hidden text-center">
-                                    <h3 className="text-red-900 text-[9px] font-bold uppercase tracking-[0.3em] mb-4">Mementō Morī</h3>
-                                    <p className="text-stone-400 font-serif italic text-base leading-relaxed">"Recuerda la carpeta <span className="text-red-800 underline font-bold">Mariano gordo</span>. Es la advertencia de lo que sucede cuando no hay ley."</p>
-                                    <a href="https://drive.google.com/drive/folders/1wzkDMJnr8cfq36HvbRfRizRLzXdJWDWq" target="_blank" className="inline-block mt-4 text-[9px] text-red-900 uppercase border-b border-red-900/20">Videre Abyssum</a>
+                                    <h3 className="text-red-900 text-[9px] font-bold uppercase tracking-[0.3em] mb-4 font-altar">MEMENTŌ MORĪ</h3>
+                                    <p className="text-stone-400 font-serif italic text-base leading-relaxed uppercase">"RECVERDA LA CARPETA <span className="text-red-800 underline font-bold">MARIANO GORDO</span>. ES LA ADVERTENCIA DE LO QVE SVCEDE CVANDO NON HAY LEX."</p>
+                                    <a href="https://drive.google.com/drive/folders/1wzkDMJnr8cfq36HvbRfRizRLzXdJWDWq" target="_blank" className="inline-block mt-4 text-[9px] text-red-900 uppercase border-b border-red-900/20 font-bold">VIDERE ABYSSVM</a>
                                 </div>
                                 <div className="pt-10 border-t border-stone-900 space-y-4">
-                                    <h4 className="text-stone-600 text-[10px] font-bold uppercase tracking-widest text-center">Conservatio Progressus</h4>
+                                    <h4 className="text-stone-600 text-[10px] font-bold uppercase tracking-widest text-center">CONSERVATIO PROGRESSVS</h4>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <button onClick={exportBackup} className="py-3 border border-stone-800 bg-stone-900/20 text-stone-400 text-[9px] uppercase tracking-widest hover:border-amber-600 transition-colors"><span>Servare Exemplar</span></button>
-                                        <button onClick={() => fileInputRef.current.click()} className="py-3 border border-stone-800 bg-stone-900/20 text-stone-400 text-[9px] uppercase tracking-widest hover:border-amber-600 transition-colors"><span>Legere Exemplar</span></button>
+                                        <button onClick={exportBackup} className="py-3 border border-stone-800 bg-stone-900/20 text-stone-400 text-[9px] uppercase tracking-widest hover:border-amber-600 transition-colors font-bold"><span>SERVARE EXEMPLAR</span></button>
+                                        <button onClick={() => fileInputRef.current.click()} className="py-3 border border-stone-800 bg-stone-900/20 text-stone-400 text-[9px] uppercase tracking-widest hover:border-amber-600 transition-colors font-bold"><span>LEGERE EXEMPLAR</span></button>
                                         <input type="file" ref={fileInputRef} onChange={importBackup} className="hidden" accept=".json" />
                                     </div>
                                 </div>
@@ -701,23 +566,23 @@
 
                     {isExFormOpen && (
                         <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-6">
-                            <div className="w-full max-w-sm p-6 border border-amber-900/50 bg-stone-950 space-y-4">
-                                <h3 className="text-[10px] font-altar uppercase tracking-widest text-amber-600">{editingExIndex !== null ? "Mutare Exercitium" : "Novum Exercitium"}</h3>
-                                <input value={tempEx.name} onChange={e => setTempEx({...tempEx, name: e.target.value})} placeholder="Nomen Exercitii" className="w-full bg-transparent border-b border-stone-800 p-2 text-sm italic outline-none focus:border-amber-600" />
-                                <div className="grid grid-cols-3 gap-2">{muscleList.map(m => (<button key={m.id} onClick={() => setTempEx({...tempEx, muscles: tempEx.muscles.includes(m.id) ? tempEx.muscles.filter(x => x !== m.id) : [...tempEx.muscles, m.id]})} className={`text-[8px] p-2 border ${tempEx.muscles.includes(m.id) ? 'border-amber-600 text-amber-500' : 'border-stone-800 text-stone-600'} uppercase tracking-widest`}>{m.label}</button>))}</div>
+                            <div className="w-full max-w-sm p-6 border border-amber-900/50 bg-stone-950 space-y-4 font-bold">
+                                <h3 className="text-[10px] font-altar uppercase tracking-widest text-amber-600">{editingExIndex !== null ? "MVTARE EXERCITIVM" : "NOVVM EXERCITIVM"}</h3>
+                                <input value={tempEx.name} onChange={e => setTempEx({...tempEx, name: e.target.value.toUpperCase()})} placeholder="NOMEN EXERCITII" className="w-full bg-transparent border-b border-stone-800 p-2 text-sm italic outline-none focus:border-amber-600 uppercase" />
+                                <div className="grid grid-cols-3 gap-2">{muscleList.map(m => (<button key={m.id} onClick={() => setTempEx({...tempEx, muscles: tempEx.muscles.includes(m.id) ? tempEx.muscles.filter(x => x !== m.id) : [...tempEx.muscles, m.id]})} className={`text-[8px] p-2 border ${tempEx.muscles.includes(m.id) ? 'border-amber-600 text-amber-500' : 'border-stone-800 text-stone-600'} uppercase tracking-widest font-bold`}>{m.label}</button>))}</div>
                                 <div className="flex space-x-2">
-                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2">Pondus (kg)</label><input type="number" value={tempEx.weight} onChange={e => setTempEx({...tempEx, weight: e.target.value})} placeholder="KG" className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none" /></div>
-                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2">Series</label><input type="number" value={tempEx.sets} onChange={e => setTempEx({...tempEx, sets: e.target.value})} placeholder="Ser." className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none" /></div>
-                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2">Repetitiones</label><input type="number" value={tempEx.reps} onChange={e => setTempEx({...tempEx, reps: e.target.value})} placeholder="Rep." className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none" /></div>
+                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold">PONDVS (KG)</label><input type="number" value={tempEx.weight} onChange={e => setTempEx({...tempEx, weight: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none" /></div>
+                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold">SERIES</label><input type="number" value={tempEx.sets} onChange={e => setTempEx({...tempEx, sets: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none" /></div>
+                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold">REPETITIONES</label><input type="number" value={tempEx.reps} onChange={e => setTempEx({...tempEx, reps: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none" /></div>
                                 </div>
-                                <button onClick={saveNewEx} className="w-full py-3 bg-amber-600 text-black font-altar text-[10px] tracking-widest uppercase">Consignare</button>
-                                <button onClick={() => { setIsExFormOpen(false); setEditingExIndex(null); }} className="w-full text-stone-600 text-[8px] uppercase tracking-widest mt-2">Abrogare</button>
+                                <button onClick={saveNewEx} className="w-full py-3 bg-amber-600 text-black font-altar text-[10px] tracking-widest uppercase font-bold">CONSIGNARE</button>
+                                <button onClick={() => { setIsExFormOpen(false); setEditingExIndex(null); }} className="w-full text-stone-600 text-[8px] uppercase tracking-widest mt-2 font-bold">ABROGARE</button>
                             </div>
                         </div>
                     )}
 
                     <footer className="fixed bottom-0 w-full p-6 text-center bg-gradient-to-t from-black to-transparent pointer-events-none">
-                        <div className="text-[8px] text-stone-800 uppercase tracking-[0.5em] font-bold font-altar">Non Ducor, Duco</div>
+                        <div className="text-[8px] text-stone-800 uppercase tracking-[0.5em] font-bold font-altar">NON DVCOR, DVCO</div>
                     </footer>
                 </div>
             );
