@@ -117,6 +117,7 @@
                 historyProtein: []
             });
             const [showSustGoals, setShowSustGoals] = useState(false);
+            const [showWeightGoal, setShowWeightGoal] = useState(false);
 
             const gospels = [
                 { verse: "THERMODYNAMICA I:I", text: "ENERGIA NEQVE CREATVR NEQVE DELETVR, TANTVM MVTATVR. SI ALTARE NON CLAVDITVR, EXCESSVS ONVS PRAETERITI FIT.", sub: "La energía no se crea ni se destruye, solo se transforma. Si el altar no se cierra, el exceso se convierte en el lastre del pasado." },
@@ -550,7 +551,7 @@
                                             </div>
                                             <div className="text-center">
                                                 <span className="text-[8px] text-stone-600 uppercase tracking-widest font-bold">PROTEINA</span>
-                                                <input type="number" disabled={sustentaculumData.daily.proteinSealed} value={sustentaculumData.daily.protein || ''} onChange={e => setSustentaculumData(prev => ({...prev, daily: {...prev.daily, protein: parseFloat(e.target.value) || 0}}))} className="block w-20 bg-transparent border-b border-stone-800 text-center text-xs outline-none mt-1 disabled:opacity-50" />
+                                                <input type="number" disabled={sustentaculumData.daily.proteinSealed} value={sustentaculumData.daily.protein || ''} onChange={e => setSustentaculumData(prev => ({...prev, daily: { ...prev.daily, protein: parseFloat(e.target.value) || 0 }}))} className="block w-20 bg-transparent border-b border-stone-800 text-center text-xs outline-none mt-1 disabled:opacity-50" />
                                             </div>
                                         </div>
                                         {!sustentaculumData.daily.proteinSealed ? (<button onClick={sealProtein} disabled={sustentaculumData.daily.protein < sustentaculumData.goals.protein} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'bg-stone-200/20 text-white border-white' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PROTEINAM</button>) : (<div className="text-center flex flex-col items-center"><span className={`text-[8px] font-altar uppercase tracking-widest ${proteinLevel.color}`}>{proteinLevel.name}</span><span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {proteinStreak}</span></div>)}
@@ -594,6 +595,23 @@
                                 <div className="border-b border-stone-800 pb-2 flex items-center justify-between">
                                     <input type="number" value={newWeight} onChange={(e) => setNewWeight(e.target.value)} placeholder="CONSIGNARE PONDVS (KG)" className="bg-transparent border-none outline-none text-stone-300 w-full font-serif italic text-sm uppercase" />
                                     <button onClick={() => { if(!newWeight) return; const updated = [...weightHistory, {date: new Date().toLocaleDateString(), value: parseFloat(newWeight)}]; setWeightHistory(updated); localStorage.setItem('altar_weight_data', JSON.stringify({history: updated, target: targetWeight})); setNewWeight(''); }} className="text-amber-600 text-[9px] font-bold uppercase tracking-widest">CONSIGNARE</button>
+                                </div>
+                                
+                                <div className="pt-4 border-t border-stone-900/50">
+                                    <button onClick={() => setShowWeightGoal(!showWeightGoal)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold">
+                                        <span>METAE CORPORIS</span>
+                                        <Icon name={showWeightGoal ? "chevron-up" : "chevron-down"} size={14} />
+                                    </button>
+                                    <div className={`overflow-hidden transition-all duration-300 ${showWeightGoal ? 'max-h-32 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                                        <div className="p-4 bg-stone-900/20 border border-stone-900 rounded">
+                                            <label className="text-[8px] text-amber-600 uppercase tracking-widest block font-bold mb-1">META PONDVS (KG)</label>
+                                            <input type="number" value={targetWeight} onChange={e => {
+                                                const val = parseFloat(e.target.value) || 0;
+                                                setTargetWeight(val);
+                                                localStorage.setItem('altar_weight_data', JSON.stringify({history: weightHistory, target: val}));
+                                            }} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" />
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         )}
