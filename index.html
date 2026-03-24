@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>ALTARE INTEGRITATIS</title>
-    <!-- React y Babel -->
+    <!-- React ha Babel -->
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -12,7 +12,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Chart.js para Kaizen -->
+    <!-- Chart.js umi Kaizen-pe guarã -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;1,400&display=swap');
@@ -41,7 +41,7 @@
             margin: 0;
         }
 
-        /* RESPLANDORES DINAMICOS */
+        /* MBOTATA DINAMICO */
         .glow-lv0 { box-shadow: 0 0 20px rgba(245, 158, 11, 0.1); }
         .glow-lv1 { box-shadow: 0 0 30px rgba(245, 158, 11, 0.2); }
         .glow-lv2 { box-shadow: 0 0 40px rgba(245, 158, 11, 0.3); }
@@ -65,6 +65,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        // Marandu: Tekoha React-pe guarã
         const { useState, useEffect, useMemo, useRef } = React;
 
         const Icon = ({ name, size = 20, className = "" }) => {
@@ -79,12 +80,20 @@
         };
 
         const App = () => {
+            // Mba'eapopy (Estados)
             const [activeTab, setActiveTab] = useState('altar');
             const [isClosed, setIsClosed] = useState(false);
             const [history, setHistory] = useState([]);
             const [targetWeight, setTargetWeight] = useState(80);
             const [weightHistory, setWeightHistory] = useState([]);
             const [newWeight, setNewWeight] = useState('');
+            const [lastGraceDate, setLastGraceDate] = useState(null);
+            
+            // --- REVERTERE (UNDO) MBOHAPE ---
+            const [undoStack, setUndoStack] = useState([]);
+            const isUndoing = useRef(false);
+            const prevSnapshot = useRef(null);
+
             const fileInputRef = useRef(null);
             const chartRef = useRef(null);
             const chartInstance = useRef(null);
@@ -126,7 +135,7 @@
             ];
 
             const [ritualSteps, setRitualSteps] = useState([
-                { id: 1, text: "AGNOSCERE NECESSITATEM BIOLOGICAM EXPLETAM ESSE.", sub: "RECONOCER QUE EL REQVERIMIENTO BIOLOGICO HA SIDO SATISFECHO.", completed: false },
+                { id: 1, text: "AGNOSCERE NECESSITATES BIOLOGICAM EXPLETAM ESSE.", sub: "RECONOCER QUE EL REQVERIMIENTO BIOLOGICO HA SIDO SATISFECHO.", completed: false },
                 { id: 2, text: "MVNDA OMNIA RELIQVIA ALIMENTORVM.", sub: "LIMPIEZA TOTAL DE LOS RESTOS DEL SVSTENTO.", completed: false },
                 { id: 3, text: "OBSIGNATIO ORIS: DENTES PENITVS LAVARE.", sub: "SELLADO BVCAL: LAVADO PROFVNDO DE DIENTES.", completed: false },
                 { id: 4, text: "BAPTISMVS IEIVNII CVM POTIONE VEL AQVA.", sub: "BAVTISMO DE AYVNO CON INFVSION O AGVA.", completed: false },
@@ -168,35 +177,87 @@
             const stepsLevel = sustLevels.slice().reverse().find(l => stepsStreak >= l.min) || sustLevels[0];
             const proteinLevel = sustLevels.slice().reverse().find(l => proteinStreak >= l.min) || sustLevels[0];
 
+            const timeToGrace = useMemo(() => {
+                if (!lastGraceDate) return 0;
+                const last = new Date(lastGraceDate).getTime();
+                const now = new Date().getTime();
+                const diff = (7 * 24 * 60 * 60 * 1000) - (now - last);
+                return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
+            }, [lastGraceDate]);
+
+            // ÑE'ÊPY (CARGA INICIAL)
             useEffect(() => {
                 const savedInt = localStorage.getItem('altar_v3_history');
+                let initialHistory = [];
                 if (savedInt) {
-                    const parsed = JSON.parse(savedInt);
-                    setHistory(parsed);
-                    if (parsed[0]?.date === new Date().toLocaleDateString()) setIsClosed(true);
+                    initialHistory = JSON.parse(savedInt);
+                    setHistory(initialHistory);
+                    if (initialHistory[0]?.date === new Date().toLocaleDateString()) setIsClosed(true);
                 }
                 const savedWeight = localStorage.getItem('altar_weight_data');
+                let initialWeight = { history: [], target: 80 };
                 if (savedWeight) {
-                    const parsed = JSON.parse(savedWeight);
-                    setWeightHistory(parsed.history || []);
-                    setTargetWeight(parsed.target || 80);
+                    initialWeight = JSON.parse(savedWeight);
+                    setWeightHistory(initialWeight.history || []);
+                    setTargetWeight(initialWeight.target || 80);
                 }
                 const savedKaizen = localStorage.getItem('kaizenData');
                 if (savedKaizen) setKaizenData(JSON.parse(savedKaizen));
                 const savedSust = localStorage.getItem('sustentaculumData');
+                let initialSust = sustentaculumData;
                 if (savedSust) {
-                    const parsed = JSON.parse(savedSust);
+                    initialSust = JSON.parse(savedSust);
                     const today = new Date().toLocaleDateString();
-                    if (parsed.daily.date !== today) {
-                        parsed.daily = { ...parsed.daily, steps: 0, protein: 0, date: today, stepsSealed: false, proteinSealed: false };
+                    if (initialSust.daily.date !== today) {
+                        initialSust.daily = { ...initialSust.daily, steps: 0, protein: 0, date: today, stepsSealed: false, proteinSealed: false };
                     }
-                    setSustentaculumData(parsed);
+                    setSustentaculumData(initialSust);
                 }
+                const savedGrace = localStorage.getItem('altar_grace_date');
+                if (savedGrace) setLastGraceDate(savedGrace);
+
+                // Mboguepaite haguã rupa (Snapshot inicial)
+                prevSnapshot.current = JSON.stringify({
+                    isClosed: initialHistory[0]?.date === new Date().toLocaleDateString(),
+                    history: initialHistory,
+                    targetWeight: initialWeight.target,
+                    weightHistory: initialWeight.history,
+                    kaizenData: savedKaizen ? JSON.parse(savedKaizen) : kaizenData,
+                    sustentaculumData: initialSust,
+                    lastGraceDate: savedGrace
+                });
             }, []);
 
+            // ÑONGATU TEKOA (CAPTURAR SNAPSHOTS)
+            useEffect(() => {
+                const currentSnapshot = JSON.stringify({
+                    isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate
+                });
+
+                if (isUndoing.current) {
+                    prevSnapshot.current = currentSnapshot;
+                    isUndoing.current = false;
+                    return;
+                }
+
+                if (prevSnapshot.current && prevSnapshot.current !== currentSnapshot) {
+                    setUndoStack(prev => {
+                        const newStack = [JSON.parse(prevSnapshot.current), ...prev];
+                        return newStack.slice(0, 10);
+                    });
+                }
+                prevSnapshot.current = currentSnapshot;
+            }, [isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate]);
+
+            // ÑEÑONGATU AUTOMÁTICO
             useEffect(() => {
                 localStorage.setItem('kaizenData', JSON.stringify(kaizenData));
                 localStorage.setItem('sustentaculumData', JSON.stringify(sustentaculumData));
+                localStorage.setItem('altar_v3_history', JSON.stringify(history));
+                localStorage.setItem('altar_weight_data', JSON.stringify({history: weightHistory, target: targetWeight}));
+                if (lastGraceDate) localStorage.setItem('altar_grace_date', lastGraceDate);
+                else localStorage.removeItem('altar_grace_date');
+
                 if (activeTab === 'disciplina') {
                     const timer = setTimeout(() => renderKaizenChart(), 100);
                     return () => clearTimeout(timer);
@@ -205,7 +266,25 @@
                     const timer = setTimeout(() => window.lucide.createIcons(), 50);
                     return () => clearTimeout(timer);
                 }
-            }, [activeTab, isClosed, kaizenData, chartFilter, sustentaculumData]);
+            }, [activeTab, isClosed, kaizenData, chartFilter, sustentaculumData, history, weightHistory, targetWeight, lastGraceDate]);
+
+            // ÑEMBOGUE (UNDO)
+            const performUndo = () => {
+                if (undoStack.length === 0) return;
+                const [lastState, ...remainingStack] = undoStack;
+                
+                isUndoing.current = true;
+
+                setIsClosed(lastState.isClosed);
+                setHistory(lastState.history);
+                setTargetWeight(lastState.targetWeight);
+                setWeightHistory(lastState.weightHistory);
+                setKaizenData(lastState.kaizenData);
+                setSustentaculumData(lastState.sustentaculumData);
+                setLastGraceDate(lastState.lastGraceDate);
+                
+                setUndoStack(remainingStack);
+            };
 
             const handleTouchStart = (e) => {
                 touchStartX.current = e.touches[0].clientX;
@@ -312,12 +391,24 @@
                 setEditingExIndex(null);
             };
 
+            const handleGraceDay = () => {
+                if (timeToGrace > 0) return;
+                const today = new Date().toLocaleDateString();
+                const newEntry = { date: today, streak: currentStreak }; 
+                const updated = [newEntry, ...history];
+                
+                setHistory(updated);
+                setLastGraceDate(new Date().toISOString());
+                setIsClosed(true);
+            };
+
             const exportBackup = () => {
                 const data = {
                     altar: localStorage.getItem('altar_v3_history'),
                     weight: localStorage.getItem('altar_weight_data'),
                     kaizen: localStorage.getItem('kaizenData'),
                     sust: localStorage.getItem('sustentaculumData'),
+                    grace: localStorage.getItem('altar_grace_date'),
                     exportDate: new Date().toISOString()
                 };
                 const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
@@ -339,6 +430,7 @@
                         if (data.weight) localStorage.setItem('altar_weight_data', data.weight);
                         if (data.kaizen) localStorage.setItem('kaizenData', data.kaizen);
                         if (data.sust) localStorage.setItem('sustentaculumData', data.sust);
+                        if (data.grace) localStorage.setItem('altar_grace_date', data.grace);
                         window.location.reload();
                     } catch (err) { console.error("ERROREM LEGERE EXEMPLAR", err); }
                 };
@@ -432,10 +524,22 @@
                                     <span className="text-[10px] text-stone-600 uppercase tracking-widest block italic">{isClosed ? "(LA LEY HA SIDO SELLADA)" : "(EL TEMPLO RECLAMA ORDEN)"}</span>
                                 </div>
                                 {!isClosed ? (
-                                    <button onClick={() => setActiveTab('ritual')} className="w-full py-4 border border-stone-700 bg-stone-900/50 text-stone-300 font-altar tracking-[0.2em] uppercase text-xs hover:border-amber-500 transition-all">
-                                        <span>INCIPERE RITVM CLAVSVRAE</span>
-                                        <span className="block text-[7px] opacity-50 mt-1 uppercase">INICIAR RITVAL DE CIERRE</span>
-                                    </button>
+                                    <div className="w-full space-y-4">
+                                        <button onClick={() => setActiveTab('ritual')} className="w-full py-4 border border-stone-700 bg-stone-900/50 text-stone-300 font-altar tracking-[0.2em] uppercase text-xs hover:border-amber-500 transition-all">
+                                            <span>INCIPERE RITVM CLAVSVRAE</span>
+                                            <span className="block text-[7px] opacity-50 mt-1 uppercase">INICIAR RITVAL DE CIERRE</span>
+                                        </button>
+                                        <button 
+                                            onClick={handleGraceDay}
+                                            disabled={timeToGrace > 0}
+                                            className={`w-full py-3 border transition-all flex flex-col items-center justify-center ${timeToGrace > 0 ? 'border-stone-900 bg-stone-950/20 text-stone-800' : 'border-blue-900/40 bg-blue-950/5 text-blue-400 hover:border-blue-500'}`}
+                                        >
+                                            <span className="text-[10px] font-altar tracking-[0.2em] uppercase font-bold">DIES GRATIAE</span>
+                                            <span className="text-[7px] opacity-60 uppercase tracking-widest italic">
+                                                {timeToGrace > 0 ? `REQVIES IN ${timeToGrace} DIES` : 'ACTĪVARE INDVLGENTIAM'}
+                                            </span>
+                                        </button>
+                                    </div>
                                 ) : (
                                     <div className="flex flex-col items-center space-y-1">
                                         <div className="px-6 py-2 border border-amber-900/50 bg-amber-950/10 text-amber-500 text-[10px] font-bold tracking-[0.3em] uppercase font-altar">SERIES: {currentStreak} DIES</div>
@@ -457,7 +561,6 @@
                                     <div className="text-amber-600 text-[10px] font-bold tracking-widest uppercase mt-1">EBDOMADA {kaizenData.week}</div>
                                     <span className="text-[8px] text-stone-600 uppercase tracking-widest">SEMANA {kaizenData.week}</span>
                                 </div>
-                                
                                 <div className="grid grid-cols-3 gap-1 mb-4">
                                     {muscleList.map(m => {
                                         const hits = muscleImpact[m.id] || 0;
@@ -466,16 +569,12 @@
                                         return (
                                             <div key={m.id} 
                                                  className={`text-center border py-2 px-1 text-[9px] font-bold transition-all duration-500 ${isActive ? 'text-stone-200' : 'text-stone-700 border-stone-900'}`}
-                                                 style={{ 
-                                                     backgroundColor: isActive ? `rgba(217, 119, 6, ${opacity})` : 'transparent',
-                                                     borderColor: isActive ? '#d97706' : '#292524'
-                                                 }}>
+                                                 style={{ backgroundColor: isActive ? `rgba(217, 119, 6, ${opacity})` : 'transparent', borderColor: isActive ? '#d97706' : '#292524' }}>
                                                 {m.label}
                                             </div>
                                         );
                                     })}
                                 </div>
-
                                 <div className="space-y-3">
                                     {sortedExercises.map((ex) => (
                                         <div key={ex.originalIndex} className={`p-4 border transition-all duration-300 ${ex.completed ? 'border-amber-900/40 bg-amber-950/5 opacity-60' : 'border-stone-900 bg-stone-950/20'}`}>
@@ -490,9 +589,7 @@
                                                     </div>
                                                 </div>
                                                 <div className="flex items-center space-x-4 flex-shrink-0 ml-2">
-                                                    <div className="text-right text-[10px] text-stone-500 uppercase tracking-tighter font-bold">
-                                                        {ex.weight}KG — {ex.sets}X{ex.reps}
-                                                    </div>
+                                                    <div className="text-right text-[10px] text-stone-500 uppercase tracking-tighter font-bold">{ex.weight}KG — {ex.sets}X{ex.reps}</div>
                                                     <button onClick={(e) => { e.stopPropagation(); startEditExercise(ex.originalIndex); }} className="p-2 bg-stone-900 border border-stone-800 rounded text-stone-400 hover:text-amber-500 hover:border-amber-500 transition-all flex items-center justify-center">
                                                         <Icon name="pencil" size={14} />
                                                     </button>
@@ -501,18 +598,9 @@
                                         </div>
                                     ))}
                                 </div>
-
                                 <button onClick={() => { setEditingExIndex(null); setTempEx({ name: '', muscles: [], weight: '', sets: '', reps: '' }); setIsExFormOpen(true); }} className="w-full py-4 border border-stone-800 text-stone-500 text-[10px] font-altar tracking-widest uppercase hover:text-amber-600 transition-colors">+ ADDE DISCIPLINAM</button>
-                                
-                                <button disabled={!kaizenData.exercises.every(e => e.completed)} 
-                                        onClick={applyKaizenCycle} 
-                                        className={`w-full py-5 font-altar tracking-[0.2em] uppercase text-xs transition-all ${kaizenData.exercises.every(e => e.completed) ? 'bg-amber-600 text-black shadow-lg shadow-amber-900/20' : 'bg-stone-900 text-stone-700 pointer-events-none opacity-50'}`}>
-                                    PERFICERE CYCLVM (KAIZEN +1)
-                                </button>
-                                
-                                <div className="h-48 w-full bg-stone-950/20 p-2 border border-stone-900 rounded">
-                                    <canvas ref={chartRef}></canvas>
-                                </div>
+                                <button disabled={!kaizenData.exercises.every(e => e.completed)} onClick={applyKaizenCycle} className={`w-full py-5 font-altar tracking-[0.2em] uppercase text-xs transition-all ${kaizenData.exercises.every(e => e.completed) ? 'bg-amber-600 text-black shadow-lg shadow-amber-900/20' : 'bg-stone-900 text-stone-700 pointer-events-none opacity-50'}`}>PERFICERE CYCLVM (KAIZEN +1)</button>
+                                <div className="h-48 w-full bg-stone-950/20 p-2 border border-stone-900 rounded"><canvas ref={chartRef}></canvas></div>
                             </div>
                         )}
 
@@ -522,7 +610,6 @@
                                     <h2 className="text-xl font-altar text-stone-200 tracking-[0.2em] uppercase">SVSTENTACVLVM BIOLOGICVM</h2>
                                     <span className="text-[10px] text-stone-600 uppercase tracking-widest">SVSTENTO BIOLOGICO</span>
                                 </div>
-                                
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="flex flex-col items-center space-y-4">
                                         <div className={`flex flex-col items-center space-y-3 transition-all duration-700 ${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'glow-success' : ''}`}>
@@ -557,26 +644,13 @@
                                         {!sustentaculumData.daily.proteinSealed ? (<button onClick={sealProtein} disabled={sustentaculumData.daily.protein < sustentaculumData.goals.protein} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'bg-stone-200/20 text-white border-white' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PROTEINAM</button>) : (<div className="text-center flex flex-col items-center"><span className={`text-[8px] font-altar uppercase tracking-widest ${proteinLevel.color}`}>{proteinLevel.name}</span><span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {proteinStreak}</span></div>)}
                                     </div>
                                 </div>
-                                
-                                <div className="p-6 border border-stone-900 bg-stone-950/20 text-center italic font-serif text-xs text-stone-500 uppercase font-bold tracking-wider leading-relaxed">
-                                    "PASSVS PER PASSVM, MVNITIO CORPORIS TVI. PROTEINA EST LATERIS TVI TEMPLI."
-                                </div>
-
+                                <div className="p-6 border border-stone-900 bg-stone-950/20 text-center italic font-serif text-xs text-stone-500 uppercase font-bold tracking-wider leading-relaxed">"PASSVS PER PASSVM, MVNITIO CORPORIS TVI. PROTEINA EST LATERIS TVI TEMPLI."</div>
                                 <div className="pt-4 border-t border-stone-900/50">
-                                    <button onClick={() => setShowSustGoals(!showSustGoals)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold">
-                                        <span>METAS SACRAS</span>
-                                        <Icon name={showSustGoals ? "chevron-up" : "chevron-down"} size={14} />
-                                    </button>
+                                    <button onClick={() => setShowSustGoals(!showSustGoals)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold"><span>METAS SACRAS</span><Icon name={showSustGoals ? "chevron-up" : "chevron-down"} size={14} /></button>
                                     <div className={`overflow-hidden transition-all duration-300 ${showSustGoals ? 'max-h-64 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
                                         <div className="grid grid-cols-2 gap-4 p-4 bg-stone-900/20 border border-stone-900 rounded">
-                                            <div>
-                                                <label className="text-[8px] text-amber-600 uppercase tracking-widest block font-bold mb-1">META PASSVS</label>
-                                                <input type="number" value={sustentaculumData.goals.steps} onChange={e => setSustentaculumData(prev => ({...prev, goals: {...prev.goals, steps: parseFloat(e.target.value) || 0}}))} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" />
-                                            </div>
-                                            <div>
-                                                <label className="text-[8px] text-stone-400 uppercase tracking-widest block font-bold mb-1">META PROTEINAM</label>
-                                                <input type="number" value={sustentaculumData.goals.protein} onChange={e => setSustentaculumData(prev => ({...prev, goals: {...prev.goals, protein: parseFloat(e.target.value) || 0}}))} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" />
-                                            </div>
+                                            <div><label className="text-[8px] text-amber-600 uppercase tracking-widest block font-bold mb-1">META PASSVS</label><input type="number" value={sustentaculumData.goals.steps} onChange={e => setSustentaculumData(prev => ({...prev, goals: {...prev.goals, steps: parseFloat(e.target.value) || 0}}))} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
+                                            <div><label className="text-[8px] text-stone-400 uppercase tracking-widest block font-bold mb-1">META PROTEINAM</label><input type="number" value={sustentaculumData.goals.protein} onChange={e => setSustentaculumData(prev => ({...prev, goals: {...prev.goals, protein: parseFloat(e.target.value) || 0}}))} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" /></div>
                                         </div>
                                     </div>
                                 </div>
@@ -594,22 +668,14 @@
                                 </div>
                                 <div className="border-b border-stone-800 pb-2 flex items-center justify-between">
                                     <input type="number" value={newWeight} onChange={(e) => setNewWeight(e.target.value)} placeholder="CONSIGNARE PONDVS (KG)" className="bg-transparent border-none outline-none text-stone-300 w-full font-serif italic text-sm uppercase" />
-                                    <button onClick={() => { if(!newWeight) return; const updated = [...weightHistory, {date: new Date().toLocaleDateString(), value: parseFloat(newWeight)}]; setWeightHistory(updated); localStorage.setItem('altar_weight_data', JSON.stringify({history: updated, target: targetWeight})); setNewWeight(''); }} className="text-amber-600 text-[9px] font-bold uppercase tracking-widest">CONSIGNARE</button>
+                                    <button onClick={() => { if(!newWeight) return; const updated = [...weightHistory, {date: new Date().toLocaleDateString(), value: parseFloat(newWeight)}]; setWeightHistory(updated); setNewWeight(''); }} className="text-amber-600 text-[9px] font-bold uppercase tracking-widest">CONSIGNARE</button>
                                 </div>
-                                
                                 <div className="pt-4 border-t border-stone-900/50">
-                                    <button onClick={() => setShowWeightGoal(!showWeightGoal)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold">
-                                        <span>METAE CORPORIS</span>
-                                        <Icon name={showWeightGoal ? "chevron-up" : "chevron-down"} size={14} />
-                                    </button>
+                                    <button onClick={() => setShowWeightGoal(!showWeightGoal)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold"><span>METAE CORPORIS</span><Icon name={showWeightGoal ? "chevron-up" : "chevron-down"} size={14} /></button>
                                     <div className={`overflow-hidden transition-all duration-300 ${showWeightGoal ? 'max-h-32 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
                                         <div className="p-4 bg-stone-900/20 border border-stone-900 rounded">
                                             <label className="text-[8px] text-amber-600 uppercase tracking-widest block font-bold mb-1">META PONDVS (KG)</label>
-                                            <input type="number" value={targetWeight} onChange={e => {
-                                                const val = parseFloat(e.target.value) || 0;
-                                                setTargetWeight(val);
-                                                localStorage.setItem('altar_weight_data', JSON.stringify({history: weightHistory, target: val}));
-                                            }} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" />
+                                            <input type="number" value={targetWeight} onChange={e => setTargetWeight(parseFloat(e.target.value) || 0)} className="bg-transparent border-b border-stone-800 outline-none text-stone-300 w-full font-serif text-xs py-1" />
                                         </div>
                                     </div>
                                 </div>
@@ -623,20 +689,14 @@
                                     <div key={step.id} onClick={() => setRitualSteps(ritualSteps.map(s => s.id === step.id ? {...s, completed: !s.completed} : s))} className={`p-4 border transition-all duration-300 ${step.completed ? 'border-amber-900 bg-amber-950/10 text-amber-200' : 'border-stone-900 text-stone-500 bg-stone-950/20'}`}>
                                         <div className="flex items-center space-x-4">
                                             <div className={`w-4 h-4 rounded-full border transition-colors ${step.completed ? 'bg-amber-500 border-amber-500' : 'border-stone-800'}`}></div>
-                                            <div>
-                                                <span className="text-sm font-serif italic">{step.text}</span>
-                                                <span className="text-[9px] opacity-60 block italic uppercase mt-0.5">{step.sub}</span>
-                                            </div>
+                                            <div><span className="text-sm font-serif italic">{step.text}</span><span className="text-[9px] opacity-60 block italic uppercase mt-0.5">{step.sub}</span></div>
                                         </div>
                                     </div>
                                 ))}</div>
                                 <button disabled={!ritualSteps.every(s => s.completed)} onClick={() => {
                                     const newEntry = {date: new Date().toLocaleDateString(), streak: history.length > 0 ? history[0].streak + 1 : 1};
-                                    const updated = [newEntry, ...history];
-                                    setHistory(updated); 
-                                    localStorage.setItem('altar_v3_history', JSON.stringify(updated));
-                                    setIsClosed(true); 
-                                    setActiveTab('altar');
+                                    setHistory([newEntry, ...history]); 
+                                    setIsClosed(true); setActiveTab('altar');
                                 }} className={`w-full py-5 font-altar tracking-widest uppercase text-xs transition-all ${ritualSteps.every(s => s.completed) ? 'bg-amber-600 text-black shadow-lg shadow-amber-900/30' : 'bg-stone-900 text-stone-700 pointer-events-none'}`}>OBSIGNARE PROMISSVM</button>
                             </div>
                         )}
@@ -681,6 +741,15 @@
                             </div>
                         </div>
                     )}
+
+                    {/* REVERTERE (UNDO) VOVÕ - Hovy guýpe orange sa'y reheve */}
+                    <button 
+                        onClick={performUndo}
+                        disabled={undoStack.length === 0}
+                        className={`fixed bottom-2 right-2 z-[60] px-2 py-1 text-[8px] font-bold uppercase tracking-widest transition-all duration-500 rounded border border-amber-900/40 bg-stone-900/60 text-amber-600 hover:text-orange-400 hover:bg-stone-900 active:scale-90 ${undoStack.length > 0 ? 'opacity-50 hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    >
+                        REVERTERE ({undoStack.length})
+                    </button>
 
                     <footer className="fixed bottom-0 w-full p-6 text-center bg-gradient-to-t from-black to-transparent pointer-events-none">
                         <div className="text-[8px] text-stone-800 uppercase tracking-[0.5em] font-bold font-altar">NON DVCOR, DVCO</div>
