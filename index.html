@@ -134,13 +134,13 @@
                 { verse: "INSVLINA II:V", text: "NOLI GIGANTEM DORMIENTEM EXTRA HORAM SVAM EXCITARE. REQVIES EST VNICA VIA AD PROPRIA DEPOSITA COMBVRENDA.", sub: "No provoques al gigante dormido fuera de su hora. El reposo es la única vía hacia la quema de tus propios depósitos." }
             ];
 
-            const ritualSteps = [
+            const [ritualSteps, setRitualSteps] = useState([
                 { id: 1, text: "AGNOSCERE NECESSITATES BIOLOGICAM EXPLETAM ESSE.", sub: "RECONOCER QUE EL REQUERIMIENTO BIOLOGICO HA SIDO SATISFECHO.", completed: false },
                 { id: 2, text: "MVNDA OMNIA RELIQVIA ALIMENTORVM.", sub: "LIMPIEZA TOTAL DE LOS RESTOS DEL SUSTENTO.", completed: false },
                 { id: 3, text: "OBSIGNATIO ORIS: DENTES PENITVS LAVARE.", sub: "SELLADO BUCAL: LAVADO PROFUNDO DE DIENTES.", completed: false },
                 { id: 4, text: "BAPTISMVS IEIVNII CVM POTIONE VEL AQVA.", sub: "BAUTISMO DE AYUNO CON INFUSION O AGUA.", completed: false },
                 { id: 5, text: "DECLARARE: 'LEX MEA ABSOLVTAS EST VSQVE AD CRASTINVM'.", sub: "DECLARAR: 'MI LEY ES ABSOLUTA HASTA MAÑANA'.", completed: false }
-            ];
+            ]);
 
             const altarLevels = [
                 { min: 0, name: "NOVICIVS", sub: "NEOFITO", color: "text-stone-500", glow: "bg-amber-500/10", shadow: "glow-lv0" },
@@ -268,13 +268,14 @@
                     weightHistory: initialWeight.history,
                     kaizenData: savedKaizen ? JSON.parse(savedKaizen) : kaizenData,
                     sustentaculumData: initialSust,
-                    lastGraceDate: savedGrace
+                    lastGraceDate: savedGrace,
+                    ritualSteps: ritualSteps
                 });
             }, []);
 
             useEffect(() => {
                 const currentSnapshot = JSON.stringify({
-                    isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate
+                    isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate, ritualSteps
                 });
 
                 if (isUndoing.current) {
@@ -290,7 +291,7 @@
                     });
                 }
                 prevSnapshot.current = currentSnapshot;
-            }, [isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate]);
+            }, [isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate, ritualSteps]);
 
             useEffect(() => {
                 localStorage.setItem('kaizenData', JSON.stringify(kaizenData));
@@ -318,6 +319,7 @@
                 if (undoStack.length === 0) return;
                 const [lastState, ...remainingStack] = undoStack;
                 isUndoing.current = true;
+                
                 setIsClosed(lastState.isClosed);
                 setHistory(lastState.history);
                 setTargetWeight(lastState.targetWeight);
@@ -325,6 +327,8 @@
                 setKaizenData(lastState.kaizenData);
                 setSustentaculumData(lastState.sustentaculumData);
                 setLastGraceDate(lastState.lastGraceDate);
+                setRitualSteps(lastState.ritualSteps);
+                
                 setUndoStack(remainingStack);
             };
 
@@ -383,7 +387,6 @@
                     if (weightChartInstance.current) weightChartInstance.current.destroy();
                     const ctx = weightChartRef.current.getContext('2d');
                     
-                    // Filter logic
                     const now = new Date();
                     let filteredHistory = [...weightHistory].sort((a, b) => {
                         const dateA = a.date.split('/').reverse().join('-');
@@ -835,7 +838,9 @@
                                 <button disabled={!ritualSteps.every(s => s.completed)} onClick={() => {
                                     const newEntry = {date: new Date().toLocaleDateString(), streak: history.length > 0 ? history[0].streak + 1 : 1};
                                     setHistory([newEntry, ...history]); 
-                                    setIsClosed(true); setActiveTab('altar');
+                                    setIsClosed(true); 
+                                    setActiveTab('altar');
+                                    setRitualSteps(prev => prev.map(s => ({...s, completed: false})));
                                 }} className={`w-full py-5 font-altar tracking-widest uppercase text-xs transition-all ${ritualSteps.every(s => s.completed) ? 'bg-amber-600 text-black shadow-lg shadow-amber-900/30' : 'bg-stone-900 text-stone-700 pointer-events-none'}`}>OBSIGNARE PROMISSVM</button>
                             </div>
                         )}
