@@ -134,22 +134,69 @@
                 { verse: "INSVLINA II:V", text: "NOLI GIGANTEM DORMIENTEM EXTRA HORAM SVAM EXCITARE. REQVIES EST VNICA VIA AD PROPRIA DEPOSITA COMBVRENDA.", sub: "No provoques al gigante dormido fuera de su hora. El reposo es la única vía hacia la quema de tus propios depósitos." }
             ];
 
-            const [ritualSteps, setRitualSteps] = useState([
+            const ritualSteps = [
                 { id: 1, text: "AGNOSCERE NECESSITATES BIOLOGICAM EXPLETAM ESSE.", sub: "RECONOCER QUE EL REQUERIMIENTO BIOLOGICO HA SIDO SATISFECHO.", completed: false },
                 { id: 2, text: "MVNDA OMNIA RELIQVIA ALIMENTORVM.", sub: "LIMPIEZA TOTAL DE LOS RESTOS DEL SUSTENTO.", completed: false },
                 { id: 3, text: "OBSIGNATIO ORIS: DENTES PENITVS LAVARE.", sub: "SELLADO BUCAL: LAVADO PROFUNDO DE DIENTES.", completed: false },
                 { id: 4, text: "BAPTISMVS IEIVNII CVM POTIONE VEL AQVA.", sub: "BAUTISMO DE AYUNO CON INFUSION O AGUA.", completed: false },
                 { id: 5, text: "DECLARARE: 'LEX MEA ABSOLVTAS EST VSQVE AD CRASTINVM'.", sub: "DECLARAR: 'MI LEY ES ABSOLUTA HASTA MAÑANA'.", completed: false }
-            ]);
+            ];
 
+            // NIVELES DE ALTARE ACTUALIZADOS A 52 SEMANAS
             const altarLevels = [
                 { min: 0, name: "NOVICIVS", sub: "NEOFITO", color: "text-stone-500", glow: "bg-amber-500/10", shadow: "glow-lv0" },
-                { min: 3, name: "CVSTOS LEGIS", sub: "GUARDIAN DE LA LEY", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 7, name: "TEMPLARIVS ORDINIS", sub: "TEMPLARIO DEL ORDEN", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 30, name: "MAGISTER VOLVNTATIS", sub: "MAESTRO DE LA VOLUNTAD", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 90, name: "ENS LVCIS", sub: "SER DE LUZ", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 180, name: "ARCHITECTVS FATI", sub: "ARQUITECTO DEL DESTINO", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 365, name: "EGO SVPREMVS", sub: "EL YO SUPREMO", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" }
+                { min: 7, name: "EBDOMADA I", sub: "SEMANA 1", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 14, name: "EBDOMADA II", sub: "SEMANA 2", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 21, name: "EBDOMADA III", sub: "SEMANA 3", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 28, name: "EBDOMADA IV", sub: "SEMANA 4", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 35, name: "EBDOMADA V", sub: "SEMANA 5", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 42, name: "EBDOMADA VI", sub: "SEMANA 6", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 49, name: "EBDOMADA VII", sub: "SEMANA 7", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
+                { min: 56, name: "EBDOMADA VIII", sub: "SEMANA 8", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 63, name: "EBDOMADA IX", sub: "SEMANA 9", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 70, name: "EBDOMADA X", sub: "SEMANA 10", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 77, name: "EBDOMADA XI", sub: "SEMANA 11", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 84, name: "EBDOMADA XII", sub: "SEMANA 12", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 91, name: "EBDOMADA XIII", sub: "SEMANA 13", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 98, name: "EBDOMADA XIV", sub: "SEMANA 14", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 105, name: "EBDOMADA XV", sub: "SEMANA 15", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
+                { min: 112, name: "EBDOMADA XVI", sub: "SEMANA 16", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 119, name: "EBDOMADA XVII", sub: "SEMANA 17", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 126, name: "EBDOMADA XVIII", sub: "SEMANA 18", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 133, name: "EBDOMADA XIX", sub: "SEMANA 19", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 140, name: "EBDOMADA XX", sub: "SEMANA 20", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 147, name: "EBDOMADA XXI", sub: "SEMANA 21", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 154, name: "EBDOMADA XXII", sub: "SEMANA 22", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 161, name: "EBDOMADA XXIII", sub: "SEMANA 23", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
+                { min: 168, name: "EBDOMADA XXIV", sub: "SEMANA 24", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 175, name: "EBDOMADA XXV", sub: "SEMANA 25", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 182, name: "EBDOMADA XXVI", sub: "SEMANA 26", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 189, name: "EBDOMADA XXVII", sub: "SEMANA 27", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 196, name: "EBDOMADA XXVIII", sub: "SEMANA 28", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 203, name: "EBDOMADA XXIX", sub: "SEMANA 29", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 210, name: "EBDOMADA XXX", sub: "SEMANA 30", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 217, name: "EBDOMADA XXXI", sub: "SEMANA 31", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 224, name: "EBDOMADA XXXII", sub: "SEMANA 32", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 231, name: "EBDOMADA XXXIII", sub: "SEMANA 33", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 238, name: "EBDOMADA XXXIV", sub: "SEMANA 34", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 245, name: "EBDOMADA XXXV", sub: "SEMANA 35", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 252, name: "EBDOMADA XXXVI", sub: "SEMANA 36", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
+                { min: 259, name: "EBDOMADA XXXVII", sub: "SEMANA 37", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 266, name: "EBDOMADA XXXVIII", sub: "SEMANA 38", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 273, name: "EBDOMADA XXXIX", sub: "SEMANA 39", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 280, name: "EBDOMADA XL", sub: "SEMANA 40", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 287, name: "EBDOMADA XLI", sub: "SEMANA 41", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 294, name: "EBDOMADA XLII", sub: "SEMANA 42", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 301, name: "EBDOMADA XLIII", sub: "SEMANA 43", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 308, name: "EBDOMADA XLIV", sub: "SEMANA 44", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 315, name: "EBDOMADA XLV", sub: "SEMANA 45", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 322, name: "EBDOMADA XLVI", sub: "SEMANA 46", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 329, name: "EBDOMADA XLVII", sub: "SEMANA 47", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
+                { min: 336, name: "EBDOMADA XLVIII", sub: "SEMANA 48", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" },
+                { min: 343, name: "EBDOMADA XLIX", sub: "SEMANA 49", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" },
+                { min: 350, name: "EBDOMADA L", sub: "SEMANA 50", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" },
+                { min: 357, name: "EBDOMADA LI", sub: "SEMANA 51", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" },
+                { min: 364, name: "EBDOMADA LII", sub: "SEMANA 52", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" }
             ];
 
             const sustLevels = [
