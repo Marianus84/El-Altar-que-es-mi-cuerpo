@@ -627,12 +627,18 @@
                                 <div className="relative text-center">
                                     <div className={`absolute inset-0 rounded-full blur-3xl transition-all duration-1000 ${isClosed ? currentAltarLevel.glow : 'bg-blue-500/5'}`}></div>
                                     <div className={`relative w-40 h-40 rounded-full border flex flex-col items-center justify-center transition-all duration-1000 ${isClosed ? `border-amber-500 ${currentAltarLevel.shadow}` : 'border-stone-800'}`}>
-                                        {isClosed ? <Icon name="moon" size={48} className={`${currentAltarLevel.color.split(' ')[0]} animate-pulse`} /> : <Icon name="sun" size={48} className="text-stone-600" />}
+                                        {isClosed ? (
+                                            <Icon name="moon" size={48} className={`${currentAltarLevel.color.split(' ')[0]} animate-pulse`} />
+                                        ) : (
+                                            <Icon name="shield" size={48} className="text-stone-700" />
+                                        )}
                                         <div className="mt-4 flex flex-col items-center">
                                             <span className={`text-[8px] tracking-[0.4em] uppercase font-bold ${isClosed ? currentAltarLevel.color : 'text-stone-500'}`}>
-                                                {isClosed ? "SACRATVM" : "VIGILIA"}
+                                                {isClosed ? "SACRATVM" : currentAltarLevel.name}
                                             </span>
-                                            <span className="text-[6px] opacity-40 uppercase tracking-widest">{isClosed ? "CONSAGRADO" : "VIGILIA"}</span>
+                                            <span className="text-[6px] opacity-40 uppercase tracking-widest">
+                                                {isClosed ? "CONSAGRADO" : currentAltarLevel.sub}
+                                            </span>
                                         </div>
                                     </div>
                                     {isClosed && (
