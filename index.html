@@ -65,7 +65,6 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        // Marandu: Tekoha React-pe guarã
         const { useState, useEffect, useMemo, useRef } = React;
 
         const Icon = ({ name, size = 20, className = "" }) => {
@@ -80,7 +79,6 @@
         };
 
         const App = () => {
-            // Mba'eapopy (Estados)
             const [activeTab, setActiveTab] = useState('altar');
             const [isClosed, setIsClosed] = useState(false);
             const [history, setHistory] = useState([]);
@@ -89,14 +87,15 @@
             const [newWeight, setNewWeight] = useState('');
             const [lastGraceDate, setLastGraceDate] = useState(null);
             
-            // --- REVERTERE (UNDO) MBOHAPE ---
             const [undoStack, setUndoStack] = useState([]);
             const isUndoing = useRef(false);
             const prevSnapshot = useRef(null);
 
             const fileInputRef = useRef(null);
             const chartRef = useRef(null);
+            const weightChartRef = useRef(null);
             const chartInstance = useRef(null);
+            const weightChartInstance = useRef(null);
             
             const touchStartX = useRef(null);
             const TABS_ORDER = ['altar', 'disciplina', 'sustentaculum', 'transmutation', 'identity'];
@@ -118,6 +117,7 @@
             const [editingExIndex, setEditingExIndex] = useState(null);
             const [tempEx, setTempEx] = useState({ name: '', muscles: [], weight: '', sets: '', reps: '' });
             const [chartFilter, setChartFilter] = useState('all');
+            const [weightChartFilter, setWeightChartFilter] = useState('3m'); // mes, 3m, year
 
             const [sustentaculumData, setSustentaculumData] = useState({
                 goals: { steps: 10000, protein: 150 },
@@ -142,7 +142,6 @@
                 { id: 5, text: "DECLARARE: 'LEX MEA ABSOLVTAS EST VSQVE AD CRASTINVM'.", sub: "DECLARAR: 'MI LEY ES ABSOLUTA HASTA MAÑANA'.", completed: false }
             ];
 
-            // NIVELES DE ALTARE ACTUALIZADOS A 52 SEMANAS
             const altarLevels = [
                 { min: 0, name: "NOVICIVS", sub: "NEOFITO", color: "text-stone-500", glow: "bg-amber-500/10", shadow: "glow-lv0" },
                 { min: 7, name: "EBDOMADA I", sub: "SEMANA 1", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
@@ -232,7 +231,6 @@
                 return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
             }, [lastGraceDate]);
 
-            // ÑE'ÊPY (CARGA INICIAL)
             useEffect(() => {
                 const savedInt = localStorage.getItem('altar_v3_history');
                 let initialHistory = [];
@@ -263,7 +261,6 @@
                 const savedGrace = localStorage.getItem('altar_grace_date');
                 if (savedGrace) setLastGraceDate(savedGrace);
 
-                // Mboguepaite haguã rupa (Snapshot inicial)
                 prevSnapshot.current = JSON.stringify({
                     isClosed: initialHistory[0]?.date === new Date().toLocaleDateString(),
                     history: initialHistory,
@@ -275,7 +272,6 @@
                 });
             }, []);
 
-            // ÑONGATU TEKOA (CAPTURAR SNAPSHOTS)
             useEffect(() => {
                 const currentSnapshot = JSON.stringify({
                     isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate
@@ -296,7 +292,6 @@
                 prevSnapshot.current = currentSnapshot;
             }, [isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate]);
 
-            // ÑEÑONGATU AUTOMÁTICO
             useEffect(() => {
                 localStorage.setItem('kaizenData', JSON.stringify(kaizenData));
                 localStorage.setItem('sustentaculumData', JSON.stringify(sustentaculumData));
@@ -309,19 +304,20 @@
                     const timer = setTimeout(() => renderKaizenChart(), 100);
                     return () => clearTimeout(timer);
                 }
+                if (activeTab === 'transmutation') {
+                    const timer = setTimeout(() => renderWeightChart(), 100);
+                    return () => clearTimeout(timer);
+                }
                 if (window.lucide) {
                     const timer = setTimeout(() => window.lucide.createIcons(), 50);
                     return () => clearTimeout(timer);
                 }
-            }, [activeTab, isClosed, kaizenData, chartFilter, sustentaculumData, history, weightHistory, targetWeight, lastGraceDate]);
+            }, [activeTab, isClosed, kaizenData, chartFilter, sustentaculumData, history, weightHistory, targetWeight, lastGraceDate, weightChartFilter]);
 
-            // ÑEMBOGUE (UNDO)
             const performUndo = () => {
                 if (undoStack.length === 0) return;
                 const [lastState, ...remainingStack] = undoStack;
-                
                 isUndoing.current = true;
-
                 setIsClosed(lastState.isClosed);
                 setHistory(lastState.history);
                 setTargetWeight(lastState.targetWeight);
@@ -329,7 +325,6 @@
                 setKaizenData(lastState.kaizenData);
                 setSustentaculumData(lastState.sustentaculumData);
                 setLastGraceDate(lastState.lastGraceDate);
-                
                 setUndoStack(remainingStack);
             };
 
@@ -380,6 +375,85 @@
                         }
                     });
                 } catch (e) { console.error("CHART ERROR:", e); }
+            };
+
+            const renderWeightChart = () => {
+                if (!weightChartRef.current || weightHistory.length === 0 || typeof Chart === 'undefined') return;
+                try {
+                    if (weightChartInstance.current) weightChartInstance.current.destroy();
+                    const ctx = weightChartRef.current.getContext('2d');
+                    
+                    // Filter logic
+                    const now = new Date();
+                    let filteredHistory = [...weightHistory].sort((a, b) => {
+                        const dateA = a.date.split('/').reverse().join('-');
+                        const dateB = b.date.split('/').reverse().join('-');
+                        return new Date(dateA) - new Date(dateB);
+                    });
+
+                    if (weightChartFilter === 'mes') {
+                        filteredHistory = filteredHistory.filter(h => {
+                            const d = new Date(h.date.split('/').reverse().join('-'));
+                            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                        });
+                    } else if (weightChartFilter === '3m') {
+                        const threeMonthsAgo = new Date();
+                        threeMonthsAgo.setMonth(now.getMonth() - 3);
+                        filteredHistory = filteredHistory.filter(h => new Date(h.date.split('/').reverse().join('-')) >= threeMonthsAgo);
+                    } else if (weightChartFilter === 'year') {
+                        filteredHistory = filteredHistory.filter(h => new Date(h.date.split('/').reverse().join('-')).getFullYear() === now.getFullYear());
+                    }
+
+                    const labels = filteredHistory.map(h => h.date);
+                    const weightData = filteredHistory.map(h => h.value);
+                    const targetData = Array(labels.length).fill(targetWeight);
+
+                    weightChartInstance.current = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels,
+                            datasets: [
+                                {
+                                    label: 'PONDVS (PESO)',
+                                    data: weightData,
+                                    borderColor: '#d97706',
+                                    backgroundColor: 'rgba(217, 119, 6, 0.1)',
+                                    borderWidth: 3,
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 4,
+                                    pointBackgroundColor: '#d97706'
+                                },
+                                {
+                                    label: 'VOTVM (META)',
+                                    data: targetData,
+                                    borderColor: '#44403c',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    pointRadius: 0,
+                                    fill: false
+                                }
+                            ]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { 
+                                y: { 
+                                    ticks: { color: '#57534e', font: { size: 9 } }, 
+                                    grid: { color: '#1c1917' },
+                                    suggestedMin: Math.min(...weightData, targetWeight) - 2,
+                                    suggestedMax: Math.max(...weightData, targetWeight) + 2
+                                }, 
+                                x: { 
+                                    ticks: { color: '#57534e', font: { size: 8 }, maxRotation: 45, minRotation: 45 }, 
+                                    grid: { display: false } 
+                                } 
+                            }
+                        }
+                    });
+                } catch (e) { console.error("WEIGHT CHART ERROR:", e); }
             };
 
             const sealSteps = () => {
@@ -443,7 +517,6 @@
                 const today = new Date().toLocaleDateString();
                 const newEntry = { date: today, streak: currentStreak }; 
                 const updated = [newEntry, ...history];
-                
                 setHistory(updated);
                 setLastGraceDate(new Date().toISOString());
                 setIsClosed(true);
@@ -717,6 +790,25 @@
                                     <input type="number" value={newWeight} onChange={(e) => setNewWeight(e.target.value)} placeholder="CONSIGNARE PONDVS (KG)" className="bg-transparent border-none outline-none text-stone-300 w-full font-serif italic text-sm uppercase" />
                                     <button onClick={() => { if(!newWeight) return; const updated = [...weightHistory, {date: new Date().toLocaleDateString(), value: parseFloat(newWeight)}]; setWeightHistory(updated); setNewWeight(''); }} className="text-amber-600 text-[9px] font-bold uppercase tracking-widest">CONSIGNARE</button>
                                 </div>
+
+                                {/* WEIGHT CHART SECTION */}
+                                <div className="space-y-4">
+                                    <div className="flex justify-center space-x-2">
+                                        {['mes', '3m', 'year'].map(f => (
+                                            <button 
+                                                key={f} 
+                                                onClick={() => setWeightChartFilter(f)}
+                                                className={`px-3 py-1 text-[8px] uppercase tracking-widest border transition-all ${weightChartFilter === f ? 'border-amber-600 text-amber-500 bg-amber-950/10' : 'border-stone-900 text-stone-600 hover:text-stone-400'}`}
+                                            >
+                                                {f === 'mes' ? 'Mensis' : f === '3m' ? 'III menses' : 'Annvs'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="h-56 w-full bg-stone-950/20 p-2 border border-stone-900 rounded relative">
+                                        <canvas ref={weightChartRef}></canvas>
+                                    </div>
+                                </div>
+
                                 <div className="pt-4 border-t border-stone-900/50">
                                     <button onClick={() => setShowWeightGoal(!showWeightGoal)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold"><span>METAE CORPORIS</span><Icon name={showWeightGoal ? "chevron-up" : "chevron-down"} size={14} /></button>
                                     <div className={`overflow-hidden transition-all duration-300 ${showWeightGoal ? 'max-h-32 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
@@ -789,7 +881,6 @@
                         </div>
                     )}
 
-                    {/* REVERTERE (UNDO) VOVÕ - Hovy guýpe orange sa'y reheve */}
                     <button 
                         onClick={performUndo}
                         disabled={undoStack.length === 0}
