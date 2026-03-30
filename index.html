@@ -225,10 +225,26 @@
 
             const timeToGrace = useMemo(() => {
                 if (!lastGraceDate) return 0;
-                const last = new Date(lastGraceDate).getTime();
-                const now = new Date().getTime();
-                const diff = (7 * 24 * 60 * 60 * 1000) - (now - last);
-                return Math.max(0, Math.ceil(diff / (24 * 60 * 60 * 1000)));
+                const now = new Date();
+                const last = new Date(lastGraceDate);
+                
+                // Lógica de inicio de semana (Lunes)
+                const getMonday = (d) => {
+                    const dt = new Date(d);
+                    const day = dt.getDay(); // 0 (Dom) a 6 (Sab)
+                    const diff = dt.getDate() - day + (day === 0 ? -6 : 1); 
+                    return new Date(dt.setDate(diff)).setHours(0, 0, 0, 0);
+                };
+
+                const currentMonday = getMonday(now);
+                const lastMonday = getMonday(last);
+
+                // Si el lunes actual es posterior al lunes del último uso, está disponible
+                if (currentMonday > lastMonday) return 0;
+
+                // Si estamos en la misma semana, calcular días hasta el próximo lunes
+                const nextMonday = new Date(currentMonday + 7 * 24 * 60 * 60 * 1000);
+                return Math.max(0, Math.ceil((nextMonday - now) / (24 * 60 * 60 * 1000)));
             }, [lastGraceDate]);
 
             useEffect(() => {
@@ -791,9 +807,9 @@
                                 <div className="text-center"><h2 className="text-xl font-altar text-stone-200 tracking-widest uppercase">GVBERNARE MATERIAM</h2><span className="text-[10px] text-stone-600 uppercase tracking-widest">(GOBERNAR LA MATERIA)</span></div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">PRAESENS</p><p className="text-lg font-serif text-stone-200">{currentWeight} KG</p></div>
-                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">META</p><p className="text-lg font-serif text-amber-600">{targetWeight} KG</p></div>
-                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">AMISSVM</p><p className="text-lg font-serif text-green-900">-{lostWeight} KG</p></div>
-                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">RELIQVVM</p><p className="text-lg font-serif text-amber-900">{remainingWeight} KG</p></div>
+                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-lg font-serif text-amber-600">{targetWeight} KG</p><p className="text-[8px] text-stone-600 uppercase tracking-widest mt-1">META</p></div>
+                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-lg font-serif text-green-900">-{lostWeight} KG</p><p className="text-[8px] text-stone-600 uppercase tracking-widest mt-1">AMISSVM</p></div>
+                                    <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-lg font-serif text-amber-900">{remainingWeight} KG</p><p className="text-[8px] text-stone-600 uppercase tracking-widest mt-1">RELIQVVM</p></div>
                                 </div>
                                 <div className="border-b border-stone-800 pb-2 flex items-center justify-between">
                                     <input type="number" value={newWeight} onChange={(e) => setNewWeight(e.target.value)} placeholder="CONSIGNARE PONDVS (KG)" className="bg-transparent border-none outline-none text-stone-300 w-full font-serif italic text-sm uppercase" />
