@@ -51,6 +51,7 @@
         .glow-lv6 { box-shadow: 0 0 120px rgba(255, 255, 255, 0.7); animation: pure-light 4s infinite alternate; }
 
         .glow-success { filter: drop-shadow(0 0 8px rgba(217, 119, 6, 0.6)); }
+        .glow-puritas { filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5)); }
 
         @keyframes pure-light {
             from { filter: brightness(1); }
@@ -98,7 +99,8 @@
             const weightChartInstance = useRef(null);
             
             const touchStartX = useRef(null);
-            const TABS_ORDER = ['altar', 'disciplina', 'sustentaculum', 'transmutation', 'identity'];
+            // ORDEN SOLICITADO: Altar, Disciplina, Sustentaculum, Purificatio, Materia, Vota
+            const TABS_ORDER = ['altar', 'disciplina', 'sustentaculum', 'purificatio', 'transmutation', 'identity'];
 
             const [kaizenData, setKaizenData] = useState({
                 week: 1,
@@ -113,11 +115,18 @@
                 ]
             });
 
+            const [puritasData, setPuritasData] = useState({
+                streak: 0,
+                sealedToday: false,
+                lastSealedDate: null,
+                history: []
+            });
+
             const [isExFormOpen, setIsExFormOpen] = useState(false);
             const [editingExIndex, setEditingExIndex] = useState(null);
             const [tempEx, setTempEx] = useState({ name: '', muscles: [], weight: '', sets: '', reps: '' });
             const [chartFilter, setChartFilter] = useState('all');
-            const [weightChartFilter, setWeightChartFilter] = useState('3m'); // mes, 3m, year
+            const [weightChartFilter, setWeightChartFilter] = useState('3m'); 
 
             const [sustentaculumData, setSustentaculumData] = useState({
                 goals: { steps: 10000, protein: 150 },
@@ -134,18 +143,26 @@
                 { verse: "INSVLINA II:V", text: "NOLI GIGANTEM DORMIENTEM EXTRA HORAM SVAM EXCITARE. REQVIES EST VNICA VIA AD PROPRIA DEPOSITA COMBVRENDA.", sub: "No provoques al gigante dormido fuera de su hora. El reposo es la única vía hacia la quema de tus propios depósitos." }
             ];
 
+            const puritasGospels = [
+                { verse: "CASTITAS I:IV", text: "OCVLVS EST LVCERNA CORPORIS. SI OCVLVS TVVS MVDVS EST, TOTVM CORPVS TVVM LVCIDVM ERIT.", sub: "El ojo es la lámpara del cuerpo. Si tu ojo está limpio, todo tu cuerpo estará iluminado." },
+                { verse: "POTENTIA II:IX", text: "SEMEN EST VITA. QVI SE IPSVM VINCIT, FORTIOR EST EO QVI VRBES EXPVGNAT.", sub: "La semilla es vida. Quien se vence a sí mismo es más fuerte que quien conquista ciudades." }
+            ];
+
             const [ritualSteps, setRitualSteps] = useState([
                 { id: 1, text: "AGNOSCERE NECESSITATES BIOLOGICAM EXPLETAM ESSE.", sub: "RECONOCER QUE EL REQUERIMIENTO BIOLOGICO HA SIDO SATISFECHO.", completed: false },
                 { id: 2, text: "MVNDA OMNIA RELIQVIA ALIMENTORVM.", sub: "LIMPIEZA TOTAL DE LOS RESTOS DEL SUSTENTO.", completed: false },
                 { id: 3, text: "OBSIGNATIO ORIS: DENTES PENITVS LAVARE.", sub: "SELLADO BUCAL: LAVADO PROFUNDO DE DIENTES.", completed: false },
-
-{ id: 4, text: "LEX MEA ABSOLVTAS EST VSQVE AD AVRORAM.", sub: "MI LEY ES ABSOLUTA HASTA EL ALBA.", completed: false },
-
-
-               
-
-
+                { id: 4, text: "LEX MEA ABSOLVTAS EST VSQVE AD AVRORAM.", sub: "MI LEY ES ABSOLUTA HASTA EL ALBA.", completed: false },
                 { id: 5, text: "BAPTISMVS IEIVNII CVM POTIONE VEL AQVA.", sub: "BAUTISMO DE AYUNO CON INFUSION O AGUA.", completed: false }
+            ]);
+
+            const [puritasRitual, setPuritasRitual] = useState([
+                { id: 1, text: "LAVATIO CORPORIS: AQVA FRIGIDA IN FACIEM.", sub: "ACCION: LAVAR ROSTRO Y MANOS CON AGUA FRIA PARA PURIFICAR EL CONTACTO.", completed: false },
+                { id: 2, text: "RESPIRATIO SOBERANA: TRES SPIRITVS PROFVNDI.", sub: "ACCION: TRES RESPIRACIONES PROFUNDAS. EXPULSAR EL DESEO, INHALAR PODER.", completed: false },
+                { id: 3, text: "STATIO FIRMA: CORPVS RECTVM ET DOMINATVM.", sub: "ACCION: PERMANECER ERGUIDO Y FIRME. REAFIRMAR EL MANDO SOBRE LOS MUSCULOS.", completed: false },
+                { id: 4, text: "REFVTARE IMAGINES VANAS ET ILLICITAS.", sub: "SENTENCIA: RECHAZO TODA IMAGEN QUE ESCLAVICE MI ALMA.", completed: false },
+                { id: 5, text: "HONORARE CONIVGEM ET INTEGRITATEM MEAM.", sub: "SENTENCIA: MI ENERGIA ES PARA MI COMPAÑERA Y MI CRECIMIENTO.", completed: false },
+                { id: 6, text: "EXTINCTIO LVCIS: MENS LIMPIDA IN SOMNVM.", sub: "ACCION: APAGAR LA LUZ. ENTRAR AL SUEÑO COMO UN HOMBRE LIBRE.", completed: false }
             ]);
 
             const altarLevels = [
@@ -204,6 +221,17 @@
                 { min: 364, name: "ABSOLVTVS", sub: "EL ABSOLUTO", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" }
             ];
 
+            const puritasLevels = [
+                { min: 0, name: "POENITENS", sub: "EL PENITENTE", color: "text-red-800" },
+                { min: 7, name: "PVRGATVS", sub: "EL PURIFICADO", color: "text-blue-400" },
+                { min: 14, name: "VIGILANS", sub: "EL VIGILANTE", color: "text-blue-300" },
+                { min: 21, name: "DOMITOR", sub: "EL DOMADOR", color: "text-cyan-400" },
+                { min: 28, name: "STABILIS", sub: "EL ESTABLE", color: "text-cyan-200" },
+                { min: 35, name: "FORTIS", sub: "EL FUERTE", color: "text-indigo-400" },
+                { min: 42, name: "LIBER", sub: "EL LIBRE", color: "text-white brightness-110" },
+                { min: 90, name: "INVICTVS", sub: "EL INVICTO", color: "text-white brightness-150 glow-puritas" }
+            ];
+
             const sustLevels = [
                 { min: 0, name: "LIXAE", sub: "AGUADOR", color: "text-stone-500" },
                 { min: 7, name: "VIATOR", sub: "VIAJERO", color: "text-stone-400" },
@@ -224,6 +252,7 @@
 
             const currentStreak = history.length > 0 ? history[0].streak : 0;
             const currentAltarLevel = altarLevels.slice().reverse().find(l => currentStreak >= l.min) || altarLevels[0];
+            const currentPuritasLevel = puritasLevels.slice().reverse().find(l => puritasData.streak >= l.min) || puritasLevels[0];
             const stepsStreak = sustentaculumData.historySteps?.length > 0 ? sustentaculumData.historySteps[0].streak : 0;
             const proteinStreak = sustentaculumData.historyProtein?.length > 0 ? sustentaculumData.historyProtein[0].streak : 0;
             const stepsLevel = sustLevels.slice().reverse().find(l => stepsStreak >= l.min) || sustLevels[0];
@@ -233,22 +262,15 @@
                 if (!lastGraceDate) return 0;
                 const now = new Date();
                 const last = new Date(lastGraceDate);
-                
-                // Lógica de inicio de semana (Lunes)
                 const getMonday = (d) => {
                     const dt = new Date(d);
-                    const day = dt.getDay(); // 0 (Dom) a 6 (Sab)
+                    const day = dt.getDay(); 
                     const diff = dt.getDate() - day + (day === 0 ? -6 : 1); 
                     return new Date(dt.setDate(diff)).setHours(0, 0, 0, 0);
                 };
-
                 const currentMonday = getMonday(now);
                 const lastMonday = getMonday(last);
-
-                // Si el lunes actual es posterior al lunes del último uso, está disponible
                 if (currentMonday > lastMonday) return 0;
-
-                // Si estamos en la misma semana, calcular días hasta el próximo lunes
                 const nextMonday = new Date(currentMonday + 7 * 24 * 60 * 60 * 1000);
                 return Math.max(0, Math.ceil((nextMonday - now) / (24 * 60 * 60 * 1000)));
             }, [lastGraceDate]);
@@ -270,6 +292,17 @@
                 }
                 const savedKaizen = localStorage.getItem('kaizenData');
                 if (savedKaizen) setKaizenData(JSON.parse(savedKaizen));
+                
+                const savedPuritas = localStorage.getItem('puritasData');
+                if (savedPuritas) {
+                    const data = JSON.parse(savedPuritas);
+                    const today = new Date().toLocaleDateString();
+                    if (data.lastSealedDate !== today) {
+                        data.sealedToday = false;
+                    }
+                    setPuritasData(data);
+                }
+
                 const savedSust = localStorage.getItem('sustentaculumData');
                 let initialSust = sustentaculumData;
                 if (savedSust) {
@@ -290,14 +323,16 @@
                     weightHistory: initialWeight.history,
                     kaizenData: savedKaizen ? JSON.parse(savedKaizen) : kaizenData,
                     sustentaculumData: initialSust,
+                    puritasData: savedPuritas ? JSON.parse(savedPuritas) : puritasData,
                     lastGraceDate: savedGrace,
-                    ritualSteps: ritualSteps
+                    ritualSteps: ritualSteps,
+                    puritasRitual: puritasRitual
                 });
             }, []);
 
             useEffect(() => {
                 const currentSnapshot = JSON.stringify({
-                    isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate, ritualSteps
+                    isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, puritasData, lastGraceDate, ritualSteps, puritasRitual
                 });
 
                 if (isUndoing.current) {
@@ -313,13 +348,14 @@
                     });
                 }
                 prevSnapshot.current = currentSnapshot;
-            }, [isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, lastGraceDate, ritualSteps]);
+            }, [isClosed, history, targetWeight, weightHistory, kaizenData, sustentaculumData, puritasData, lastGraceDate, ritualSteps, puritasRitual]);
 
             useEffect(() => {
                 localStorage.setItem('kaizenData', JSON.stringify(kaizenData));
                 localStorage.setItem('sustentaculumData', JSON.stringify(sustentaculumData));
                 localStorage.setItem('altar_v3_history', JSON.stringify(history));
                 localStorage.setItem('altar_weight_data', JSON.stringify({history: weightHistory, target: targetWeight}));
+                localStorage.setItem('puritasData', JSON.stringify(puritasData));
                 if (lastGraceDate) localStorage.setItem('altar_grace_date', lastGraceDate);
                 else localStorage.removeItem('altar_grace_date');
 
@@ -335,35 +371,32 @@
                     const timer = setTimeout(() => window.lucide.createIcons(), 50);
                     return () => clearTimeout(timer);
                 }
-            }, [activeTab, isClosed, kaizenData, chartFilter, sustentaculumData, history, weightHistory, targetWeight, lastGraceDate, weightChartFilter]);
+            }, [activeTab, isClosed, kaizenData, chartFilter, sustentaculumData, puritasData, history, weightHistory, targetWeight, lastGraceDate, weightChartFilter]);
 
             const performUndo = () => {
                 if (undoStack.length === 0) return;
                 const [lastState, ...remainingStack] = undoStack;
                 isUndoing.current = true;
-                
                 setIsClosed(lastState.isClosed);
                 setHistory(lastState.history);
                 setTargetWeight(lastState.targetWeight);
                 setWeightHistory(lastState.weightHistory);
                 setKaizenData(lastState.kaizenData);
                 setSustentaculumData(lastState.sustentaculumData);
+                setPuritasData(lastState.puritasData);
                 setLastGraceDate(lastState.lastGraceDate);
                 setRitualSteps(lastState.ritualSteps);
-                
+                setPuritasRitual(lastState.puritasRitual || puritasRitual);
                 setUndoStack(remainingStack);
             };
 
-            const handleTouchStart = (e) => {
-                touchStartX.current = e.touches[0].clientX;
-            };
-
+            const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
             const handleTouchEnd = (e) => {
                 if (touchStartX.current === null) return;
                 const touchEndX = e.changedTouches[0].clientX;
                 const deltaX = touchStartX.current - touchEndX;
                 const threshold = 70;
-                if (activeTab === 'ritual') return;
+                if (activeTab === 'ritual' || activeTab === 'ritual_puritas') return;
                 if (Math.abs(deltaX) > threshold) {
                     const currentIndex = TABS_ORDER.indexOf(activeTab);
                     if (deltaX > 0 && currentIndex < TABS_ORDER.length - 1) setActiveTab(TABS_ORDER[currentIndex + 1]);
@@ -385,17 +418,13 @@
                         data: uniqueWeeks.map(w => kaizenData.history.find(h => h.name === name && h.week === w)?.volume || null),
                         borderColor: ['#d97706', '#78350f', '#f59e0b', '#44403c', '#ffffff', '#22c55e'][index % 6],
                         backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        tension: 0.3,
-                        pointRadius: 4,
-                        spanGaps: true
+                        borderWidth: 2, tension: 0.3, pointRadius: 4, spanGaps: true
                     }));
                     chartInstance.current = new Chart(ctx, {
                         type: 'line',
                         data: { labels, datasets },
                         options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
+                            responsive: true, maintainAspectRatio: false,
                             plugins: { legend: { display: chartFilter === 'all', position: 'bottom', labels: { color: '#a8a29e', font: { size: 10, family: 'Cinzel' } } } },
                             scales: { y: { ticks: { color: '#57534e' }, grid: { color: '#1c1917' } }, x: { ticks: { color: '#57534e' }, grid: { display: false } } }
                         }
@@ -408,73 +437,38 @@
                 try {
                     if (weightChartInstance.current) weightChartInstance.current.destroy();
                     const ctx = weightChartRef.current.getContext('2d');
-                    
                     const now = new Date();
                     let filteredHistory = [...weightHistory].sort((a, b) => {
                         const dateA = a.date.split('/').reverse().join('-');
                         const dateB = b.date.split('/').reverse().join('-');
                         return new Date(dateA) - new Date(dateB);
                     });
-
-                    if (weightChartFilter === 'mes') {
-                        filteredHistory = filteredHistory.filter(h => {
-                            const d = new Date(h.date.split('/').reverse().join('-'));
-                            return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-                        });
-                    } else if (weightChartFilter === '3m') {
-                        const threeMonthsAgo = new Date();
-                        threeMonthsAgo.setMonth(now.getMonth() - 3);
+                    if (weightChartFilter === 'mes') filteredHistory = filteredHistory.filter(h => {
+                        const d = new Date(h.date.split('/').reverse().join('-'));
+                        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                    });
+                    else if (weightChartFilter === '3m') {
+                        const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(now.getMonth() - 3);
                         filteredHistory = filteredHistory.filter(h => new Date(h.date.split('/').reverse().join('-')) >= threeMonthsAgo);
-                    } else if (weightChartFilter === 'year') {
-                        filteredHistory = filteredHistory.filter(h => new Date(h.date.split('/').reverse().join('-')).getFullYear() === now.getFullYear());
-                    }
-
+                    } else if (weightChartFilter === 'year') filteredHistory = filteredHistory.filter(h => new Date(h.date.split('/').reverse().join('-')).getFullYear() === now.getFullYear());
                     const labels = filteredHistory.map(h => h.date);
                     const weightData = filteredHistory.map(h => h.value);
                     const targetData = Array(labels.length).fill(targetWeight);
-
                     weightChartInstance.current = new Chart(ctx, {
                         type: 'line',
                         data: {
                             labels,
                             datasets: [
-                                {
-                                    label: 'PONDVS (PESO)',
-                                    data: weightData,
-                                    borderColor: '#d97706',
-                                    backgroundColor: 'rgba(217, 119, 6, 0.1)',
-                                    borderWidth: 3,
-                                    fill: true,
-                                    tension: 0.4,
-                                    pointRadius: 4,
-                                    pointBackgroundColor: '#d97706'
-                                },
-                                {
-                                    label: 'VOTVM (META)',
-                                    data: targetData,
-                                    borderColor: '#44403c',
-                                    borderWidth: 2,
-                                    borderDash: [5, 5],
-                                    pointRadius: 0,
-                                    fill: false
-                                }
+                                { label: 'PONDVS', data: weightData, borderColor: '#d97706', backgroundColor: 'rgba(217, 119, 6, 0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#d97706' },
+                                { label: 'VOTVM', data: targetData, borderColor: '#44403c', borderWidth: 2, borderDash: [5, 5], pointRadius: 0, fill: false }
                             ]
                         },
                         options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
+                            responsive: true, maintainAspectRatio: false,
                             plugins: { legend: { display: false } },
                             scales: { 
-                                y: { 
-                                    ticks: { color: '#57534e', font: { size: 9 } }, 
-                                    grid: { color: '#1c1917' },
-                                    suggestedMin: Math.min(...weightData, targetWeight) - 2,
-                                    suggestedMax: Math.max(...weightData, targetWeight) + 2
-                                }, 
-                                x: { 
-                                    ticks: { color: '#57534e', font: { size: 8 }, maxRotation: 45, minRotation: 45 }, 
-                                    grid: { display: false } 
-                                } 
+                                y: { ticks: { color: '#57534e', font: { size: 9 } }, grid: { color: '#1c1917' }, suggestedMin: Math.min(...weightData, targetWeight) - 2, suggestedMax: Math.max(...weightData, targetWeight) + 2 }, 
+                                x: { ticks: { color: '#57534e', font: { size: 8 }, maxRotation: 45, minRotation: 45 }, grid: { display: false } } 
                             }
                         }
                     });
@@ -498,16 +492,28 @@
             };
 
             const toggleExComplete = (index) => {
-                setKaizenData(prev => ({
+                setKaizenData(prev => ({ ...prev, exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, completed: !ex.completed } : ex) }));
+            };
+
+            const resetPuritas = () => {
+                setPuritasData(prev => ({
                     ...prev,
-                    exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, completed: !ex.completed } : ex)
+                    streak: 0,
+                    sealedToday: false,
+                    lastSealedDate: null,
+                    history: [{ date: new Date().toLocaleDateString(), event: "LAPSVS" }, ...prev.history]
                 }));
             };
 
-            const startEditExercise = (index) => {
-                setTempEx({ ...kaizenData.exercises[index] });
-                setEditingExIndex(index);
-                setIsExFormOpen(true);
+            const sealPuritas = () => {
+                if (puritasData.sealedToday) return;
+                setPuritasData(prev => ({
+                    ...prev,
+                    streak: prev.streak + 1,
+                    sealedToday: true,
+                    lastSealedDate: new Date().toLocaleDateString()
+                }));
+                setActiveTab('purificatio');
             };
 
             const applyKaizenCycle = () => {
@@ -515,8 +521,7 @@
                     const newHistory = [...prev.history];
                     prev.exercises.forEach(ex => newHistory.push({ week: prev.week, name: ex.name, weight: ex.weight, sets: ex.sets, reps: ex.reps, volume: ex.weight * ex.sets * ex.reps }));
                     const newExercises = prev.exercises.map(ex => {
-                        let reps = ex.reps;
-                        let sets = ex.sets;
+                        let reps = ex.reps; let sets = ex.sets;
                         if (reps >= 15) { reps = 8; sets += 1; } else { reps += 1; }
                         return { ...ex, reps, sets, completed: false };
                     });
@@ -533,16 +538,14 @@
                     else newExs.push(finalEx);
                     return { ...prev, exercises: newExs };
                 });
-                setIsExFormOpen(false);
-                setEditingExIndex(null);
+                setIsExFormOpen(false); setEditingExIndex(null);
             };
 
             const handleGraceDay = () => {
                 if (timeToGrace > 0) return;
                 const today = new Date().toLocaleDateString();
                 const newEntry = { date: today, streak: currentStreak }; 
-                const updated = [newEntry, ...history];
-                setHistory(updated);
+                setHistory([newEntry, ...history]);
                 setLastGraceDate(new Date().toISOString());
                 setIsClosed(true);
             };
@@ -553,20 +556,17 @@
                     weight: localStorage.getItem('altar_weight_data'),
                     kaizen: localStorage.getItem('kaizenData'),
                     sust: localStorage.getItem('sustentaculumData'),
+                    puritas: localStorage.getItem('puritasData'),
                     grace: localStorage.getItem('altar_grace_date'),
                     exportDate: new Date().toISOString()
                 };
                 const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `ALTARE_INTEGRITATIS_BACKVP_${new Date().toLocaleDateString()}.json`;
-                a.click();
+                const a = document.createElement('a'); a.href = url; a.download = `ALTARE_INTEGRITATIS_BACKVP_${new Date().toLocaleDateString()}.json`; a.click();
             };
 
             const importBackup = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
+                const file = e.target.files[0]; if (!file) return;
                 const reader = new FileReader();
                 reader.onload = (ev) => {
                     try {
@@ -575,6 +575,7 @@
                         if (data.weight) localStorage.setItem('altar_weight_data', data.weight);
                         if (data.kaizen) localStorage.setItem('kaizenData', data.kaizen);
                         if (data.sust) localStorage.setItem('sustentaculumData', data.sust);
+                        if (data.puritas) localStorage.setItem('puritasData', data.puritas);
                         if (data.grace) localStorage.setItem('altar_grace_date', data.grace);
                         window.location.reload();
                     } catch (err) { console.error("ERROREM LEGERE EXEMPLAR", err); }
@@ -584,11 +585,7 @@
 
             const muscleImpact = useMemo(() => {
                 const hits = {};
-                kaizenData.exercises.forEach(ex => { 
-                    if (ex.completed && ex.muscles) {
-                        ex.muscles.forEach(m => hits[m] = (hits[m] || 0) + 1); 
-                    }
-                });
+                kaizenData.exercises.forEach(ex => { if (ex.completed && ex.muscles) ex.muscles.forEach(m => hits[m] = (hits[m] || 0) + 1); });
                 return hits;
             }, [kaizenData.exercises]);
 
@@ -598,9 +595,7 @@
             const remainingWeight = currentWeight > 0 ? (currentWeight - targetWeight).toFixed(1) : 0;
 
             const sortedExercises = useMemo(() => {
-                return kaizenData.exercises
-                    .map((ex, originalIndex) => ({ ...ex, originalIndex }))
-                    .sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1));
+                return kaizenData.exercises.map((ex, originalIndex) => ({ ...ex, originalIndex })).sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1));
             }, [kaizenData.exercises]);
 
             return (
@@ -629,12 +624,11 @@
                                     {id: 'altar', lat: 'ALTARE', es: 'ALTAR'},
                                     {id: 'disciplina', lat: 'DISCIPLINA', es: 'KAIZEN'},
                                     {id: 'sustentaculum', lat: 'SVSTENTACVLVM', es: 'SUSTENTO'},
+                                    {id: 'purificatio', lat: 'PVRIFĬCATIO', es: 'PURO'},
                                     {id: 'transmutation', lat: 'MATERIA', es: 'MATERIA'},
                                     {id: 'identity', lat: 'VOTA', es: 'VOTOS'}
                                 ].map(tab => (
-                                    <button key={tab.id} 
-                                            onClick={() => setActiveTab(tab.id)} 
-                                            className={`whitespace-nowrap text-[10px] tracking-widest uppercase font-bold text-center flex-shrink-0 transition-all duration-300 pb-1 border-b-2 ${activeTab === tab.id ? 'text-orange-500 border-orange-500 scale-105' : 'text-stone-600 border-transparent'}`}>
+                                    <button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`whitespace-nowrap text-[10px] tracking-widest uppercase font-bold text-center flex-shrink-0 transition-all duration-300 pb-1 border-b-2 ${activeTab === tab.id ? 'text-orange-500 border-orange-500 scale-105' : 'text-stone-600 border-transparent'}`}>
                                         <span className="block">{tab.lat}</span>
                                         <span className="block text-[6px] opacity-50 font-normal">{tab.es}</span>
                                     </button>
@@ -649,18 +643,10 @@
                                 <div className="relative text-center">
                                     <div className={`absolute inset-0 rounded-full blur-3xl transition-all duration-1000 ${isClosed ? currentAltarLevel.glow : 'bg-blue-500/5'}`}></div>
                                     <div className={`relative w-40 h-40 rounded-full border flex flex-col items-center justify-center transition-all duration-1000 ${isClosed ? `border-amber-500 ${currentAltarLevel.shadow}` : 'border-stone-800'}`}>
-                                        {isClosed ? (
-                                            <Icon name="moon" size={48} className={`${currentAltarLevel.color.split(' ')[0]} animate-pulse`} />
-                                        ) : (
-                                            <Icon name="shield" size={48} className="text-stone-700" />
-                                        )}
+                                        {isClosed ? <Icon name="moon" size={48} className={`${currentAltarLevel.color.split(' ')[0]} animate-pulse`} /> : <Icon name="shield" size={48} className="text-stone-700" />}
                                         <div className="mt-4 flex flex-col items-center">
-                                            <span className={`text-[8px] tracking-[0.4em] uppercase font-bold ${isClosed ? currentAltarLevel.color : 'text-stone-500'}`}>
-                                                {isClosed ? "SACRATVM" : currentAltarLevel.name}
-                                            </span>
-                                            <span className="text-[6px] opacity-40 uppercase tracking-widest">
-                                                {isClosed ? "CONSAGRADO" : currentAltarLevel.sub}
-                                            </span>
+                                            <span className={`text-[8px] tracking-[0.4em] uppercase font-bold ${isClosed ? currentAltarLevel.color : 'text-stone-500'}`}>{isClosed ? "SACRATVM" : currentAltarLevel.name}</span>
+                                            <span className="text-[6px] opacity-40 uppercase tracking-widest">{isClosed ? "CONSAGRADO" : currentAltarLevel.sub}</span>
                                         </div>
                                     </div>
                                     {isClosed && (
@@ -680,15 +666,9 @@
                                             <span>INCIPERE RITVM CLAVSVRAE</span>
                                             <span className="block text-[7px] opacity-50 mt-1 uppercase">INICIAR RITUAL DE CIERRE</span>
                                         </button>
-                                        <button 
-                                            onClick={handleGraceDay}
-                                            disabled={timeToGrace > 0}
-                                            className={`w-full py-3 border transition-all flex flex-col items-center justify-center ${timeToGrace > 0 ? 'border-stone-900 bg-stone-950/20 text-stone-800' : 'border-blue-900/40 bg-blue-950/5 text-blue-400 hover:border-blue-500'}`}
-                                        >
+                                        <button onClick={handleGraceDay} disabled={timeToGrace > 0} className={`w-full py-3 border transition-all flex flex-col items-center justify-center ${timeToGrace > 0 ? 'border-stone-900 bg-stone-950/20 text-stone-800' : 'border-blue-900/40 bg-blue-950/5 text-blue-400 hover:border-blue-500'}`}>
                                             <span className="text-[10px] font-altar tracking-[0.2em] uppercase font-bold">DIES GRATIAE</span>
-                                            <span className="text-[7px] opacity-60 uppercase tracking-widest italic">
-                                                {timeToGrace > 0 ? `REQVIES IN ${timeToGrace} DIES` : 'ACTĪVARE INDVLGENTIAM'}
-                                            </span>
+                                            <span className="text-[7px] opacity-60 uppercase tracking-widest italic">{timeToGrace > 0 ? `REQVIES IN ${timeToGrace} DIES` : 'ACTĪVARE INDVLGENTIAM'}</span>
                                         </button>
                                     </div>
                                 ) : (
@@ -710,20 +690,12 @@
                                 <div className="text-center">
                                     <h2 className="text-xl font-altar text-stone-200 tracking-[0.2em] uppercase">MELIORATIO KAIZEN</h2>
                                     <div className="text-amber-600 text-[10px] font-bold tracking-widest uppercase mt-1">EBDOMADA {kaizenData.week}</div>
-                                    <span className="text-[8px] text-stone-600 uppercase tracking-widest">SEMANA {kaizenData.week}</span>
                                 </div>
                                 <div className="grid grid-cols-3 gap-1 mb-4">
                                     {muscleList.map(m => {
-                                        const hits = muscleImpact[m.id] || 0;
-                                        const isActive = hits > 0;
+                                        const hits = muscleImpact[m.id] || 0; const isActive = hits > 0;
                                         const opacity = isActive ? 0.2 + (hits / maxHits) * 0.6 : 0;
-                                        return (
-                                            <div key={m.id} 
-                                                 className={`text-center border py-2 px-1 text-[9px] font-bold transition-all duration-500 ${isActive ? 'text-stone-200' : 'text-stone-700 border-stone-900'}`}
-                                                 style={{ backgroundColor: isActive ? `rgba(217, 119, 6, ${opacity})` : 'transparent', borderColor: isActive ? '#d97706' : '#292524' }}>
-                                                {m.label}
-                                            </div>
-                                        );
+                                        return <div key={m.id} className={`text-center border py-2 px-1 text-[9px] font-bold transition-all duration-500 ${isActive ? 'text-stone-200' : 'text-stone-700 border-stone-900'}`} style={{ backgroundColor: isActive ? `rgba(217, 119, 6, ${opacity})` : 'transparent', borderColor: isActive ? '#d97706' : '#292524' }}>{m.label}</div>;
                                     })}
                                 </div>
                                 <div className="space-y-3">
@@ -731,9 +703,7 @@
                                         <div key={ex.originalIndex} className={`p-4 border transition-all duration-300 ${ex.completed ? 'border-amber-900/40 bg-amber-950/5 opacity-60' : 'border-stone-900 bg-stone-950/20'}`}>
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3 cursor-pointer overflow-hidden flex-1" onClick={() => toggleExComplete(ex.originalIndex)}>
-                                                    <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors ${ex.completed ? 'bg-amber-600 border-amber-600' : 'border-stone-700'}`}>
-                                                        {ex.completed && <Icon name="check" size={10} className="text-black" />}
-                                                    </div>
+                                                    <div className={`w-4 h-4 rounded-full border flex-shrink-0 flex items-center justify-center transition-colors ${ex.completed ? 'bg-amber-600 border-amber-600' : 'border-stone-700'}`}>{ex.completed && <Icon name="check" size={10} className="text-black" />}</div>
                                                     <div className="truncate">
                                                         <h4 className={`text-sm font-serif italic truncate ${ex.completed ? 'text-stone-500' : 'text-stone-300'}`}>{ex.name}</h4>
                                                         <span className="text-[8px] text-amber-600/60 uppercase tracking-widest font-bold">{ex.muscles?.join(', ')}</span>
@@ -741,9 +711,7 @@
                                                 </div>
                                                 <div className="flex items-center space-x-4 flex-shrink-0 ml-2">
                                                     <div className="text-right text-[10px] text-stone-500 uppercase tracking-tighter font-bold">{ex.weight}KG — {ex.sets}X{ex.reps}</div>
-                                                    <button onClick={(e) => { e.stopPropagation(); startEditExercise(ex.originalIndex); }} className="p-2 bg-stone-900 border border-stone-800 rounded text-stone-400 hover:text-amber-500 hover:border-amber-500 transition-all flex items-center justify-center">
-                                                        <Icon name="pencil" size={14} />
-                                                    </button>
+                                                    <button onClick={(e) => { e.stopPropagation(); setTempEx({ ...kaizenData.exercises[ex.originalIndex] }); setEditingExIndex(ex.originalIndex); setIsExFormOpen(true); }} className="p-2 bg-stone-900 border border-stone-800 rounded text-stone-400 hover:text-amber-500 hover:border-amber-500 transition-all flex items-center justify-center"><Icon name="pencil" size={14} /></button>
                                                 </div>
                                             </div>
                                         </div>
@@ -757,10 +725,7 @@
 
                         {activeTab === 'sustentaculum' && (
                             <div className="space-y-8 fade-in">
-                                <div className="text-center">
-                                    <h2 className="text-xl font-altar text-stone-200 tracking-[0.2em] uppercase">SVSTENTACVLVM BIOLOGICVM</h2>
-                                    <span className="text-[10px] text-stone-600 uppercase tracking-widest">SUSTENTO BIOLOGICO</span>
-                                </div>
+                                <div className="text-center"><h2 className="text-xl font-altar text-stone-200 tracking-[0.2em] uppercase">SVSTENTACVLVM BIOLOGICVM</h2></div>
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="flex flex-col items-center space-y-4">
                                         <div className={`flex flex-col items-center space-y-3 transition-all duration-700 ${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'glow-success' : ''}`}>
@@ -778,7 +743,6 @@
                                         </div>
                                         {!sustentaculumData.daily.stepsSealed ? (<button onClick={sealSteps} disabled={sustentaculumData.daily.steps < sustentaculumData.goals.steps} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.steps >= sustentaculumData.goals.steps ? 'bg-amber-600/20 text-amber-500 border-amber-600' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PASSVS</button>) : (<div className="text-center flex flex-col items-center">
                                             <span className={`text-[8px] font-altar uppercase tracking-widest ${stepsLevel.color}`}>{stepsLevel.name}</span>
-                                            <span className="text-[6px] text-stone-500 uppercase tracking-widest font-bold mb-1 opacity-70">{stepsLevel.sub}</span>
                                             <span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {stepsStreak}</span>
                                         </div>)}
                                     </div>
@@ -787,7 +751,7 @@
                                             <div className="relative w-24 h-24 flex items-center justify-center">
                                                 <svg className="absolute inset-0 w-full h-full -rotate-90">
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="2" fill="transparent" className="text-stone-900" />
-                                                    <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.protein / sustentaculumData.goals.protein, 1) * 251.2)} className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-stone-200' : 'text-stone-700'} transition-all duration-1000`} />
+                                                    <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.protein / sustentaculumData.goals.protein, 1) * 251.2)} className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto`} size={16} />
                                                 </svg>
                                                 <div className="text-center z-10"><Icon name="zap" className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto`} size={16} /></div>
                                             </div>
@@ -798,12 +762,11 @@
                                         </div>
                                         {!sustentaculumData.daily.proteinSealed ? (<button onClick={sealProtein} disabled={sustentaculumData.daily.protein < sustentaculumData.goals.protein} className={`w-full py-2 border font-altar tracking-widest uppercase text-[8px] transition-all ${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'bg-stone-200/20 text-white border-white' : 'bg-stone-900/50 border-stone-800 text-stone-700'}`}>OBSIGNARE PROTEINAM</button>) : (<div className="text-center flex flex-col items-center">
                                             <span className={`text-[8px] font-altar uppercase tracking-widest ${proteinLevel.color}`}>{proteinLevel.name}</span>
-                                            <span className="text-[6px] text-stone-500 uppercase tracking-widest font-bold mb-1 opacity-70">{proteinLevel.sub}</span>
                                             <span className="text-[6px] text-stone-600 uppercase tracking-widest font-bold">SERIES: {proteinStreak}</span>
                                         </div>)}
                                     </div>
                                 </div>
-                                <div className="p-6 border border-stone-900 bg-stone-950/20 text-center italic font-serif text-xs text-stone-500 uppercase font-bold tracking-wider leading-relaxed">"PASSVS PER PASSVM, MVNITIO CORPORIS TVI. PROTEINA EST LATERIS TVI TEMPLI."</div>
+                                <div className="p-6 border border-stone-900 bg-stone-950/20 text-center italic font-serif text-xs text-stone-500 uppercase font-bold tracking-wider">"PASSVS PER PASSVM, MVNITIO CORPORIS TVI."</div>
                                 <div className="pt-4 border-t border-stone-900/50">
                                     <button onClick={() => setShowSustGoals(!showSustGoals)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold"><span>METAS SACRAS</span><Icon name={showSustGoals ? "chevron-up" : "chevron-down"} size={14} /></button>
                                     <div className={`overflow-hidden transition-all duration-300 ${showSustGoals ? 'max-h-64 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
@@ -816,9 +779,58 @@
                             </div>
                         )}
 
+                        {activeTab === 'purificatio' && (
+                            <div className="space-y-10 fade-in">
+                                <div className="text-center">
+                                    <h2 className="text-xl font-altar text-stone-200 tracking-widest uppercase">PVRIFĬCATIO MENTIS</h2>
+                                    <div className={`mt-2 text-[10px] font-bold tracking-widest uppercase ${currentPuritasLevel.color}`}>GRADVS: {currentPuritasLevel.name}</div>
+                                    <span className="text-[8px] text-stone-600 uppercase tracking-widest">{currentPuritasLevel.sub}</span>
+                                </div>
+
+                                <div className="relative flex justify-center">
+                                    <div className={`w-32 h-32 rounded-full border-2 flex items-center justify-center transition-all duration-1000 ${puritasData.sealedToday ? 'border-white glow-puritas bg-white/5' : 'border-stone-800 bg-black'}`}>
+                                        <Icon name={puritasData.sealedToday ? "sun" : "eye-off"} size={40} className={puritasData.sealedToday ? "text-white animate-pulse" : "text-stone-800"} />
+                                    </div>
+                                    <div className="absolute -bottom-4 bg-black px-4 border border-stone-800 py-1">
+                                        <span className="text-[12px] font-bold text-white tracking-tighter">{puritasData.streak} DIES PVRI</span>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 pt-4">
+                                    {!puritasData.sealedToday ? (
+                                        <div className="space-y-3">
+                                            <button onClick={() => setActiveTab('ritual_puritas')} className="w-full py-4 border border-stone-700 bg-stone-900/50 text-stone-300 font-altar tracking-[0.2em] uppercase text-xs hover:border-white transition-all">
+                                                <span>RITVS PVRIFĬCATIONIS</span>
+                                                <span className="block text-[7px] opacity-50 mt-1 uppercase">RITUAL DE PURIFICACION</span>
+                                            </button>
+                                            <button onClick={() => { if(confirm("¿CONFIRMAS EL LAPSVS? EL CONTADOR VOLVERÁ A CERO.")) resetPuritas(); }} className="w-full py-2 border border-red-900/30 text-red-900 text-[8px] font-bold tracking-widest uppercase hover:bg-red-900/10 transition-all">CONSIGNARE LAPSVM (RESETEAR)</button>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center p-4 border border-white/10 bg-white/5 rounded">
+                                            <p className="text-[10px] text-white uppercase tracking-widest font-bold">HODIE PVRA EST</p>
+                                            <p className="text-[7px] text-stone-500 uppercase mt-1">LA LEY HA SIDO CUMPLIDA HOY</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <div className="p-6 border-t border-stone-900 w-full text-center space-y-4">
+                                    <div className="space-y-1">
+                                        <p className="text-[9px] text-blue-400 uppercase tracking-[0.3em] font-bold">{puritasGospels[0].verse}</p>
+                                        <p className="text-stone-300 font-serif italic text-base">"{puritasGospels[0].text}"</p>
+                                        <p className="text-[9px] text-stone-600 italic uppercase">"{puritasGospels[0].sub}"</p>
+                                    </div>
+                                    <div className="space-y-1 pt-4">
+                                        <p className="text-[9px] text-blue-400 uppercase tracking-[0.3em] font-bold">{puritasGospels[1].verse}</p>
+                                        <p className="text-stone-300 font-serif italic text-base">"{puritasGospels[1].text}"</p>
+                                        <p className="text-[9px] text-stone-600 italic uppercase">"{puritasGospels[1].sub}"</p>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
                         {activeTab === 'transmutation' && (
                             <div className="space-y-8 fade-in">
-                                <div className="text-center"><h2 className="text-xl font-altar text-stone-200 tracking-widest uppercase">GVBERNARE MATERIAM</h2><span className="text-[10px] text-stone-600 uppercase tracking-widest">(GOBERNAR LA MATERIA)</span></div>
+                                <div className="text-center"><h2 className="text-xl font-altar text-stone-200 tracking-widest uppercase">GVBERNARE MATERIAM</h2></div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-[8px] text-stone-600 uppercase tracking-widest mb-1">PRAESENS</p><p className="text-lg font-serif text-stone-200">{currentWeight} KG</p></div>
                                     <div className="p-4 border border-stone-900 bg-stone-950/30 text-center rounded font-bold"><p className="text-lg font-serif text-amber-600">{targetWeight} KG</p><p className="text-[8px] text-stone-600 uppercase tracking-widest mt-1">META</p></div>
@@ -829,25 +841,14 @@
                                     <input type="number" value={newWeight} onChange={(e) => setNewWeight(e.target.value)} placeholder="CONSIGNARE PONDVS (KG)" className="bg-transparent border-none outline-none text-stone-300 w-full font-serif italic text-sm uppercase" />
                                     <button onClick={() => { if(!newWeight) return; const updated = [...weightHistory, {date: new Date().toLocaleDateString(), value: parseFloat(newWeight)}]; setWeightHistory(updated); setNewWeight(''); }} className="text-amber-600 text-[9px] font-bold uppercase tracking-widest">CONSIGNARE</button>
                                 </div>
-
-                                {/* WEIGHT CHART SECTION */}
                                 <div className="space-y-4">
                                     <div className="flex justify-center space-x-2">
                                         {['mes', '3m', 'year'].map(f => (
-                                            <button 
-                                                key={f} 
-                                                onClick={() => setWeightChartFilter(f)}
-                                                className={`px-3 py-1 text-[8px] uppercase tracking-widest border transition-all ${weightChartFilter === f ? 'border-amber-600 text-amber-500 bg-amber-950/10' : 'border-stone-900 text-stone-600 hover:text-stone-400'}`}
-                                            >
-                                                {f === 'mes' ? 'Mensis' : f === '3m' ? 'III menses' : 'Annvs'}
-                                            </button>
+                                            <button key={f} onClick={() => setWeightChartFilter(f)} className={`px-3 py-1 text-[8px] uppercase tracking-widest border transition-all ${weightChartFilter === f ? 'border-amber-600 text-amber-500 bg-amber-950/10' : 'border-stone-900 text-stone-600 hover:text-stone-400'}`}>{f === 'mes' ? 'Mensis' : f === '3m' ? 'III menses' : 'Annvs'}</button>
                                         ))}
                                     </div>
-                                    <div className="h-56 w-full bg-stone-950/20 p-2 border border-stone-900 rounded relative">
-                                        <canvas ref={weightChartRef}></canvas>
-                                    </div>
+                                    <div className="h-56 w-full bg-stone-950/20 p-2 border border-stone-900 rounded relative"><canvas ref={weightChartRef}></canvas></div>
                                 </div>
-
                                 <div className="pt-4 border-t border-stone-900/50">
                                     <button onClick={() => setShowWeightGoal(!showWeightGoal)} className="w-full py-3 flex items-center justify-between text-stone-600 text-[9px] uppercase tracking-[0.2em] font-bold"><span>METAE CORPORIS</span><Icon name={showWeightGoal ? "chevron-up" : "chevron-down"} size={14} /></button>
                                     <div className={`overflow-hidden transition-all duration-300 ${showWeightGoal ? 'max-h-32 opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
@@ -873,11 +874,30 @@
                                 ))}</div>
                                 <button disabled={!ritualSteps.every(s => s.completed)} onClick={() => {
                                     const newEntry = {date: new Date().toLocaleDateString(), streak: history.length > 0 ? history[0].streak + 1 : 1};
-                                    setHistory([newEntry, ...history]); 
-                                    setIsClosed(true); 
-                                    setActiveTab('altar');
+                                    setHistory([newEntry, ...history]); setIsClosed(true); setActiveTab('altar');
                                     setRitualSteps(prev => prev.map(s => ({...s, completed: false})));
                                 }} className={`w-full py-5 font-altar tracking-widest uppercase text-xs transition-all ${ritualSteps.every(s => s.completed) ? 'bg-amber-600 text-black shadow-lg shadow-amber-900/30' : 'bg-stone-900 text-stone-700 pointer-events-none'}`}>OBSIGNARE PROMISSVM</button>
+                            </div>
+                        )}
+
+                        {activeTab === 'ritual_puritas' && (
+                            <div className="space-y-6 fade-in">
+                                <div className="text-center">
+                                    <h2 className="text-xl font-serif text-white uppercase tracking-widest">RITVS PVRIFĬCATIONIS</h2>
+                                    <p className="text-[8px] text-stone-500 uppercase mt-1 tracking-widest">ACCIONES DE CIERRE DEL DIA</p>
+                                </div>
+                                <div className="space-y-3 font-bold">{puritasRitual.map(step => (
+                                    <div key={step.id} onClick={() => setPuritasRitual(puritasRitual.map(s => s.id === step.id ? {...s, completed: !s.completed} : s))} className={`p-4 border transition-all duration-300 ${step.completed ? 'border-white bg-white/5 text-white' : 'border-stone-900 text-stone-600 bg-stone-950/20'}`}>
+                                        <div className="flex items-center space-x-4">
+                                            <div className={`w-4 h-4 rounded-full border transition-colors ${step.completed ? 'bg-white border-white' : 'border-stone-800'}`}></div>
+                                            <div><span className="text-sm font-serif italic">{step.text}</span><span className="text-[9px] opacity-60 block italic uppercase mt-0.5">{step.sub}</span></div>
+                                        </div>
+                                    </div>
+                                ))}</div>
+                                <button disabled={!puritasRitual.every(s => s.completed)} onClick={() => {
+                                    sealPuritas();
+                                    setPuritasRitual(prev => prev.map(s => ({...s, completed: false})));
+                                }} className={`w-full py-5 font-altar tracking-widest uppercase text-xs transition-all ${puritasRitual.every(s => s.completed) ? 'bg-white text-black shadow-lg shadow-white/10' : 'bg-stone-900 text-stone-700 pointer-events-none'}`}>CONSERVARE PVRE</button>
                             </div>
                         )}
 
@@ -912,9 +932,9 @@
                                 <input value={tempEx.name || ''} onChange={e => setTempEx({...tempEx, name: e.target.value.toUpperCase()})} placeholder="NOMEN EXERCITII" className="w-full bg-transparent border-b border-stone-800 p-2 text-sm italic outline-none focus:border-amber-600 uppercase text-stone-200" />
                                 <div className="grid grid-cols-3 gap-2">{muscleList.map(m => (<button key={m.id} onClick={() => setTempEx({...tempEx, muscles: (tempEx.muscles || []).includes(m.id) ? (tempEx.muscles || []).filter(x => x !== m.id) : [...(tempEx.muscles || []), m.id]})} className={`text-[8px] p-2 border transition-all ${(tempEx.muscles || []).includes(m.id) ? 'border-amber-600 text-amber-500 bg-amber-950/20' : 'border-stone-800 text-stone-600'} uppercase tracking-widest font-bold`}>{m.label}</button>))}</div>
                                 <div className="flex space-x-2">
-                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold mb-1">PONDVS (KG)</label><input type="number" value={tempEx.weight || ''} onChange={e => setTempEx({...tempEx, weight: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" /></div>
+                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold mb-1">PONDVS</label><input type="number" value={tempEx.weight || ''} onChange={e => setTempEx({...tempEx, weight: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" /></div>
                                     <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold mb-1">SERIES</label><input type="number" value={tempEx.sets || ''} onChange={e => setTempEx({...tempEx, sets: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" /></div>
-                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold mb-1">REPETITIONES</label><input type="number" value={tempEx.reps || ''} onChange={e => setTempEx({...tempEx, reps: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" /></div>
+                                    <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold mb-1">REPS</label><input type="number" value={tempEx.reps || ''} onChange={e => setTempEx({...tempEx, reps: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" /></div>
                                 </div>
                                 <button onClick={saveNewEx} className="w-full py-3 bg-amber-600 text-black font-altar text-[10px] tracking-widest uppercase font-bold transition-transform active:scale-95">CONSIGNARE</button>
                                 <button onClick={() => { setIsExFormOpen(false); setEditingExIndex(null); }} className="w-full text-stone-600 text-[8px] uppercase tracking-widest mt-2 font-bold">ABROGARE</button>
@@ -922,13 +942,7 @@
                         </div>
                     )}
 
-                    <button 
-                        onClick={performUndo}
-                        disabled={undoStack.length === 0}
-                        className={`fixed bottom-2 right-2 z-[60] px-2 py-1 text-[8px] font-bold uppercase tracking-widest transition-all duration-500 rounded border border-amber-900/40 bg-stone-900/60 text-amber-600 hover:text-orange-400 hover:bg-stone-900 active:scale-90 ${undoStack.length > 0 ? 'opacity-50 hover:opacity-100' : 'opacity-0 pointer-events-none'}`}
-                    >
-                        REVERTERE ({undoStack.length})
-                    </button>
+                    <button onClick={performUndo} disabled={undoStack.length === 0} className={`fixed bottom-2 right-2 z-[60] px-2 py-1 text-[8px] font-bold uppercase tracking-widest transition-all duration-500 rounded border border-amber-900/40 bg-stone-900/60 text-amber-600 hover:text-orange-400 hover:bg-stone-900 active:scale-90 ${undoStack.length > 0 ? 'opacity-50 hover:opacity-100' : 'opacity-0 pointer-events-none'}`}>REVERTERE ({undoStack.length})</button>
 
                     <footer className="fixed bottom-0 w-full p-6 text-center bg-gradient-to-t from-black to-transparent pointer-events-none">
                         <div className="text-[8px] text-stone-800 uppercase tracking-[0.5em] font-bold font-altar">NON DVCOR, DVCO</div>
