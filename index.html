@@ -99,7 +99,6 @@
             const weightChartInstance = useRef(null);
             
             const touchStartX = useRef(null);
-            // ORDEN SOLICITADO: Altar, Disciplina, Sustentaculum, Purificatio, Materia, Vota
             const TABS_ORDER = ['altar', 'disciplina', 'sustentaculum', 'purificatio', 'transmutation', 'identity'];
 
             const [kaizenData, setKaizenData] = useState({
@@ -250,7 +249,21 @@
                 { id: "CRVRA", label: "CRVRA", es: "PIERNAS" }
             ];
 
-            const currentStreak = history.length > 0 ? history[0].streak : 0;
+            const isDateStale = (dateStr) => {
+                if (!dateStr) return true;
+                const today = new Date().toLocaleDateString();
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toLocaleDateString();
+                return dateStr !== today && dateStr !== yesterdayStr;
+            };
+
+            const currentStreak = useMemo(() => {
+                if (history.length === 0) return 0;
+                if (isDateStale(history[0].date)) return 0;
+                return history[0].streak;
+            }, [history]);
+
             const currentAltarLevel = altarLevels.slice().reverse().find(l => currentStreak >= l.min) || altarLevels[0];
             const currentPuritasLevel = puritasLevels.slice().reverse().find(l => puritasData.streak >= l.min) || puritasLevels[0];
             const stepsStreak = sustentaculumData.historySteps?.length > 0 ? sustentaculumData.historySteps[0].streak : 0;
@@ -297,6 +310,9 @@
                 if (savedPuritas) {
                     const data = JSON.parse(savedPuritas);
                     const today = new Date().toLocaleDateString();
+                    if (isDateStale(data.lastSealedDate)) {
+                        data.streak = 0;
+                    }
                     if (data.lastSealedDate !== today) {
                         data.sealedToday = false;
                     }
@@ -873,7 +889,7 @@
                                     </div>
                                 ))}</div>
                                 <button disabled={!ritualSteps.every(s => s.completed)} onClick={() => {
-                                    const newEntry = {date: new Date().toLocaleDateString(), streak: history.length > 0 ? history[0].streak + 1 : 1};
+                                    const newEntry = {date: new Date().toLocaleDateString(), streak: currentStreak + 1};
                                     setHistory([newEntry, ...history]); setIsClosed(true); setActiveTab('altar');
                                     setRitualSteps(prev => prev.map(s => ({...s, completed: false})));
                                 }} className={`w-full py-5 font-altar tracking-widest uppercase text-xs transition-all ${ritualSteps.every(s => s.completed) ? 'bg-amber-600 text-black shadow-lg shadow-amber-900/30' : 'bg-stone-900 text-stone-700 pointer-events-none'}`}>OBSIGNARE PROMISSVM</button>
