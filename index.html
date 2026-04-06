@@ -468,7 +468,17 @@
                 setUndoStack(remainingStack);
             };
 
-            const handleTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+            const handleTouchStart = (e) => { 
+                const screenHeight = window.innerHeight;
+                const touchY = e.touches[0].clientY;
+                // Solo permitir el gesto de cambio de pestaña si el toque inicial es en el tercio inferior de la pantalla
+                if (touchY > screenHeight * 0.7) {
+                    touchStartX.current = e.touches[0].clientX; 
+                } else {
+                    touchStartX.current = null;
+                }
+            };
+
             const handleTouchEnd = (e) => {
                 if (touchStartX.current === null) return;
                 const touchEndX = e.changedTouches[0].clientX;
