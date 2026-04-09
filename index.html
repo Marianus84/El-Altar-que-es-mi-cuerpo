@@ -24,7 +24,7 @@
             margin: 0;
             -webkit-tap-highlight-color: transparent;
             overflow-x: hidden;
-            user-select: none; /* Evita selección de texto al mantener presionado */
+            user-select: none;
         }
 
         .font-serif { font-family: 'Playfair Display', serif; }
@@ -52,7 +52,7 @@
         .glow-lv6 { box-shadow: 0 0 120px rgba(255, 255, 255, 0.7); animation: pure-light 4s infinite alternate; }
 
         .glow-success { filter: drop-shadow(0 0 8px rgba(217, 119, 6, 0.6)); }
-        .glow-puritas { filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.5)); }
+        .glow-puritas { filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.4)); }
 
         @keyframes pure-light {
             from { filter: brightness(1); }
@@ -62,7 +62,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-        /* Estilo para el tooltip de traducción */
         .translation-overlay {
             position: fixed;
             pointer-events: none;
@@ -139,6 +138,9 @@
             const [tooltip, setTooltip] = useState({ visible: false, text: '', x: 0, y: 0 });
             const longPressTimer = useRef(null);
 
+            // Time State
+            const [now, setNow] = useState(new Date());
+
             const [kaizenData, setKaizenData] = useState({
                 week: 1,
                 history: [],
@@ -158,14 +160,9 @@
                 streak: 0,
                 sealedToday: false,
                 lastSealedDate: null,
+                lastRelapseTimestamp: new Date().toISOString(), // Default to now if never reset
                 history: []
             });
-
-            const [isExFormOpen, setIsExFormOpen] = useState(false);
-            const [editingExIndex, setEditingExIndex] = useState(null);
-            const [tempEx, setTempEx] = useState({ name: '', muscles: [], pattern: '', weight: '', sets: '', reps: '' });
-            const [chartFilter, setChartFilter] = useState('all');
-            const [weightChartFilter, setWeightChartFilter] = useState('3m'); 
 
             const [sustentaculumData, setSustentaculumData] = useState({
                 goals: { steps: 10000, protein: 150 },
@@ -173,13 +170,17 @@
                 historySteps: [],
                 historyProtein: []
             });
+
+            const [isExFormOpen, setIsExFormOpen] = useState(false);
+            const [editingExIndex, setEditingExIndex] = useState(null);
+            const [tempEx, setTempEx] = useState({ name: '', muscles: [], pattern: '', weight: '', sets: '', reps: '' });
+            const [chartFilter, setChartFilter] = useState('all');
+            const [weightChartFilter, setWeightChartFilter] = useState('3m'); 
             const [showSustGoals, setShowSustGoals] = useState(false);
             const [showWeightGoal, setShowWeightGoal] = useState(false);
 
             const gospels = [
-                { verse: "THERMODYNAMICA I:I", text: "ENERGIA NEQVE CREATVR NEQVE DELETVR, TANTVM MVTATVR. SI ALTARE NON CLAVDITVR, EXCESSVS ONVS PRAETERITI FIT.", sub: "La energía no se crea ni se destruye, solo se transforma. Si el altar no se cierra, el exceso se convierte en el lastre del pasado." },
-                { verse: "HOMEOSTASIS IV:XII", text: "SILENTIVM GASTRICVM EST NVNTIVS CLARITATIS MENTIS. IN IEIVNIO, CORPVS SE IPSVM SANAT.", sub: "El silencio gástrico es el heraldo de la claridad mental. El ayuno sana el cuerpo." },
-                { verse: "INSVLINA II:V", text: "NOLI GIGANTEM DORMIENTEM EXTRA HORAM SVAM EXCITARE. REQVIES EST VNICA VIA AD PROPRIA DEPOSITA COMBVRENDA.", sub: "No provoques al gigante dormido fuera de su hora. El reposo es la única vía hacia la quema de tus propios depósitos." }
+                { verse: "THERMODYNAMICA I:I", text: "ENERGIA NEQVE CREATVR NEQVE DELETVR, TANTVM MVTATVR. SI ALTARE NON CLAVDITVR, EXCESSVS ONVS PRAETERITI FIT.", sub: "La energía no se crea ni se destruye, solo se transforma. Si el altar no se cierra, el exceso se convierte en el lastre del pasado." }
             ];
 
             const puritasGospels = [
@@ -207,76 +208,19 @@
             const altarLevels = [
                 { min: 0, name: "NOVICIVS", sub: "EL PRINCIPIANTE", color: "text-stone-500", glow: "bg-amber-500/10", shadow: "glow-lv0" },
                 { min: 7, name: "TIRO", sub: "EL RECLUTA", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 14, name: "DISCIPVLVS", sub: "EL DISCÍPULO", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 21, name: "CVLTOR", sub: "EL DEVOTO", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 28, name: "MILES", sub: "EL SOLDADO", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 35, name: "ASSETOR", sub: "EL SEGUIDOR", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 42, name: "CVSTOS", sub: "EL GUARDIÁN", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 49, name: "STRENVVS", sub: "EL VIGOROSO", color: "text-amber-700", glow: "bg-amber-600/20", shadow: "glow-lv1" },
-                { min: 56, name: "VIGIL", sub: "EL CENTINELA", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 63, name: "ADIVTOR", sub: "EL AYUDANTE", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 70, name: "LABORIOSVS", sub: "EL LABORIOSO", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 77, name: "CONSTANS", sub: "EL CONSTANTE", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 84, name: "PROBATVS", sub: "EL PROBADO", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 91, name: "STABILIS", sub: "EL ESTABLE", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 98, name: "FIRMVUS", sub: "EL FIRME", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
-                { min: 105, name: "PERSTANS", sub: "EL QUE PERSEVERA", color: "text-amber-600", glow: "bg-amber-500/30", shadow: "glow-lv2" },
                 { min: 112, name: "FORTIS", sub: "EL FUERTE", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 119, name: "DOMITOR", sub: "EL DOMADOR", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 126, name: "VICTOR", sub: "EL VICTORIOSO", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 133, name: "RECTOR", sub: "EL RECTOR", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 140, name: "PVGNAX", sub: "EL LUCHADOR", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 147, name: "BELLATOR", sub: "EL GUERRERO", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 154, name: "DEFENSOR", sub: "EL DEFENSOR", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 161, name: "DVCTOR", sub: "EL GUÍA", color: "text-amber-500", glow: "bg-amber-400/40", shadow: "glow-lv3" },
-                { min: 168, name: "OPTIO", sub: "EL ELEGIDO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 175, name: "LEGATVS", sub: "EL LEGADO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 182, name: "PRAEFECTVS", sub: "EL PREFECTO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 189, name: "CENTVRIO", sub: "EL CENTURIÓN", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 196, name: "TRIBVNVS", sub: "EL TRIBUNO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 203, name: "ANTISTES", sub: "EL SUMO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 210, name: "MAGISTER", sub: "EL MAESTRO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 217, name: "SVPREMVS", sub: "EL SUPREMO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 224, name: "INVICTVS", sub: "EL INVICTO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 231, name: "INDOMITVS", sub: "EL INDOMABLE", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 238, name: "DOMINVS", sub: "EL DUEÑO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 245, name: "POTENS", sub: "EL PODEROSO", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 252, name: "IMPERATOR", sub: "EL EMPERADOR", color: "text-amber-300", glow: "bg-amber-200/50", shadow: "glow-lv4" },
-                { min: 259, name: "AVREVS", sub: "EL DORADO", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 266, name: "ILLVMINATVS", sub: "EL ILUMINADO", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 273, name: "LVMINOSVS", sub: "EL LUMINOSO", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 280, name: "AETERNVS", sub: "EL ETERNO", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 287, name: "IMMORTALIS", sub: "EL INMORTAL", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 294, name: "SACERDOS", sub: "EL SACERDOTE", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 301, name: "PONTIFEX", sub: "EL PONTÍFICE", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 308, name: "HIERARCHA", sub: "EL JERARCA", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 315, name: "ARCHON", sub: "EL ARCONTE", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 322, name: "SAPIENS", sub: "EL SABIO", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 329, name: "PHOENIX", sub: "EL FÉNIX", color: "text-white", glow: "bg-white/30", shadow: "glow-lv5" },
-                { min: 336, name: "SOLARIS", sub: "EL SOLAR", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" },
-                { min: 343, name: "SIDEREVS", sub: "EL SIDEREO", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" },
-                { min: 350, name: "COELESTIS", sub: "EL CELESTIAL", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" },
-                { min: 357, name: "DIVINVS", sub: "EL DIVINO", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" },
                 { min: 364, name: "ABSOLVTVS", sub: "EL ABSOLUTO", color: "text-white brightness-150 font-bold", glow: "bg-white/60 scale-125", shadow: "glow-lv6" }
             ];
 
             const puritasLevels = [
                 { min: 0, name: "POENITENS", sub: "EL PENITENTE", color: "text-red-800" },
                 { min: 7, name: "PVRGATVS", sub: "EL PURIFICADO", color: "text-blue-400" },
-                { min: 14, name: "VIGILANS", sub: "EL VIGILANTE", color: "text-blue-300" },
-                { min: 21, name: "DOMITOR", sub: "EL DOMADOR", color: "text-cyan-400" },
-                { min: 28, name: "STABILIS", sub: "EL ESTABLE", color: "text-cyan-200" },
-                { min: 35, name: "FORTIS", sub: "EL FUERTE", color: "text-indigo-400" },
                 { min: 42, name: "LIBER", sub: "EL LIBRE", color: "text-white brightness-110" },
                 { min: 90, name: "INVICTVS", sub: "EL INVICTO", color: "text-white brightness-150 glow-puritas" }
             ];
 
             const sustLevels = [
                 { min: 0, name: "LIXAE", sub: "AGUADOR", color: "text-stone-500" },
-                { min: 7, name: "VIATOR", sub: "VIAJERO", color: "text-stone-400" },
-                { min: 30, name: "CVRSOR", sub: "CORREDOR", color: "text-stone-200" },
-                { min: 90, name: "HOPLITA", sub: "HOPLITA", color: "text-amber-700" },
-                { min: 180, name: "CENTVRIO", sub: "CENTURION", color: "text-amber-500" },
                 { min: 365, name: "INVICTVS", sub: "INVICTO", color: "text-white brightness-125 font-bold" }
             ];
 
@@ -313,7 +257,7 @@
 
             const timeToGrace = useMemo(() => {
                 if (!lastGraceDate) return 0;
-                const now = new Date();
+                const nowVal = new Date();
                 const last = new Date(lastGraceDate);
                 const getMonday = (d) => {
                     const dt = new Date(d);
@@ -321,11 +265,11 @@
                     const diff = dt.getDate() - day + (day === 0 ? -6 : 1); 
                     return new Date(dt.setDate(diff)).setHours(0, 0, 0, 0);
                 };
-                const currentMonday = getMonday(now);
+                const currentMonday = getMonday(nowVal);
                 const lastMonday = getMonday(last);
                 if (currentMonday > lastMonday) return 0;
                 const nextMonday = new Date(currentMonday + 7 * 24 * 60 * 60 * 1000);
-                return Math.max(0, Math.ceil((nextMonday - now) / (24 * 60 * 60 * 1000)));
+                return Math.max(0, Math.ceil((nextMonday - nowVal) / (24 * 60 * 60 * 1000)));
             }, [lastGraceDate]);
 
             // Tooltip Handlers
@@ -372,12 +316,8 @@
                 if (savedPuritas) {
                     const data = JSON.parse(savedPuritas);
                     const today = new Date().toLocaleDateString();
-                    if (isDateStale(data.lastSealedDate)) {
-                        data.streak = 0;
-                    }
-                    if (data.lastSealedDate !== today) {
-                        data.sealedToday = false;
-                    }
+                    if (isDateStale(data.lastSealedDate)) data.streak = 0;
+                    if (data.lastSealedDate !== today) data.sealedToday = false;
                     setPuritasData(data);
                 }
 
@@ -406,6 +346,10 @@
                     ritualSteps: ritualSteps,
                     puritasRitual: puritasRitual
                 });
+
+                // Clock timer for real-time counter
+                const timer = setInterval(() => setNow(new Date()), 1000);
+                return () => clearInterval(timer);
             }, []);
 
             useEffect(() => {
@@ -471,12 +415,8 @@
             const handleTouchStart = (e) => { 
                 const screenHeight = window.innerHeight;
                 const touchY = e.touches[0].clientY;
-                // Solo permitir el gesto de cambio de pestaña si el toque inicial es en el tercio inferior de la pantalla
-                if (touchY > screenHeight * 0.7) {
-                    touchStartX.current = e.touches[0].clientX; 
-                } else {
-                    touchStartX.current = null;
-                }
+                if (touchY > screenHeight * 0.7) touchStartX.current = e.touches[0].clientX; 
+                else touchStartX.current = null;
             };
 
             const handleTouchEnd = (e) => {
@@ -525,7 +465,7 @@
                 try {
                     if (weightChartInstance.current) weightChartInstance.current.destroy();
                     const ctx = weightChartRef.current.getContext('2d');
-                    const now = new Date();
+                    const nowVal = new Date();
                     let filteredHistory = [...weightHistory].sort((a, b) => {
                         const dateA = a.date.split('/').reverse().join('-');
                         const dateB = b.date.split('/').reverse().join('-');
@@ -533,12 +473,12 @@
                     });
                     if (weightChartFilter === 'mes') filteredHistory = filteredHistory.filter(h => {
                         const d = new Date(h.date.split('/').reverse().join('-'));
-                        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                        return d.getMonth() === nowVal.getMonth() && d.getFullYear() === nowVal.getFullYear();
                     });
                     else if (weightChartFilter === '3m') {
-                        const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(now.getMonth() - 3);
+                        const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(nowVal.getMonth() - 3);
                         filteredHistory = filteredHistory.filter(h => new Date(h.date.split('/').reverse().join('-')) >= threeMonthsAgo);
-                    } else if (weightChartFilter === 'year') filteredHistory = filteredHistory.filter(h => new Date(h.date.split('/').reverse().join('-')).getFullYear() === now.getFullYear());
+                    }
                     const labels = filteredHistory.map(h => h.date);
                     const weightData = filteredHistory.map(h => h.value);
                     const targetData = Array(labels.length).fill(targetWeight);
@@ -555,8 +495,8 @@
                             responsive: true, maintainAspectRatio: false,
                             plugins: { legend: { display: false } },
                             scales: { 
-                                y: { ticks: { color: '#57534e', font: { size: 9 } }, grid: { color: '#1c1917' }, suggestedMin: Math.min(...weightData, targetWeight) - 2, suggestedMax: Math.max(...weightData, targetWeight) + 2 }, 
-                                x: { ticks: { color: '#57534e', font: { size: 8 }, maxRotation: 45, minRotation: 45 }, grid: { display: false } } 
+                                y: { ticks: { color: '#57534e', font: { size: 9 } }, grid: { color: '#1c1917' } }, 
+                                x: { ticks: { color: '#57534e', font: { size: 8 } }, grid: { display: false } } 
                             }
                         }
                     });
@@ -584,11 +524,13 @@
             };
 
             const resetPuritas = () => {
+                const nowTimestamp = new Date().toISOString();
                 setPuritasData(prev => ({
                     ...prev,
                     streak: 0,
                     sealedToday: false,
                     lastSealedDate: null,
+                    lastRelapseTimestamp: nowTimestamp,
                     history: [{ date: new Date().toLocaleDateString(), event: "LAPSVS" }, ...prev.history]
                 }));
             };
@@ -678,7 +620,20 @@
                 reader.readAsText(file);
             };
 
-            // Impact Calculations
+            // Precise Counter Logic for Stopwatch
+            const timeSinceRelapse = useMemo(() => {
+                if (!puritasData.lastRelapseTimestamp) return null;
+                const last = new Date(puritasData.lastRelapseTimestamp);
+                const diff = Math.max(0, now - last);
+                
+                const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+                const minutes = Math.floor((diff / (1000 * 60)) % 60);
+                const seconds = Math.floor((diff / 1000) % 60);
+
+                return { days, hours, minutes, seconds };
+            }, [puritasData.lastRelapseTimestamp, now]);
+
             const muscleImpact = useMemo(() => {
                 const hits = {};
                 kaizenData.exercises.forEach(ex => { if (ex.completed && ex.muscles) ex.muscles.forEach(m => hits[m] = (hits[m] || 0) + 1); });
@@ -700,9 +655,7 @@
 
             const filteredExercises = useMemo(() => {
                 let filtered = kaizenData.exercises.map((ex, originalIndex) => ({ ...ex, originalIndex }));
-                if (selectedPatternFilter !== 'all') {
-                    filtered = filtered.filter(ex => ex.pattern === selectedPatternFilter);
-                }
+                if (selectedPatternFilter !== 'all') filtered = filtered.filter(ex => ex.pattern === selectedPatternFilter);
                 return filtered.sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1));
             }, [kaizenData.exercises, selectedPatternFilter]);
 
@@ -811,24 +764,13 @@
                                 <div className="space-y-2">
                                     <span className="text-[8px] text-stone-600 uppercase tracking-[0.3em] font-bold block ml-1">MOTVS FORMA (PATRONES)</span>
                                     <div className="flex overflow-x-auto no-scrollbar space-x-2 pb-2 px-1">
-                                        <button 
-                                            onClick={() => setSelectedPatternFilter('all')} 
-                                            className={`flex-shrink-0 px-3 py-1 border text-[8px] uppercase tracking-widest font-bold transition-all ${selectedPatternFilter === 'all' ? 'border-amber-600 bg-amber-600 text-black' : 'border-stone-800 text-stone-500 hover:border-stone-600'}`}
-                                        >OMNIA</button>
+                                        <button onClick={() => setSelectedPatternFilter('all')} className={`flex-shrink-0 px-3 py-1 border text-[8px] uppercase tracking-widest font-bold transition-all ${selectedPatternFilter === 'all' ? 'border-amber-600 bg-amber-600 text-black' : 'border-stone-800 text-stone-500 hover:border-stone-600'}`}>OMNIA</button>
                                         {movementPatterns.map(p => {
                                             const hits = patternImpact[p.id] || 0;
                                             const isActive = hits > 0;
                                             const opacity = isActive ? 0.2 + (hits / maxPatternHits) * 0.6 : 0;
                                             return (
-                                                <button 
-                                                    key={p.id}
-                                                    onClick={() => setSelectedPatternFilter(p.id)} 
-                                                    {...T(p.lat, p.es)}
-                                                    className={`flex-shrink-0 px-3 py-1 border text-[8px] uppercase tracking-widest font-bold transition-all duration-500 ${selectedPatternFilter === p.id ? 'border-amber-600' : 'border-stone-800'} ${isActive ? 'text-stone-200' : 'text-stone-500 hover:border-stone-600'}`}
-                                                    style={{ backgroundColor: isActive ? `rgba(217, 119, 6, ${opacity})` : 'transparent' }}
-                                                >
-                                                    {p.lat}
-                                                </button>
+                                                <button key={p.id} onClick={() => setSelectedPatternFilter(p.id)} {...T(p.lat, p.es)} className={`flex-shrink-0 px-3 py-1 border text-[8px] uppercase tracking-widest font-bold transition-all duration-500 ${selectedPatternFilter === p.id ? 'border-amber-600' : 'border-stone-800'} ${isActive ? 'text-stone-200' : 'text-stone-500 hover:border-stone-600'}`} style={{ backgroundColor: isActive ? `rgba(217, 119, 6, ${opacity})` : 'transparent' }}>{p.lat}</button>
                                             );
                                         })}
                                     </div>
@@ -851,9 +793,7 @@
                                                     <div className="truncate">
                                                         <h4 className={`text-sm font-serif italic truncate ${ex.completed ? 'text-stone-500' : 'text-stone-300'}`}>{ex.name}</h4>
                                                         <div className="flex items-center space-x-2">
-                                                            <span className="text-[7px] bg-stone-900 text-stone-500 border border-stone-800 px-1 font-bold uppercase tracking-tighter">
-                                                                {movementPatterns.find(p => p.id === ex.pattern)?.lat || "VARIA"}
-                                                            </span>
+                                                            <span className="text-[7px] bg-stone-900 text-stone-500 border border-stone-800 px-1 font-bold uppercase tracking-tighter">{movementPatterns.find(p => p.id === ex.pattern)?.lat || "VARIA"}</span>
                                                             <span className="text-[8px] text-amber-600/60 uppercase tracking-widest font-bold">{ex.muscles?.join(', ')}</span>
                                                         </div>
                                                     </div>
@@ -904,7 +844,7 @@
                                             <div className="relative w-24 h-24 flex items-center justify-center">
                                                 <svg className="absolute inset-0 w-full h-full -rotate-90">
                                                     <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="2" fill="transparent" className="text-stone-900" />
-                                                    <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.protein / sustentaculumData.goals.protein, 1) * 251.2)} className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto`} size={16} />
+                                                    <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="3" fill="transparent" strokeDasharray={251.2} strokeDashoffset={251.2 - (Math.min(sustentaculumData.daily.protein / sustentaculumData.goals.protein, 1) * 251.2)} className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} transition-all duration-1000`} />
                                                 </svg>
                                                 <div className="text-center z-10"><Icon name="zap" className={`${sustentaculumData.daily.protein >= sustentaculumData.goals.protein ? 'text-white' : 'text-stone-800'} mx-auto`} size={16} /></div>
                                             </div>
@@ -949,6 +889,38 @@
                                     </div>
                                 </div>
 
+                                {/* CRONOMETRO CENTRAL (Time Since Reset) */}
+                                {timeSinceRelapse && (
+                                    <div className="mt-8 p-6 border-2 border-stone-900 bg-stone-950/40 rounded-xl text-center shadow-inner">
+                                        <div className="text-[8px] text-stone-500 uppercase tracking-[0.4em] font-bold mb-4 flex items-center justify-center">
+                                            <Icon name="clock" size={10} className="mr-2" />
+                                            HOROLOGIVM INTEGRITATIS
+                                        </div>
+                                        <div className="flex justify-center items-end space-x-1 mb-2">
+                                            <div className="flex flex-col">
+                                                <span className="text-4xl font-altar text-stone-200 leading-none">{timeSinceRelapse.days.toString().padStart(2, '0')}</span>
+                                                <span className="text-[6px] text-stone-600 uppercase mt-1">DIES</span>
+                                            </div>
+                                            <span className="text-2xl text-stone-700 pb-1">:</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-4xl font-altar text-stone-200 leading-none">{timeSinceRelapse.hours.toString().padStart(2, '0')}</span>
+                                                <span className="text-[6px] text-stone-600 uppercase mt-1">HORAE</span>
+                                            </div>
+                                            <span className="text-2xl text-stone-700 pb-1">:</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-4xl font-altar text-stone-200 leading-none">{timeSinceRelapse.minutes.toString().padStart(2, '0')}</span>
+                                                <span className="text-[6px] text-stone-600 uppercase mt-1">MINVTA</span>
+                                            </div>
+                                            <span className="text-2xl text-stone-700 pb-1">:</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-4xl font-altar text-amber-600 leading-none tabular-nums">{timeSinceRelapse.seconds.toString().padStart(2, '0')}</span>
+                                                <span className="text-[6px] text-stone-700 uppercase mt-1">SECVNDA</span>
+                                            </div>
+                                        </div>
+                                        <div className="text-[7px] text-stone-600 italic uppercase mt-2 tracking-widest">(TIEMPO TRANSCURRIDO DESDE EL RESET)</div>
+                                    </div>
+                                )}
+
                                 <div className="space-y-4 pt-4">
                                     {!puritasData.sealedToday ? (
                                         <div className="space-y-3">
@@ -956,7 +928,7 @@
                                                 <span>RITVS PVRIFĬCATIONIS</span>
                                                 <span className="block text-[7px] opacity-50 mt-1 uppercase">RITUAL DE PURIFICACION</span>
                                             </button>
-                                            <button onClick={() => { if(confirm("¿CONFIRMAS EL LAPSVS? EL CONTADOR VOLVERÁ A CERO.")) resetPuritas(); }} className="w-full py-2 border border-red-900/30 text-red-900 text-[8px] font-bold tracking-widest uppercase hover:bg-red-900/10 transition-all">CONSIGNARE LAPSVM (RESETEAR)</button>
+                                            <button onClick={() => { if(confirm("¿CONFIRMAS EL LAPSVS? EL CONTADOR VOLVERÁ A CERO.")) resetPuritas(); }} className="w-full py-2 border border-red-900/30 text-red-900 text-[8px] font-bold tracking-widest uppercase hover:bg-red-900/10 transition-all">CONSIGNARE LAPSVM (RESET CRONOMETRO)</button>
                                         </div>
                                     ) : (
                                         <div className="text-center p-4 border border-white/10 bg-white/5 rounded">
@@ -971,11 +943,6 @@
                                         <p className="text-[9px] text-blue-400 uppercase tracking-[0.3em] font-bold">{puritasGospels[0].verse}</p>
                                         <p className="text-stone-300 font-serif italic text-base">"{puritasGospels[0].text}"</p>
                                         <p className="text-[9px] text-stone-600 italic uppercase">"{puritasGospels[0].sub}"</p>
-                                    </div>
-                                    <div className="space-y-1 pt-4">
-                                        <p className="text-[9px] text-blue-400 uppercase tracking-[0.3em] font-bold">{puritasGospels[1].verse}</p>
-                                        <p className="text-stone-300 font-serif italic text-base">"{puritasGospels[1].text}"</p>
-                                        <p className="text-[9px] text-stone-600 italic uppercase">"{puritasGospels[1].sub}"</p>
                                     </div>
                                 </div>
                             </div>
@@ -1082,40 +1049,29 @@
                         <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-6 backdrop-blur-sm">
                             <div className="w-full max-w-sm p-6 border border-amber-900/50 bg-stone-950 space-y-4 font-bold shadow-2xl shadow-black max-h-[90vh] overflow-y-auto no-scrollbar">
                                 <h3 className="text-[10px] font-altar uppercase tracking-widest text-amber-600">{editingExIndex !== null ? "MVTARE EXERCITIVM" : "NOVVM EXERCITIVM"}</h3>
-                                
                                 <div className="space-y-4">
                                     <div>
                                         <label className="text-[8px] text-stone-600 uppercase block font-bold mb-1">NOMEN</label>
                                         <input value={tempEx.name || ''} onChange={e => setTempEx({...tempEx, name: e.target.value.toUpperCase()})} placeholder="NOMEN EXERCITII" className="w-full bg-transparent border-b border-stone-800 p-2 text-sm italic outline-none focus:border-amber-600 uppercase text-stone-200" />
                                     </div>
-
                                     <div>
                                         <label className="text-[8px] text-stone-600 uppercase block font-bold mb-2">MOTVS FORMA (PATRON)</label>
                                         <div className="grid grid-cols-2 gap-2">
                                             {movementPatterns.map(p => (
-                                                <button 
-                                                    key={p.id} 
-                                                    onClick={() => setTempEx({...tempEx, pattern: p.id})}
-                                                    className={`text-[8px] p-2 border transition-all ${tempEx.pattern === p.id ? 'border-amber-600 text-amber-500 bg-amber-950/20' : 'border-stone-800 text-stone-600'} uppercase tracking-widest font-bold text-left px-3`}
-                                                >
-                                                    {p.lat}
-                                                </button>
+                                                <button key={p.id} onClick={() => setTempEx({...tempEx, pattern: p.id})} className={`text-[8px] p-2 border transition-all ${tempEx.pattern === p.id ? 'border-amber-600 text-amber-500 bg-amber-950/20' : 'border-stone-800 text-stone-600'} uppercase tracking-widest font-bold text-left px-3`}>{p.lat}</button>
                                             ))}
                                         </div>
                                     </div>
-
                                     <div>
                                         <label className="text-[8px] text-stone-600 uppercase block font-bold mb-2">MVSCVLI</label>
                                         <div className="grid grid-cols-3 gap-2">{muscleList.map(m => (<button key={m.id} onClick={() => setTempEx({...tempEx, muscles: (tempEx.muscles || []).includes(m.id) ? (tempEx.muscles || []).filter(x => x !== m.id) : [...(tempEx.muscles || []), m.id]})} className={`text-[8px] p-2 border transition-all ${(tempEx.muscles || []).includes(m.id) ? 'border-amber-600 text-amber-500 bg-amber-950/20' : 'border-stone-800 text-stone-600'} uppercase tracking-widest font-bold`}>{m.label}</button>))}</div>
                                     </div>
-
                                     <div className="flex space-x-2">
                                         <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold mb-1">PONDVS</label><input type="number" value={tempEx.weight || ''} onChange={e => setTempEx({...tempEx, weight: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" /></div>
                                         <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold mb-1">SERIES</label><input type="number" value={tempEx.sets || ''} onChange={e => setTempEx({...tempEx, sets: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" /></div>
                                         <div className="w-1/3"><label className="text-[8px] text-stone-600 uppercase block ml-2 font-bold mb-1">REPS</label><input type="number" value={tempEx.reps || ''} onChange={e => setTempEx({...tempEx, reps: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" /></div>
                                     </div>
                                 </div>
-
                                 <div className="pt-4 space-y-2">
                                     <button onClick={saveNewEx} className="w-full py-3 bg-amber-600 text-black font-altar text-[10px] tracking-widest uppercase font-bold transition-transform active:scale-95">CONSIGNARE</button>
                                     <button onClick={() => { setIsExFormOpen(false); setEditingExIndex(null); }} className="w-full text-stone-600 text-[8px] uppercase tracking-widest mt-2 font-bold">ABROGARE</button>
