@@ -1,415 +1,426 @@
-<!DOCTYPE html>
-<html lang="la">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ALTARE DISCIPLINAE</title>
-    <!-- React & Babel -->
-    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700&family=Inter:wght@300;400;700&family=Playfair+Display:ital,wght@0,400;1,400&display=swap');
+```react
+import React, { useState, useEffect } from 'react';
+import { 
+  CheckCircle2, 
+  Droplet, 
+  Zap, 
+  Calendar, 
+  Flame, 
+  ChevronRight, 
+  ChevronLeft,
+  ExternalLink,
+  Lock,
+  Unlock,
+  Utensils,
+  ShoppingCart,
+  AlertTriangle,
+  Beaker,
+  RefreshCcw,
+  Info,
+  XCircle,
+  Beef,
+  Leaf,
+  Plus,
+  Trash2
+} from 'lucide-react';
+import { initializeApp } from 'firebase/app';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  onSnapshot 
+} from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInAnonymously, 
+  signInWithCustomToken, 
+  onAuthStateChanged 
+} from 'firebase/auth';
+
+// --- CONFIGURACIÓN DE FIREBASE ---
+const firebaseConfig = JSON.parse(__firebase_config);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'psmf-mariano-v6';
+
+// --- DATOS DEL PROTOCOLO ---
+const DAYS_DATA = [
+  { date: '2026-04-28', name: 'Martes', type: 'PSMF', label: 'Hoy', meal: "450g Pechuga de pollo + 300g Espinacas", details: "Pechuga a la plancha con limón. Espinacas al vapor o salteadas con ajo (sin aceite)." },
+  { date: '2026-04-29', name: 'Miércoles', type: 'PSMF', label: 'Día 2', meal: "500g Pescado Blanco + Espárragos", details: "Bacalao, merluza o tilapia al horno con especias secas." },
+  { date: '2026-04-30', name: 'Jueves', type: 'PSMF', label: 'Día 3', meal: "450g Pavo Magro + Calabacín", details: "Pavo picado o a la plancha con calabacín espiralizado." },
+  { date: '2026-05-01', name: 'Viernes', type: 'FREE', label: 'Día 4', meal: "ENTRAÑA / ASADO / CARBOS", details: "Refeed metabólico. Disfruta de cortes más grasos y añade carbohidratos complejos." },
+  { date: '2026-05-02', name: 'Sábado', type: 'PSMF', label: 'Día 5', meal: "400g Peceto o Nalga + Ensalada", details: "Corte de vaca extra magro limpiado de toda grasa visible." },
+  { date: '2026-05-03', name: 'Domingo', type: 'FREE', label: 'Día 6', meal: "ASADO SOCIAL / LIBRE", details: "Comida social permitida. Prioriza proteína pero permite flexibilidad." },
+  { date: '2026-05-04', name: 'Lunes', type: 'PSMF', label: 'Día 7', meal: "500g Gambas o Atún + Brócoli", details: "Proteína rápida: Gambas a la plancha o 5 latas de atún al natural." },
+  { date: '2026-05-05', name: 'Martes', type: 'PSMF', label: 'Día 8', meal: "Tortilla 10 Claras + Pavo", details: "Bote de claras (aprox 300ml) con jamón de pavo magro." },
+  { date: '2026-05-06', name: 'Miércoles', type: 'Final', meal: "500g Pescado Blanco + Pimientos", details: "Último empujón del protocolo. Pescado al horno." },
+];
+
+const SHOPPING_CATEGORIES = [
+  {
+    title: "Carnes Rojas (Cortes Magros)",
+    icon: <Beef size={18} className="text-red-400" />,
+    items: ["Peceto (Limpio)", "Nalga", "Cuadril", "Bola de lomo", "Babilla", "Ternera picada (<5% grasa)", "Lomo de ternera (limpio)"]
+  },
+  {
+    title: "Aves y Huevos",
+    icon: <Flame size={18} className="text-orange-400" />,
+    items: ["Pechugas de pollo", "Pechugas de pavo", "Solomillo de pavo", "Botes de claras de huevo", "Huevos enteros (máx 1 al día)"]
+  },
+  {
+    title: "Pescados y Mariscos",
+    icon: <Zap size={18} className="text-blue-400" />,
+    items: ["Bacalao / Merluza", "Tilapia / Lenguado", "Atún al natural (LATA)", "Gambas / Langostinos", "Pulpo / Calamar", "Mejillones al natural"]
+  },
+  {
+    title: "Verduras (Fibra)",
+    icon: <Leaf size={18} className="text-emerald-400" />,
+    items: ["Espinacas / Canónigos", "Brócoli / Coliflor", "Espárragos", "Calabacín", "Pepino", "Apio", "Champiñones", "Judías verdes"]
+  },
+  {
+    title: "Sales y Extras",
+    icon: <Beaker size={18} className="text-purple-400" />,
+    items: ["Sal común (Sodio)", "Sal Potásica (Sal Costa 50%)", "Citrato de Magnesio", "Mostaza clásica", "Vinagre de manzana", "Gelatina 0% azúcar"]
+  }
+];
+
+// --- COMPONENTE PRINCIPAL ---
+export default function App() {
+  const [user, setUser] = useState(null);
+  const [view, setView] = useState('daily'); // 'daily', 'market', 'salts'
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const [progress, setProgress] = useState({});
+  const [loading, setLoading] = useState(true);
+
+  // Inicializar Auth
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+          await signInWithCustomToken(auth, __initial_auth_token);
+        } else {
+          await signInAnonymously(auth);
+        }
+      } catch (err) {
+        console.error("Error de autenticación", err);
+      }
+    };
+    initAuth();
+    return onAuthStateChanged(auth, setUser);
+  }, []);
+
+  // Escuchar progreso desde Firestore
+  useEffect(() => {
+    if (!user) return;
+    const q = collection(db, 'artifacts', appId, 'users', user.uid, 'progress');
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = {};
+      snapshot.forEach(doc => data[doc.id] = doc.data());
+      setProgress(data);
+      setLoading(false);
+    });
+    return () => unsubscribe();
+  }, [user]);
+
+  const updateProgress = async (key, value) => {
+    if (!user) return;
+    const date = DAYS_DATA[selectedIdx].date;
+    const currentData = progress[date] || { water: 0, omad: false, protein: false, supps: false };
+    
+    let newData;
+    if (key === 'water') {
+        newData = { ...currentData, water: value };
+    } else {
+        newData = { ...currentData, [key]: value };
+    }
+    
+    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'progress', date), newData);
+  };
+
+  const currentDay = DAYS_DATA[selectedIdx];
+  const currentStatus = progress[currentDay.date] || { water: 0, omad: false, protein: false, supps: false };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-8">
+        <Flame className="text-orange-500 animate-pulse mb-4" size={48} />
+        <p className="text-xs font-black uppercase tracking-[0.3em] opacity-50 text-center leading-relaxed">
+          Sincronizando Protocolo<br/>Elite Mariano
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-black text-white font-sans selection:bg-orange-500/30 pb-28">
+      
+      {/* Navegación Superior */}
+      <nav className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5 p-4">
+        <div className="max-w-md mx-auto flex justify-between items-center">
+          <div className="flex flex-col">
+            <h1 className="text-xl font-black italic tracking-tighter text-orange-500">PSMF ELITE</h1>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-zinc-500 font-black">Mariano Gordo v6.0</p>
+          </div>
+          <div className="flex gap-2">
+            <NavIcon icon={<Calendar size={18}/>} active={view === 'daily'} onClick={() => setView('daily')} />
+            <NavIcon icon={<ShoppingCart size={18}/>} active={view === 'market'} onClick={() => setView('market')} />
+            <NavIcon icon={<Zap size={18}/>} active={view === 'salts'} onClick={() => setView('salts')} />
+          </div>
+        </div>
+      </nav>
+
+      <main className="max-w-md mx-auto p-4 space-y-6">
         
-        body {
-            background-color: #050505;
-            color: #d6d3d1;
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            -webkit-tap-highlight-color: transparent;
-            overflow-x: hidden;
-            user-select: none;
-        }
+        {view === 'daily' && (
+          <>
+            {/* Selector de Día */}
+            <div className="flex items-center justify-between bg-zinc-900/40 p-4 rounded-3xl border border-white/5">
+              <button 
+                onClick={() => setSelectedIdx(Math.max(0, selectedIdx - 1))}
+                className="p-2 bg-white/5 rounded-full disabled:opacity-20 transition-all"
+                disabled={selectedIdx === 0}
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <div className="text-center">
+                <span className="text-orange-500 text-[10px] font-black uppercase tracking-widest">{currentDay.label}</span>
+                <h2 className="text-lg font-black italic">{currentDay.name}</h2>
+              </div>
+              <button 
+                onClick={() => setSelectedIdx(Math.min(DAYS_DATA.length - 1, selectedIdx + 1))}
+                className="p-2 bg-white/5 rounded-full disabled:opacity-20 transition-all"
+                disabled={selectedIdx === DAYS_DATA.length - 1}
+              >
+                <ChevronRight size={20} />
+              </button>
+            </div>
 
-        .font-serif { font-family: 'Playfair Display', serif; }
-        .font-altar { font-family: 'Cinzel', serif; }
+            {/* Tarjeta de Menú Principal */}
+            <div className={`rounded-[2.5rem] p-8 border shadow-2xl relative overflow-hidden transition-all duration-500 ${
+                currentDay.type === 'FREE' ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-orange-950/20 border-orange-500/40'
+            }`}>
+              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                <Utensils size={100} />
+              </div>
+              <div className="flex items-center gap-2 mb-2">
+                <Utensils size={16} className="text-orange-500" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Menú OMAD {currentDay.type}</span>
+              </div>
+              <h3 className="text-3xl font-black italic leading-[1.1] mb-4 uppercase">{currentDay.meal}</h3>
+              <p className="text-zinc-400 text-sm font-medium leading-relaxed mb-6">{currentDay.details}</p>
+              
+              <div className="flex gap-2">
+                <span className="bg-white/5 border border-white/10 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">Ventana 22:2</span>
+                <span className="bg-white/5 border border-white/10 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">Déficit Crítico</span>
+              </div>
+            </div>
 
-        .fade-in { animation: fadeIn 0.8s ease-out; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
+            {/* Tracker de Objetivos */}
+            <div className="space-y-3">
+              <CheckRow 
+                label="Ayuno OMAD Completado" 
+                active={currentStatus.omad} 
+                onClick={() => updateProgress('omad', !currentStatus.omad)} 
+                color="emerald" 
+              />
+              <CheckRow 
+                label="Proteína Magra Ingerida" 
+                active={currentStatus.protein} 
+                onClick={() => updateProgress('protein', !currentStatus.protein)} 
+                color="orange" 
+              />
+              <CheckRow 
+                label="Sales y Electrolitos" 
+                active={currentStatus.supps} 
+                onClick={() => updateProgress('supps', !currentStatus.supps)} 
+                color="purple" 
+              />
+            </div>
 
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-
-        .translation-overlay {
-            position: fixed;
-            pointer-events: none;
-            z-index: 9999;
-            background: rgba(10, 10, 10, 0.95);
-            border: 1px solid #d97706;
-            padding: 4px 10px;
-            border-radius: 4px;
-            font-size: 10px;
-            font-weight: bold;
-            text-transform: uppercase;
-            color: #d97706;
-            letter-spacing: 0.1em;
-            box-shadow: 0 0 15px rgba(217, 119, 6, 0.3);
-            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-
-        @keyframes popIn {
-            from { opacity: 0; transform: scale(0.8) translateY(10px); }
-            to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const { useState, useEffect, useMemo, useRef } = React;
-
-        const Icon = ({ name, size = 20, className = "" }) => {
-            if (name === 'pencil') {
-                return (
-                    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-                        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
-                    </svg>
-                );
-            }
-            return <i data-lucide={name} style={{ width: size, height: size, display: 'inline-block' }} className={className}></i>;
-        };
-
-        const movementPatterns = [
-            { id: 'SQUAT', lat: 'INFLECTIO', es: 'SENTADILLA' },
-            { id: 'LUNGE', lat: 'PROGRESSIO', es: 'ESTOCADA' },
-            { id: 'HINGE', lat: 'AXIS', es: 'BISAGRA' },
-            { id: 'PUSH', lat: 'PVLSVS', es: 'EMPUJE' },
-            { id: 'PULL', lat: 'TRACTVS', es: 'TRACCION' },
-            { id: 'CARRY', lat: 'VECTIO', es: 'CARGA' },
-            { id: 'ROTATION', lat: 'ROTATIO', es: 'ROTACION' }
-        ];
-
-        const muscleList = [
-            { id: "HVMERI", label: "HVMERI", es: "HOMBROS" },
-            { id: "PECTVS", label: "PECTVS", es: "PECHO" },
-            { id: "DORSVM", label: "DORSVM", es: "ESPALDA" },
-            { id: "BRACHIA", label: "BRACHIA", es: "BRAZOS" },
-            { id: "CORPVS", label: "CORPVS", es: "CORE" },
-            { id: "CRVRA", label: "CRVRA", es: "PIERNAS" }
-        ];
-
-        const App = () => {
-            const [kaizenData, setKaizenData] = useState({
-                week: 1,
-                history: [],
-                exercises: [
-                    { name: "ROMANIAN DEADLIFTS", muscles: ["DORSVM", "CRVRA"], pattern: "HINGE", weight: 16, sets: 3, reps: 6, completed: false },
-                    { name: "GORILLA ROWS", muscles: ["DORSVM", "BRACHIA"], pattern: "PULL", weight: 16, sets: 3, reps: 10, completed: false },
-                    { name: "GOBLET SQVATS", muscles: ["CRVRA", "CORPVS"], pattern: "SQUAT", weight: 16, sets: 3, reps: 6, completed: false },
-                    { name: "2 HANDED SWING", muscles: ["CORPVS", "CRVRA", "DORSVM"], pattern: "HINGE", weight: 16, sets: 3, reps: 10, completed: false },
-                    { name: "OVERHEAD PRESS", muscles: ["HVMERI", "BRACHIA"], pattern: "PUSH", weight: 16, sets: 3, reps: 8, completed: false },
-                    { name: "REVERSE LVNGE", muscles: ["CRVRA"], pattern: "LUNGE", weight: 16, sets: 3, reps: 6, completed: false }
-                ]
-            });
-
-            const [selectedPatternFilter, setSelectedPatternFilter] = useState('all');
-            const [chartFilter, setChartFilter] = useState('all');
-            const [isExFormOpen, setIsExFormOpen] = useState(false);
-            const [editingExIndex, setEditingExIndex] = useState(null);
-            const [tempEx, setTempEx] = useState({ name: '', muscles: [], pattern: '', weight: '', sets: '', reps: '' });
-            const [tooltip, setTooltip] = useState({ visible: false, text: '', x: 0, y: 0 });
-            
-            const chartRef = useRef(null);
-            const chartInstance = useRef(null);
-            const longPressTimer = useRef(null);
-            const fileInputRef = useRef(null);
-
-            // Persistence
-            useEffect(() => {
-                const saved = localStorage.getItem('kaizenData_v2');
-                if (saved) setKaizenData(JSON.parse(saved));
-            }, []);
-
-            useEffect(() => {
-                localStorage.setItem('kaizenData_v2', JSON.stringify(kaizenData));
-                renderKaizenChart();
-                if (window.lucide) window.lucide.createIcons();
-            }, [kaizenData, chartFilter]);
-
-            // Tooltip Logic
-            const handlePressStart = (text, e) => {
-                const x = e.touches ? e.touches[0].clientX : e.clientX;
-                const y = e.touches ? e.touches[0].clientY : e.clientY;
-                longPressTimer.current = setTimeout(() => {
-                    setTooltip({ visible: true, text, x, y: y - 40 });
-                }, 500);
-            };
-
-            const handlePressEnd = () => {
-                clearTimeout(longPressTimer.current);
-                setTooltip(prev => ({ ...prev, visible: false }));
-            };
-
-            const T = (latin, spanish) => ({
-                onPointerDown: (e) => handlePressStart(spanish, e),
-                onPointerUp: handlePressEnd,
-                onPointerLeave: handlePressEnd,
-                className: "cursor-help"
-            });
-
-            // Backup Logic
-            const exportBackup = () => {
-                const data = {
-                    kaizen: JSON.stringify(kaizenData),
-                    exportDate: new Date().toISOString()
-                };
-                const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `ALTARE_DISCIPLINAE_BACKVP_${new Date().toLocaleDateString()}.json`;
-                a.click();
-            };
-
-            const importBackup = (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    try {
-                        const data = JSON.parse(ev.target.result);
-                        if (data.kaizen) {
-                            const parsedKaizen = JSON.parse(data.kaizen);
-                            setKaizenData(parsedKaizen);
-                            localStorage.setItem('kaizenData_v2', data.kaizen);
-                        }
-                    } catch (err) { console.error("Error importing backup", err); }
-                };
-                reader.readAsText(file);
-            };
-
-            const renderKaizenChart = () => {
-                if (!chartRef.current || kaizenData.history.length === 0 || typeof Chart === 'undefined') return;
-                if (chartInstance.current) chartInstance.current.destroy();
-                
-                const ctx = chartRef.current.getContext('2d');
-                const uniqueWeeks = [...new Set(kaizenData.history.map(h => h.week))].sort((a,b) => a-b);
-                const labels = uniqueWeeks.map(w => `EBD ${w}`);
-                let names = chartFilter === 'all' ? [...new Set(kaizenData.history.map(h => h.name))] : [chartFilter];
-                
-                const datasets = names.map((name, index) => ({
-                    label: name,
-                    data: uniqueWeeks.map(w => kaizenData.history.find(h => h.name === name && h.week === w)?.volume || null),
-                    borderColor: ['#d97706', '#78350f', '#f59e0b', '#44403c', '#ffffff', '#22c55e'][index % 6],
-                    borderWidth: 2, tension: 0.3, pointRadius: 3, spanGaps: true
-                }));
-
-                chartInstance.current = new Chart(ctx, {
-                    type: 'line',
-                    data: { labels, datasets },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        plugins: { legend: { display: chartFilter === 'all', labels: { color: '#a8a29e', font: { size: 9, family: 'Cinzel' } } } },
-                        scales: { y: { ticks: { color: '#57534e' }, grid: { color: '#1c1917' } }, x: { ticks: { color: '#57534e' }, grid: { display: false } } }
-                    }
-                });
-            };
-
-            const toggleExComplete = (index) => {
-                setKaizenData(prev => ({ ...prev, exercises: prev.exercises.map((ex, i) => i === index ? { ...ex, completed: !ex.completed } : ex) }));
-            };
-
-            const applyKaizenCycle = () => {
-                setKaizenData(prev => {
-                    const newHistory = [...prev.history];
-                    prev.exercises.forEach(ex => newHistory.push({ week: prev.week, name: ex.name, weight: ex.weight, sets: ex.sets, reps: ex.reps, volume: ex.weight * ex.sets * ex.reps }));
-                    const newExercises = prev.exercises.map(ex => {
-                        let reps = ex.reps; let sets = ex.sets;
-                        if (reps >= 15) { reps = 8; sets += 1; } else { reps += 1; }
-                        return { ...ex, reps, sets, completed: false };
-                    });
-                    return { ...prev, week: prev.week + 1, history: newHistory, exercises: newExercises };
-                });
-            };
-
-            const saveNewEx = () => {
-                if (!tempEx.name || !tempEx.sets || !tempEx.reps) return;
-                const finalEx = { ...tempEx, weight: parseFloat(tempEx.weight) || 0, sets: parseInt(tempEx.sets) || 0, reps: parseInt(tempEx.reps) || 0, completed: false };
-                setKaizenData(prev => {
-                    const newExs = [...prev.exercises];
-                    if (editingExIndex !== null) newExs[editingExIndex] = finalEx;
-                    else newExs.push(finalEx);
-                    return { ...prev, exercises: newExs };
-                });
-                setIsExFormOpen(false); setEditingExIndex(null);
-            };
-
-            const muscleImpact = useMemo(() => {
-                const hits = {};
-                kaizenData.exercises.forEach(ex => { if (ex.completed && ex.muscles) ex.muscles.forEach(m => hits[m] = (hits[m] || 0) + 1); });
-                return hits;
-            }, [kaizenData.exercises]);
-
-            const maxMuscleHits = Math.max(...Object.values(muscleImpact), 0) || 1;
-
-            const filteredExercises = useMemo(() => {
-                let filtered = kaizenData.exercises.map((ex, idx) => ({ ...ex, originalIndex: idx }));
-                if (selectedPatternFilter !== 'all') filtered = filtered.filter(ex => ex.pattern === selectedPatternFilter);
-                return filtered.sort((a, b) => (a.completed === b.completed ? 0 : a.completed ? 1 : -1));
-            }, [kaizenData.exercises, selectedPatternFilter]);
-
-            return (
-                <div className="min-h-screen pb-24">
-                    {tooltip.visible && <div className="translation-overlay" style={{ left: tooltip.x, top: tooltip.y }}>{tooltip.text}</div>}
-
-                    <header className="p-6 border-b border-stone-900/50 flex items-center justify-between backdrop-blur-xl bg-black/80 sticky top-0 z-50">
-                        <div className="flex items-center space-x-3">
-                            <Icon name="zap" className="text-amber-600" size={20} />
-                            <div>
-                                <h1 {...T("DISCIPLINA KAIZEN", "MEJORA CONTINUA")} className="text-xs font-altar tracking-[0.3em] uppercase text-stone-200">DISCIPLINA</h1>
-                                <span className="block text-[8px] text-stone-500 tracking-widest uppercase font-bold">KAIZEN MEI</span>
-                            </div>
-                        </div>
-                        <div className="text-right">
-                            <span className="text-[10px] font-altar text-amber-600 tracking-widest uppercase">EBDOMADA {kaizenData.week}</span>
-                            <span className="block text-[7px] text-stone-600 uppercase font-bold italic">SEMANA {kaizenData.week}</span>
-                        </div>
-                    </header>
-
-                    <main className="max-w-md mx-auto px-6 py-8 space-y-10 fade-in">
-                        
-                        {/* Muscle Impact Section */}
-                        <section className="space-y-4">
-                            <h2 className="text-[10px] text-stone-500 font-altar tracking-widest uppercase">CORPVS FOCUS</h2>
-                            <div className="grid grid-cols-3 gap-2">
-                                {muscleList.map(m => {
-                                    const hits = muscleImpact[m.id] || 0;
-                                    const opacity = hits > 0 ? 0.2 + (hits / maxMuscleHits) * 0.6 : 0;
-                                    return (
-                                        <div key={m.id} {...T(m.label, m.es)} 
-                                            className={`text-center border py-3 text-[9px] font-bold transition-all duration-700 ${hits > 0 ? 'text-stone-200 border-amber-600' : 'text-stone-700 border-stone-900'}`}
-                                            style={{ backgroundColor: hits > 0 ? `rgba(217, 119, 6, ${opacity})` : 'transparent' }}>
-                                            {m.label}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </section>
-
-                        {/* Exercise List Section */}
-                        <section className="space-y-6">
-                            <div className="flex overflow-x-auto no-scrollbar space-x-2 pb-2">
-                                <button onClick={() => setSelectedPatternFilter('all')} className={`flex-shrink-0 px-3 py-1.5 border text-[8px] uppercase tracking-widest font-bold transition-all ${selectedPatternFilter === 'all' ? 'border-amber-600 bg-amber-600 text-black' : 'border-stone-800 text-stone-500'}`}>OMNIA</button>
-                                {movementPatterns.map(p => (
-                                    <button key={p.id} onClick={() => setSelectedPatternFilter(p.id)} className={`flex-shrink-0 px-3 py-1.5 border text-[8px] uppercase tracking-widest font-bold transition-all ${selectedPatternFilter === p.id ? 'border-amber-600 text-amber-500 bg-amber-950/20' : 'border-stone-800 text-stone-500'}`}>{p.lat}</button>
-                                ))}
-                            </div>
-
-                            <div className="space-y-3">
-                                {filteredExercises.map((ex) => (
-                                    <div key={ex.originalIndex} className={`p-4 border transition-all duration-300 ${ex.completed ? 'border-amber-900/40 bg-amber-950/5 opacity-60' : 'border-stone-900 bg-stone-950/20'}`}>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-4 cursor-pointer flex-1" onClick={() => toggleExComplete(ex.originalIndex)}>
-                                                <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-colors ${ex.completed ? 'bg-amber-600 border-amber-600' : 'border-stone-700'}`}>
-                                                    {ex.completed && <Icon name="check" size={12} className="text-black" />}
-                                                </div>
-                                                <div className="truncate">
-                                                    <h4 className={`text-sm font-serif italic ${ex.completed ? 'text-stone-500' : 'text-stone-300'}`}>{ex.name}</h4>
-                                                    <div className="flex space-x-2 mt-1">
-                                                        <span className="text-[7px] text-amber-700 uppercase font-bold tracking-tighter">{ex.pattern}</span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="flex items-center space-x-4 ml-4">
-                                                <div className="text-right">
-                                                    <div className="text-[10px] text-stone-300 font-bold uppercase tracking-tighter">{ex.weight} KG</div>
-                                                    <div className="text-[8px] text-stone-600 font-bold">{ex.sets}X{ex.reps}</div>
-                                                </div>
-                                                <button onClick={() => { setTempEx(kaizenData.exercises[ex.originalIndex]); setEditingExIndex(ex.originalIndex); setIsExFormOpen(true); }} className="p-2 bg-stone-900 border border-stone-800 rounded text-stone-500 hover:text-amber-500 transition-all"><Icon name="pencil" size={14} /></button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-
-                            <button onClick={() => { setEditingExIndex(null); setTempEx({ name: '', muscles: [], pattern: 'SQUAT', weight: '', sets: '', reps: '' }); setIsExFormOpen(true); }} className="w-full py-4 border border-dashed border-stone-800 text-stone-600 text-[9px] font-altar tracking-[0.2em] uppercase hover:text-amber-600 transition-colors">+ ADDE DISCIPLINAM</button>
-                        </section>
-
-                        {/* Progression Section */}
-                        <section className="space-y-6">
-                            <button disabled={!kaizenData.exercises.every(e => e.completed)} onClick={applyKaizenCycle} className={`w-full py-5 font-altar tracking-[0.2em] uppercase text-xs transition-all ${kaizenData.exercises.every(e => e.completed) ? 'bg-amber-600 text-black shadow-lg shadow-amber-900/20 active:scale-95' : 'bg-stone-900 text-stone-700 pointer-events-none opacity-50'}`}>PERFICERE CYCLVM (KAIZEN +1)</button>
-                            <div className="h-56 w-full bg-stone-950/20 p-4 border border-stone-900 rounded relative">
-                                <div className="absolute top-2 right-4 z-10 flex items-center">
-                                    <select onChange={(e) => setChartFilter(e.target.value)} className="bg-transparent border-none text-[8px] text-amber-700 uppercase font-bold outline-none cursor-pointer">
-                                        <option value="all" className="bg-black">OMNIA</option>
-                                        {[...new Set(kaizenData.history.map(h => h.name))].map(n => <option key={n} value={n} className="bg-black">{n}</option>)}
-                                    </select>
-                                </div>
-                                <canvas ref={chartRef}></canvas>
-                            </div>
-                        </section>
-
-                        {/* Backup Section Only (Mariano Folders removed) */}
-                        <section className="pt-10 border-t border-stone-900 space-y-6">
-                            <h4 className="text-stone-600 text-[10px] font-bold uppercase tracking-widest text-center">CONSERVATIO PROGRESSVS</h4>
-                            <div className="grid grid-cols-2 gap-4">
-                                <button onClick={exportBackup} className="py-3 border border-stone-800 bg-stone-900/20 text-stone-400 text-[9px] uppercase tracking-widest hover:border-amber-600 transition-colors font-bold">SERVARE EXEMPLAR</button>
-                                <button onClick={() => fileInputRef.current.click()} className="py-3 border border-stone-800 bg-stone-900/20 text-stone-400 text-[9px] uppercase tracking-widest hover:border-amber-600 transition-colors font-bold">LEGERE EXEMPLAR</button>
-                                <input type="file" ref={fileInputRef} onChange={importBackup} className="hidden" accept=".json" />
-                            </div>
-                        </section>
-                    </main>
-
-                    {/* Modal Logic */}
-                    {isExFormOpen && (
-                        <div className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center p-6 backdrop-blur-sm">
-                            <div className="w-full max-w-sm p-6 border border-amber-900/50 bg-stone-950 space-y-6 font-bold shadow-2xl max-h-[90vh] overflow-y-auto no-scrollbar">
-                                <h3 className="text-[10px] font-altar uppercase tracking-widest text-amber-600 border-b border-stone-900 pb-2">{editingExIndex !== null ? "MVTARE EXERCITIVM" : "NOVVM EXERCITIVM"}</h3>
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="text-[8px] text-stone-600 uppercase block font-bold mb-2">NOMEN</label>
-                                        <input value={tempEx.name || ''} onChange={e => setTempEx({...tempEx, name: e.target.value.toUpperCase()})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm italic outline-none uppercase text-stone-200" />
-                                    </div>
-                                    <div>
-                                        <label className="text-[8px] text-stone-600 uppercase block font-bold mb-2">MOTVS FORMA</label>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            {movementPatterns.map(p => (
-                                                <button key={p.id} onClick={() => setTempEx({...tempEx, pattern: p.id})} className={`text-[8px] p-2 border transition-all ${tempEx.pattern === p.id ? 'border-amber-600 text-amber-500 bg-amber-950/20' : 'border-stone-800 text-stone-600'} uppercase font-bold`}>{p.lat}</button>
-                                            ))}
-                                        </div>
-                                    </div>
-                                    <div className="flex space-x-4">
-                                        <div className="flex-1">
-                                            <label className="text-[8px] text-stone-600 uppercase block font-bold mb-1">KG</label>
-                                            <input type="number" value={tempEx.weight || ''} onChange={e => setTempEx({...tempEx, weight: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <label className="text-[8px] text-stone-600 uppercase block font-bold mb-1">SERIES</label>
-                                            <input type="number" value={tempEx.sets || ''} onChange={e => setTempEx({...tempEx, sets: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" />
-                                        </div>
-                                        <div className="flex-1">
-                                            <label className="text-[8px] text-stone-600 uppercase block font-bold mb-1">REPS</label>
-                                            <input type="number" value={tempEx.reps || ''} onChange={e => setTempEx({...tempEx, reps: e.target.value})} className="w-full bg-transparent border-b border-stone-800 p-2 text-sm outline-none text-stone-200" />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="pt-6 space-y-3">
-                                    <button onClick={saveNewEx} className="w-full py-4 bg-amber-600 text-black font-altar text-[10px] tracking-widest uppercase font-bold">CONSIGNARE</button>
-                                    <button onClick={() => setIsExFormOpen(false)} className="w-full text-stone-600 text-[8px] uppercase tracking-widest font-bold">ABROGARE</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <footer className="fixed bottom-0 w-full p-6 text-center bg-gradient-to-t from-black via-black/90 to-transparent">
-                        <div className="text-[9px] text-stone-800 uppercase tracking-[0.5em] font-bold font-altar italic">NON DVCOR, DVCO</div>
-                    </footer>
+            {/* Hidratación */}
+            <div className="bg-zinc-900/40 p-6 rounded-[2rem] border border-white/5">
+                <div className="flex justify-between items-center mb-5">
+                    <div className="flex items-center gap-2 text-sky-400">
+                        <Droplet size={20} />
+                        <span className="font-black text-[10px] uppercase tracking-widest">Hidratación (Vasos)</span>
+                    </div>
+                    <span className="text-2xl font-black text-sky-400">{currentStatus.water} <span className="text-xs text-zinc-600">/ 10</span></span>
                 </div>
-            );
-        };
+                <div className="flex gap-1.5 h-4">
+                    {[...Array(10)].map((_, i) => (
+                        <div 
+                            key={i} 
+                            onClick={() => updateProgress('water', i + 1)}
+                            className={`flex-1 rounded-sm cursor-pointer transition-all duration-300 ${
+                                i < currentStatus.water ? 'bg-sky-500 shadow-[0_0_12px_rgba(14,165,233,0.4)]' : 'bg-zinc-800'
+                            }`}
+                        />
+                    ))}
+                </div>
+            </div>
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
-</body>
-</html>
+            {/* Enlace Motivación */}
+            <a 
+              href="https://drive.google.com/drive/folders/1wzkDMJnr8cfq36HvbRfRizRLzXdJWDWq" 
+              target="_blank" 
+              rel="noreferrer"
+              className="group flex items-center justify-between p-6 bg-red-600 hover:bg-red-500 rounded-[2rem] transition-all active:scale-95 shadow-xl shadow-red-600/20"
+            >
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">Recordatorio Vital</span>
+                <span className="text-lg font-black italic tracking-tighter">CARPETA: MARIANO GORDO</span>
+              </div>
+              <ExternalLink size={24} className="group-hover:translate-x-1 transition-transform" />
+            </a>
+          </>
+        )}
+
+        {view === 'market' && (
+          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
+            <header className="px-1">
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter">Guía de Mercado</h2>
+                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Alimentos PSMF (Días Limpios)</p>
+            </header>
+
+            {SHOPPING_CATEGORIES.map((cat, i) => (
+              <div key={i} className="bg-zinc-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden">
+                <div className="p-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
+                    <div className="p-2 bg-black/40 rounded-xl">{cat.icon}</div>
+                    <h4 className="font-black text-xs uppercase tracking-widest text-zinc-100">{cat.title}</h4>
+                </div>
+                <div className="p-6 grid grid-cols-1 gap-3">
+                    {cat.items.map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-3 text-sm font-medium text-zinc-400">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
+                            {item}
+                        </div>
+                    ))}
+                </div>
+              </div>
+            ))}
+
+            <div className="bg-red-950/20 border border-red-500/20 rounded-[2.5rem] p-8 space-y-4">
+                <div className="flex items-center gap-3 text-red-500">
+                    <XCircle size={24} />
+                    <h4 className="font-black uppercase italic text-lg tracking-tighter">Zona Prohibida</h4>
+                </div>
+                <p className="text-xs text-red-100/60 font-medium leading-relaxed italic">
+                    "Nada de aceites, nada de alcohol, nada de azúcares. Si tiene más de 5g de grasa por cada 100g, déjalo en el estante. Estás a pocos días de tu meta."
+                </p>
+            </div>
+          </div>
+        )}
+
+        {view === 'salts' && (
+          <div className="space-y-6 animate-in fade-in">
+            <header className="px-1">
+                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-purple-500">Bio-Hacking: Sales</h2>
+                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Prevención de fatiga OMAD</p>
+            </header>
+
+            <div className="grid grid-cols-1 gap-4">
+                <SaltInfoCard 
+                    title="Sodio (Sal Blanca)" 
+                    value="6-7g" 
+                    desc="Imprescindible para no marearse. Sala mucho tu única comida." 
+                />
+                <SaltInfoCard 
+                    title="Potasio (Sal Dieta)" 
+                    value="2-3g" 
+                    desc="Usa Sal Costa 50% potasio. Evita calambres y cuida el corazón." 
+                />
+                <SaltInfoCard 
+                    title="Magnesio" 
+                    value="400mg" 
+                    desc="Citrato o Bisglicinato antes de dormir. Ayuda a quemar grasa en el sueño." 
+                />
+            </div>
+
+            <div className="bg-sky-950/20 border border-sky-500/20 rounded-[2.5rem] p-8 space-y-4">
+                <div className="flex items-center gap-3 text-sky-400">
+                    <Beaker size={24} />
+                    <h4 className="font-black uppercase text-sm tracking-widest italic">Suero de Emergencia</h4>
+                </div>
+                <p className="text-xs text-zinc-400 leading-relaxed font-medium">
+                    Si el hambre o el mareo atacan a las 17:00, mezcla en 1.5L de agua: 1 cdta de sal común, 1 cdta de sal potásica y zumo de limón. Bébela a sorbos lentos. El hambre desaparecerá.
+                </p>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Footer de Progreso */}
+      <footer className="fixed bottom-0 left-0 right-0 p-5 bg-black/90 border-t border-white/5 backdrop-blur-xl">
+        <div className="max-w-md mx-auto">
+            <div className="flex justify-between items-center mb-3 text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500">
+                <span>Rendimiento Semanal</span>
+                <span className="text-orange-500">{Math.round((Object.keys(progress).length / 9) * 100)}%</span>
+            </div>
+            <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
+                <div 
+                    className="h-full bg-orange-600 shadow-[0_0_15px_rgba(234,88,12,0.6)] transition-all duration-1000 ease-out" 
+                    style={{ width: `${(Object.keys(progress).length / 9) * 100}%` }}
+                />
+            </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
+
+// --- SUB-COMPONENTES ---
+
+function NavIcon({ icon, active, onClick }) {
+  return (
+    <button 
+      onClick={onClick} 
+      className={`p-3.5 rounded-2xl transition-all duration-300 ${
+        active 
+        ? 'bg-orange-600 text-white shadow-xl shadow-orange-600/40 scale-110' 
+        : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
+      }`}
+    >
+      {icon}
+    </button>
+  );
+}
+
+function CheckRow({ label, active, onClick, color }) {
+    const colors = {
+        emerald: active ? 'bg-emerald-600/10 border-emerald-500/40 text-emerald-100' : 'bg-zinc-900/40 border-white/5 text-zinc-600',
+        orange: active ? 'bg-orange-600/10 border-orange-500/40 text-orange-100' : 'bg-zinc-900/40 border-white/5 text-zinc-600',
+        purple: active ? 'bg-purple-600/10 border-purple-500/40 text-purple-100' : 'bg-zinc-900/40 border-white/5 text-zinc-600',
+    };
+
+    return (
+        <button 
+            onClick={onClick}
+            className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all duration-300 active:scale-[0.98] ${colors[color]}`}
+        >
+            <span className="font-black italic uppercase text-[11px] tracking-widest text-left">{label}</span>
+            <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
+                active ? 'bg-orange-600 border-orange-600' : 'border-zinc-800'
+            }`}>
+                {active && <CheckCircle2 size={18} className="text-white" />}
+            </div>
+        </button>
+    );
+}
+
+function SaltInfoCard({ title, value, desc }) {
+    return (
+        <div className="bg-zinc-900/40 p-6 rounded-[2rem] border border-white/5 flex items-center justify-between gap-4">
+            <div className="flex-1">
+                <h4 className="font-black text-xs uppercase tracking-widest text-purple-400 mb-1">{title}</h4>
+                <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">{desc}</p>
+            </div>
+            <div className="bg-purple-600/20 border border-purple-500/30 px-3 py-2 rounded-2xl min-w-[70px] text-center">
+                <span className="text-xs font-black italic text-purple-300">{value}</span>
+            </div>
+        </div>
+    );
+}
+
+```
