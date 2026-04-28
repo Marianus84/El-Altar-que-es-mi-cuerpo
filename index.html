@@ -1,426 +1,221 @@
-```react
-import React, { useState, useEffect } from 'react';
-import { 
-  CheckCircle2, 
-  Droplet, 
-  Zap, 
-  Calendar, 
-  Flame, 
-  ChevronRight, 
-  ChevronLeft,
-  ExternalLink,
-  Lock,
-  Unlock,
-  Utensils,
-  ShoppingCart,
-  AlertTriangle,
-  Beaker,
-  RefreshCcw,
-  Info,
-  XCircle,
-  Beef,
-  Leaf,
-  Plus,
-  Trash2
-} from 'lucide-react';
-import { initializeApp } from 'firebase/app';
-import { 
-  getFirestore, 
-  collection, 
-  doc, 
-  setDoc, 
-  onSnapshot 
-} from 'firebase/firestore';
-import { 
-  getAuth, 
-  signInAnonymously, 
-  signInWithCustomToken, 
-  onAuthStateChanged 
-} from 'firebase/auth';
-
-// --- CONFIGURACIÓN DE FIREBASE ---
-const firebaseConfig = JSON.parse(__firebase_config);
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'psmf-mariano-v6';
-
-// --- DATOS DEL PROTOCOLO ---
-const DAYS_DATA = [
-  { date: '2026-04-28', name: 'Martes', type: 'PSMF', label: 'Hoy', meal: "450g Pechuga de pollo + 300g Espinacas", details: "Pechuga a la plancha con limón. Espinacas al vapor o salteadas con ajo (sin aceite)." },
-  { date: '2026-04-29', name: 'Miércoles', type: 'PSMF', label: 'Día 2', meal: "500g Pescado Blanco + Espárragos", details: "Bacalao, merluza o tilapia al horno con especias secas." },
-  { date: '2026-04-30', name: 'Jueves', type: 'PSMF', label: 'Día 3', meal: "450g Pavo Magro + Calabacín", details: "Pavo picado o a la plancha con calabacín espiralizado." },
-  { date: '2026-05-01', name: 'Viernes', type: 'FREE', label: 'Día 4', meal: "ENTRAÑA / ASADO / CARBOS", details: "Refeed metabólico. Disfruta de cortes más grasos y añade carbohidratos complejos." },
-  { date: '2026-05-02', name: 'Sábado', type: 'PSMF', label: 'Día 5', meal: "400g Peceto o Nalga + Ensalada", details: "Corte de vaca extra magro limpiado de toda grasa visible." },
-  { date: '2026-05-03', name: 'Domingo', type: 'FREE', label: 'Día 6', meal: "ASADO SOCIAL / LIBRE", details: "Comida social permitida. Prioriza proteína pero permite flexibilidad." },
-  { date: '2026-05-04', name: 'Lunes', type: 'PSMF', label: 'Día 7', meal: "500g Gambas o Atún + Brócoli", details: "Proteína rápida: Gambas a la plancha o 5 latas de atún al natural." },
-  { date: '2026-05-05', name: 'Martes', type: 'PSMF', label: 'Día 8', meal: "Tortilla 10 Claras + Pavo", details: "Bote de claras (aprox 300ml) con jamón de pavo magro." },
-  { date: '2026-05-06', name: 'Miércoles', type: 'Final', meal: "500g Pescado Blanco + Pimientos", details: "Último empujón del protocolo. Pescado al horno." },
-];
-
-const SHOPPING_CATEGORIES = [
-  {
-    title: "Carnes Rojas (Cortes Magros)",
-    icon: <Beef size={18} className="text-red-400" />,
-    items: ["Peceto (Limpio)", "Nalga", "Cuadril", "Bola de lomo", "Babilla", "Ternera picada (<5% grasa)", "Lomo de ternera (limpio)"]
-  },
-  {
-    title: "Aves y Huevos",
-    icon: <Flame size={18} className="text-orange-400" />,
-    items: ["Pechugas de pollo", "Pechugas de pavo", "Solomillo de pavo", "Botes de claras de huevo", "Huevos enteros (máx 1 al día)"]
-  },
-  {
-    title: "Pescados y Mariscos",
-    icon: <Zap size={18} className="text-blue-400" />,
-    items: ["Bacalao / Merluza", "Tilapia / Lenguado", "Atún al natural (LATA)", "Gambas / Langostinos", "Pulpo / Calamar", "Mejillones al natural"]
-  },
-  {
-    title: "Verduras (Fibra)",
-    icon: <Leaf size={18} className="text-emerald-400" />,
-    items: ["Espinacas / Canónigos", "Brócoli / Coliflor", "Espárragos", "Calabacín", "Pepino", "Apio", "Champiñones", "Judías verdes"]
-  },
-  {
-    title: "Sales y Extras",
-    icon: <Beaker size={18} className="text-purple-400" />,
-    items: ["Sal común (Sodio)", "Sal Potásica (Sal Costa 50%)", "Citrato de Magnesio", "Mostaza clásica", "Vinagre de manzana", "Gelatina 0% azúcar"]
-  }
-];
-
-// --- COMPONENTE PRINCIPAL ---
-export default function App() {
-  const [user, setUser] = useState(null);
-  const [view, setView] = useState('daily'); // 'daily', 'market', 'salts'
-  const [selectedIdx, setSelectedIdx] = useState(0);
-  const [progress, setProgress] = useState({});
-  const [loading, setLoading] = useState(true);
-
-  // Inicializar Auth
-  useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
-      } catch (err) {
-        console.error("Error de autenticación", err);
-      }
-    };
-    initAuth();
-    return onAuthStateChanged(auth, setUser);
-  }, []);
-
-  // Escuchar progreso desde Firestore
-  useEffect(() => {
-    if (!user) return;
-    const q = collection(db, 'artifacts', appId, 'users', user.uid, 'progress');
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = {};
-      snapshot.forEach(doc => data[doc.id] = doc.data());
-      setProgress(data);
-      setLoading(false);
-    });
-    return () => unsubscribe();
-  }, [user]);
-
-  const updateProgress = async (key, value) => {
-    if (!user) return;
-    const date = DAYS_DATA[selectedIdx].date;
-    const currentData = progress[date] || { water: 0, omad: false, protein: false, supps: false };
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PSMF Elite - Protocolo Mariano</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- React & Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
-    let newData;
-    if (key === 'water') {
-        newData = { ...currentData, water: value };
-    } else {
-        newData = { ...currentData, [key]: value };
-    }
-    
-    await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'progress', date), newData);
-  };
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;700;900&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #09090b; color: white; }
+        .glass { background: rgba(24, 24, 27, 0.6); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.05); }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
 
-  const currentDay = DAYS_DATA[selectedIdx];
-  const currentStatus = progress[currentDay.date] || { water: 0, omad: false, protein: false, supps: false };
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.2/firebase-auth.js";
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-black flex flex-col items-center justify-center text-white p-8">
-        <Flame className="text-orange-500 animate-pulse mb-4" size={48} />
-        <p className="text-xs font-black uppercase tracking-[0.3em] opacity-50 text-center leading-relaxed">
-          Sincronizando Protocolo<br/>Elite Mariano
-        </p>
-      </div>
-    );
-  }
+        window.FirebaseSDK = { initializeApp, getFirestore, doc, setDoc, onSnapshot, collection, getAuth, signInAnonymously, onAuthStateChanged };
+    </script>
 
-  return (
-    <div className="min-h-screen bg-black text-white font-sans selection:bg-orange-500/30 pb-28">
-      
-      {/* Navegación Superior */}
-      <nav className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl border-b border-white/5 p-4">
-        <div className="max-w-md mx-auto flex justify-between items-center">
-          <div className="flex flex-col">
-            <h1 className="text-xl font-black italic tracking-tighter text-orange-500">PSMF ELITE</h1>
-            <p className="text-[9px] uppercase tracking-[0.2em] text-zinc-500 font-black">Mariano Gordo v6.0</p>
-          </div>
-          <div className="flex gap-2">
-            <NavIcon icon={<Calendar size={18}/>} active={view === 'daily'} onClick={() => setView('daily')} />
-            <NavIcon icon={<ShoppingCart size={18}/>} active={view === 'market'} onClick={() => setView('market')} />
-            <NavIcon icon={<Zap size={18}/>} active={view === 'salts'} onClick={() => setView('salts')} />
-          </div>
-        </div>
-      </nav>
-
-      <main className="max-w-md mx-auto p-4 space-y-6">
+    <script type="text/babel">
+        const { useState, useEffect } = React;
         
-        {view === 'daily' && (
-          <>
-            {/* Selector de Día */}
-            <div className="flex items-center justify-between bg-zinc-900/40 p-4 rounded-3xl border border-white/5">
-              <button 
-                onClick={() => setSelectedIdx(Math.max(0, selectedIdx - 1))}
-                className="p-2 bg-white/5 rounded-full disabled:opacity-20 transition-all"
-                disabled={selectedIdx === 0}
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <div className="text-center">
-                <span className="text-orange-500 text-[10px] font-black uppercase tracking-widest">{currentDay.label}</span>
-                <h2 className="text-lg font-black italic">{currentDay.name}</h2>
-              </div>
-              <button 
-                onClick={() => setSelectedIdx(Math.min(DAYS_DATA.length - 1, selectedIdx + 1))}
-                className="p-2 bg-white/5 rounded-full disabled:opacity-20 transition-all"
-                disabled={selectedIdx === DAYS_DATA.length - 1}
-              >
-                <ChevronRight size={20} />
-              </button>
-            </div>
+        // Datos del Protocolo
+        const DAYS = [
+            { id: 0, date: '2026-04-28', name: 'Martes', type: 'PSMF', label: 'Hoy', meal: "450g Pechuga de Pollo + Espinacas", desc: "Pechuga a la plancha con limón. Espinacas al vapor." },
+            { id: 1, date: '2026-04-29', name: 'Miércoles', type: 'PSMF', label: 'Mañana', meal: "500g Pescado Blanco + Espárragos", desc: "Bacalao o Merluza al horno con especias." },
+            { id: 2, date: '2026-04-30', name: 'Jueves', type: 'PSMF', label: 'Día 3', meal: "450g Pavo Magro + Calabacín", desc: "Salteado de pavo con calabacín y mucha cebolla." },
+            { id: 3, date: '2026-05-01', name: 'Viernes', type: 'FREE', label: 'Refeed', meal: "ENTRAÑA / ASADO + CARBOS", desc: "Día libre controlado. Disfruta de cortes grasos." },
+            { id: 4, date: '2026-05-02', name: 'Sábado', type: 'PSMF', label: 'Día 5', meal: "400g Peceto o Nalga + Ensalada", desc: "Carne de vaca extra magra sin grasa visible." },
+            { id: 5, date: '2026-05-03', name: 'Domingo', type: 'FREE', label: 'Social', meal: "ASADO SOCIAL LIBRE", desc: "Prioriza proteína, permite flexibilidad social." },
+            { id: 6, date: '2026-05-04', name: 'Lunes', type: 'PSMF', label: 'Día 7', meal: "500g Gambas o Atún Natural", desc: "Opción rápida y limpia de proteína pura." },
+            { id: 7, date: '2026-05-05', name: 'Martes', type: 'PSMF', label: 'Día 8', meal: "12 Claras de Huevo + Pavo", desc: "Revuelto gigante de claras con pavo magro." },
+            { id: 8, date: '2026-05-06', name: 'Miércoles', type: 'Final', meal: "Pescado Blanco + Pimientos", desc: "Último día de protocolo estricto." },
+        ];
 
-            {/* Tarjeta de Menú Principal */}
-            <div className={`rounded-[2.5rem] p-8 border shadow-2xl relative overflow-hidden transition-all duration-500 ${
-                currentDay.type === 'FREE' ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-orange-950/20 border-orange-500/40'
-            }`}>
-              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                <Utensils size={100} />
-              </div>
-              <div className="flex items-center gap-2 mb-2">
-                <Utensils size={16} className="text-orange-500" />
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Menú OMAD {currentDay.type}</span>
-              </div>
-              <h3 className="text-3xl font-black italic leading-[1.1] mb-4 uppercase">{currentDay.meal}</h3>
-              <p className="text-zinc-400 text-sm font-medium leading-relaxed mb-6">{currentDay.details}</p>
-              
-              <div className="flex gap-2">
-                <span className="bg-white/5 border border-white/10 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">Ventana 22:2</span>
-                <span className="bg-white/5 border border-white/10 text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter">Déficit Crítico</span>
-              </div>
-            </div>
+        const FOOD_LIST = [
+            { cat: "Carnes Magras", items: ["Peceto", "Nalga", "Cuadril", "Lomo", "Pechuga Pollo/Pavo"] },
+            { cat: "Pescados", items: ["Merluza", "Bacalao", "Atún Natural", "Gambas", "Pulpo"] },
+            { cat: "Verduras", items: ["Espinacas", "Brócoli", "Espárragos", "Calabacín", "Pepino"] }
+        ];
 
-            {/* Tracker de Objetivos */}
-            <div className="space-y-3">
-              <CheckRow 
-                label="Ayuno OMAD Completado" 
-                active={currentStatus.omad} 
-                onClick={() => updateProgress('omad', !currentStatus.omad)} 
-                color="emerald" 
-              />
-              <CheckRow 
-                label="Proteína Magra Ingerida" 
-                active={currentStatus.protein} 
-                onClick={() => updateProgress('protein', !currentStatus.protein)} 
-                color="orange" 
-              />
-              <CheckRow 
-                label="Sales y Electrolitos" 
-                active={currentStatus.supps} 
-                onClick={() => updateProgress('supps', !currentStatus.supps)} 
-                color="purple" 
-              />
-            </div>
+        function App() {
+            const [view, setView] = useState('daily');
+            const [selectedIdx, setSelectedIdx] = useState(0);
+            const [progress, setProgress] = useState({});
+            const [user, setUser] = useState(null);
+            const [db, setDb] = useState(null);
 
-            {/* Hidratación */}
-            <div className="bg-zinc-900/40 p-6 rounded-[2rem] border border-white/5">
-                <div className="flex justify-between items-center mb-5">
-                    <div className="flex items-center gap-2 text-sky-400">
-                        <Droplet size={20} />
-                        <span className="font-black text-[10px] uppercase tracking-widest">Hidratación (Vasos)</span>
-                    </div>
-                    <span className="text-2xl font-black text-sky-400">{currentStatus.water} <span className="text-xs text-zinc-600">/ 10</span></span>
-                </div>
-                <div className="flex gap-1.5 h-4">
-                    {[...Array(10)].map((_, i) => (
-                        <div 
-                            key={i} 
-                            onClick={() => updateProgress('water', i + 1)}
-                            className={`flex-1 rounded-sm cursor-pointer transition-all duration-300 ${
-                                i < currentStatus.water ? 'bg-sky-500 shadow-[0_0_12px_rgba(14,165,233,0.4)]' : 'bg-zinc-800'
-                            }`}
-                        />
-                    ))}
-                </div>
-            </div>
+            useEffect(() => {
+                const { initializeApp, getFirestore, getAuth, signInAnonymously, onAuthStateChanged, collection, onSnapshot } = window.FirebaseSDK;
+                
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                const firestore = getFirestore(app);
+                const auth = getAuth(app);
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'psmf-mariano-v6';
 
-            {/* Enlace Motivación */}
-            <a 
-              href="https://drive.google.com/drive/folders/1wzkDMJnr8cfq36HvbRfRizRLzXdJWDWq" 
-              target="_blank" 
-              rel="noreferrer"
-              className="group flex items-center justify-between p-6 bg-red-600 hover:bg-red-500 rounded-[2rem] transition-all active:scale-95 shadow-xl shadow-red-600/20"
-            >
-              <div className="flex flex-col">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-70">Recordatorio Vital</span>
-                <span className="text-lg font-black italic tracking-tighter">CARPETA: MARIANO GORDO</span>
-              </div>
-              <ExternalLink size={24} className="group-hover:translate-x-1 transition-transform" />
-            </a>
-          </>
-        )}
+                setDb(firestore);
 
-        {view === 'market' && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
-            <header className="px-1">
-                <h2 className="text-3xl font-black italic uppercase tracking-tighter">Guía de Mercado</h2>
-                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Alimentos PSMF (Días Limpios)</p>
-            </header>
+                signInAnonymously(auth).catch(console.error);
+                onAuthStateChanged(auth, (currUser) => {
+                    setUser(currUser);
+                    if (currUser) {
+                        const q = collection(firestore, 'artifacts', appId, 'users', currUser.uid, 'progress');
+                        onSnapshot(q, (snapshot) => {
+                            const data = {};
+                            snapshot.forEach(doc => data[doc.id] = doc.data());
+                            setProgress(data);
+                        });
+                    }
+                });
+            }, []);
 
-            {SHOPPING_CATEGORIES.map((cat, i) => (
-              <div key={i} className="bg-zinc-900/40 rounded-[2.5rem] border border-white/5 overflow-hidden">
-                <div className="p-5 bg-white/5 border-b border-white/5 flex items-center gap-3">
-                    <div className="p-2 bg-black/40 rounded-xl">{cat.icon}</div>
-                    <h4 className="font-black text-xs uppercase tracking-widest text-zinc-100">{cat.title}</h4>
-                </div>
-                <div className="p-6 grid grid-cols-1 gap-3">
-                    {cat.items.map((item, idx) => (
-                        <div key={idx} className="flex items-center gap-3 text-sm font-medium text-zinc-400">
-                            <div className="w-1.5 h-1.5 rounded-full bg-orange-600" />
-                            {item}
+            const updateData = async (key, val) => {
+                if (!user || !db) return;
+                const { doc, setDoc } = window.FirebaseSDK;
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'psmf-mariano-v6';
+                const date = DAYS[selectedIdx].date;
+                const current = progress[date] || { water: 0, omad: false, protein: false, salts: false };
+                
+                const newData = key === 'water' ? { ...current, water: val } : { ...current, [key]: val };
+                await setDoc(doc(db, 'artifacts', appId, 'users', user.uid, 'progress', date), newData);
+            };
+
+            const day = DAYS[selectedIdx];
+            const stats = progress[day.date] || { water: 0, omad: false, protein: false, salts: false };
+
+            return (
+                <div className="max-w-md mx-auto min-h-screen flex flex-col">
+                    {/* Header */}
+                    <header className="p-6 glass sticky top-0 z-50 flex justify-between items-center border-b border-white/10">
+                        <div>
+                            <h1 className="text-2xl font-black italic text-orange-500 tracking-tighter uppercase">PSMF Elite</h1>
+                            <p className="text-[10px] font-bold text-zinc-500 tracking-[0.3em]">MARIANO PROTOCOL</p>
                         </div>
-                    ))}
+                        <div className="flex gap-2">
+                            <button onClick={() => setView('daily')} className={`p-2 rounded-xl ${view === 'daily' ? 'bg-orange-600' : 'bg-zinc-800'}`}><i data-lucide="calendar"></i></button>
+                            <button onClick={() => setView('market')} className={`p-2 rounded-xl ${view === 'market' ? 'bg-orange-600' : 'bg-zinc-800'}`}><i data-lucide="shopping-cart"></i></button>
+                        </div>
+                    </header>
+
+                    <main className="p-4 flex-grow space-y-6">
+                        {view === 'daily' ? (
+                            <>
+                                {/* Selector Día */}
+                                <div className="flex items-center justify-between glass p-4 rounded-3xl">
+                                    <button onClick={() => setSelectedIdx(Math.max(0, selectedIdx - 1))} className="p-2 opacity-50"><i data-lucide="chevron-left"></i></button>
+                                    <div className="text-center">
+                                        <p className="text-[10px] font-black text-orange-500 uppercase">{day.label}</p>
+                                        <h2 className="text-xl font-black italic">{day.name}</h2>
+                                    </div>
+                                    <button onClick={() => setSelectedIdx(Math.min(8, selectedIdx + 1))} className="p-2 opacity-50"><i data-lucide="chevron-right"></i></button>
+                                </div>
+
+                                {/* Menu Card */}
+                                <div className={`p-8 rounded-[2.5rem] border-2 shadow-2xl ${day.type === 'FREE' ? 'bg-emerald-950/20 border-emerald-500/20' : 'bg-orange-950/20 border-orange-500/20'}`}>
+                                    <span className="text-[10px] font-black uppercase opacity-50">Menú OMAD</span>
+                                    <h3 className="text-3xl font-black italic uppercase leading-none my-3">{day.meal}</h3>
+                                    <p className="text-sm text-zinc-400 leading-relaxed">{day.desc}</p>
+                                </div>
+
+                                {/* Trackers */}
+                                <div className="space-y-2">
+                                    <TrackerBtn label="Ayuno OMAD Completado" active={stats.omad} onClick={() => updateData('omad', !stats.omad)} />
+                                    <TrackerBtn label="Proteína Magra Ingerida" active={stats.protein} onClick={() => updateData('protein', !stats.protein)} />
+                                    <TrackerBtn label="Sales / Electrolitos" active={stats.salts} onClick={() => updateData('salts', !stats.salts)} />
+                                </div>
+
+                                {/* Agua */}
+                                <div className="glass p-6 rounded-3xl">
+                                    <div className="flex justify-between items-center mb-4 text-sky-400 font-black">
+                                        <span className="text-xs uppercase">Hidratación</span>
+                                        <span>{stats.water}/10</span>
+                                    </div>
+                                    <div className="flex gap-1 h-3">
+                                        {[...Array(10)].map((_, i) => (
+                                            <div key={i} onClick={() => updateData('water', i+1)} className={`flex-1 rounded-sm cursor-pointer ${i < stats.water ? 'bg-sky-500' : 'bg-zinc-800'}`}></div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Motivación */}
+                                <a href="https://drive.google.com/drive/folders/1wzkDMJnr8cfq36HvbRfRizRLzXdJWDWq" target="_blank" className="block p-6 bg-red-600 rounded-3xl text-center shadow-xl shadow-red-600/20 active:scale-95 transition-all">
+                                    <p className="text-[10px] font-black opacity-70 uppercase tracking-widest">¿Hambre? Mira tus fotos</p>
+                                    <h4 className="text-lg font-black italic">MARIANO GORDO</h4>
+                                </a>
+                            </>
+                        ) : (
+                            <div className="space-y-6">
+                                <h2 className="text-3xl font-black italic uppercase italic">Lista de Compra</h2>
+                                {FOOD_LIST.map((f, i) => (
+                                    <div key={i} className="glass p-6 rounded-3xl space-y-3">
+                                        <h4 className="font-black text-orange-500 uppercase text-xs">{f.cat}</h4>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {f.items.map((item, j) => (
+                                                <div key={j} className="text-sm text-zinc-400 font-medium flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 bg-orange-600 rounded-full"></div>
+                                                    {item}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                                <div className="p-6 bg-purple-900/20 border border-purple-500/20 rounded-3xl">
+                                    <h4 className="font-black text-purple-400 uppercase text-xs mb-2">Sales Críticas</h4>
+                                    <p className="text-[11px] text-zinc-400 italic">No olvides: Sal común, Sal Potásica (Sal Costa) y Magnesio. Sin esto, el OMAD te dará dolor de cabeza.</p>
+                                </div>
+                            </div>
+                        )}
+                    </main>
+
+                    {/* Footer Progress */}
+                    <footer className="p-6 glass mt-auto border-t border-white/10">
+                        <div className="flex justify-between items-center text-[10px] font-black uppercase mb-2">
+                            <span className="text-zinc-500">Logro Semanal</span>
+                            <span className="text-orange-500">{Math.round((Object.keys(progress).length / 9) * 100)}%</span>
+                        </div>
+                        <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+                            <div className="h-full bg-orange-600 shadow-[0_0_10px_rgba(234,88,12,0.5)] transition-all duration-700" style={{ width: `${(Object.keys(progress).length / 9) * 100}%` }}></div>
+                        </div>
+                    </footer>
                 </div>
-              </div>
-            ))}
+            );
+        }
 
-            <div className="bg-red-950/20 border border-red-500/20 rounded-[2.5rem] p-8 space-y-4">
-                <div className="flex items-center gap-3 text-red-500">
-                    <XCircle size={24} />
-                    <h4 className="font-black uppercase italic text-lg tracking-tighter">Zona Prohibida</h4>
-                </div>
-                <p className="text-xs text-red-100/60 font-medium leading-relaxed italic">
-                    "Nada de aceites, nada de alcohol, nada de azúcares. Si tiene más de 5g de grasa por cada 100g, déjalo en el estante. Estás a pocos días de tu meta."
-                </p>
-            </div>
-          </div>
-        )}
+        function TrackerBtn({ label, active, onClick }) {
+            return (
+                <button onClick={onClick} className={`w-full flex items-center justify-between p-5 rounded-3xl border transition-all ${active ? 'bg-zinc-900 border-orange-500/30 text-white' : 'bg-black border-white/5 text-zinc-600'}`}>
+                    <span className="font-black uppercase text-[10px] tracking-widest">{label}</span>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${active ? 'bg-orange-600 border-orange-600' : 'border-zinc-800'}`}>
+                        {active && <i data-lucide="check" style={{width: 14, height: 14, color: 'white'}}></i>}
+                    </div>
+                </button>
+            );
+        }
 
-        {view === 'salts' && (
-          <div className="space-y-6 animate-in fade-in">
-            <header className="px-1">
-                <h2 className="text-3xl font-black italic uppercase tracking-tighter text-purple-500">Bio-Hacking: Sales</h2>
-                <p className="text-zinc-500 text-xs font-bold uppercase tracking-widest">Prevención de fatiga OMAD</p>
-            </header>
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
 
-            <div className="grid grid-cols-1 gap-4">
-                <SaltInfoCard 
-                    title="Sodio (Sal Blanca)" 
-                    value="6-7g" 
-                    desc="Imprescindible para no marearse. Sala mucho tu única comida." 
-                />
-                <SaltInfoCard 
-                    title="Potasio (Sal Dieta)" 
-                    value="2-3g" 
-                    desc="Usa Sal Costa 50% potasio. Evita calambres y cuida el corazón." 
-                />
-                <SaltInfoCard 
-                    title="Magnesio" 
-                    value="400mg" 
-                    desc="Citrato o Bisglicinato antes de dormir. Ayuda a quemar grasa en el sueño." 
-                />
-            </div>
-
-            <div className="bg-sky-950/20 border border-sky-500/20 rounded-[2.5rem] p-8 space-y-4">
-                <div className="flex items-center gap-3 text-sky-400">
-                    <Beaker size={24} />
-                    <h4 className="font-black uppercase text-sm tracking-widest italic">Suero de Emergencia</h4>
-                </div>
-                <p className="text-xs text-zinc-400 leading-relaxed font-medium">
-                    Si el hambre o el mareo atacan a las 17:00, mezcla en 1.5L de agua: 1 cdta de sal común, 1 cdta de sal potásica y zumo de limón. Bébela a sorbos lentos. El hambre desaparecerá.
-                </p>
-            </div>
-          </div>
-        )}
-      </main>
-
-      {/* Footer de Progreso */}
-      <footer className="fixed bottom-0 left-0 right-0 p-5 bg-black/90 border-t border-white/5 backdrop-blur-xl">
-        <div className="max-w-md mx-auto">
-            <div className="flex justify-between items-center mb-3 text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500">
-                <span>Rendimiento Semanal</span>
-                <span className="text-orange-500">{Math.round((Object.keys(progress).length / 9) * 100)}%</span>
-            </div>
-            <div className="h-1.5 bg-zinc-900 rounded-full overflow-hidden">
-                <div 
-                    className="h-full bg-orange-600 shadow-[0_0_15px_rgba(234,88,12,0.6)] transition-all duration-1000 ease-out" 
-                    style={{ width: `${(Object.keys(progress).length / 9) * 100}%` }}
-                />
-            </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
-
-// --- SUB-COMPONENTES ---
-
-function NavIcon({ icon, active, onClick }) {
-  return (
-    <button 
-      onClick={onClick} 
-      className={`p-3.5 rounded-2xl transition-all duration-300 ${
-        active 
-        ? 'bg-orange-600 text-white shadow-xl shadow-orange-600/40 scale-110' 
-        : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'
-      }`}
-    >
-      {icon}
-    </button>
-  );
-}
-
-function CheckRow({ label, active, onClick, color }) {
-    const colors = {
-        emerald: active ? 'bg-emerald-600/10 border-emerald-500/40 text-emerald-100' : 'bg-zinc-900/40 border-white/5 text-zinc-600',
-        orange: active ? 'bg-orange-600/10 border-orange-500/40 text-orange-100' : 'bg-zinc-900/40 border-white/5 text-zinc-600',
-        purple: active ? 'bg-purple-600/10 border-purple-500/40 text-purple-100' : 'bg-zinc-900/40 border-white/5 text-zinc-600',
-    };
-
-    return (
-        <button 
-            onClick={onClick}
-            className={`w-full flex items-center justify-between p-6 rounded-[2rem] border transition-all duration-300 active:scale-[0.98] ${colors[color]}`}
-        >
-            <span className="font-black italic uppercase text-[11px] tracking-widest text-left">{label}</span>
-            <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center transition-all ${
-                active ? 'bg-orange-600 border-orange-600' : 'border-zinc-800'
-            }`}>
-                {active && <CheckCircle2 size={18} className="text-white" />}
-            </div>
-        </button>
-    );
-}
-
-function SaltInfoCard({ title, value, desc }) {
-    return (
-        <div className="bg-zinc-900/40 p-6 rounded-[2rem] border border-white/5 flex items-center justify-between gap-4">
-            <div className="flex-1">
-                <h4 className="font-black text-xs uppercase tracking-widest text-purple-400 mb-1">{title}</h4>
-                <p className="text-[11px] text-zinc-500 font-medium leading-relaxed">{desc}</p>
-            </div>
-            <div className="bg-purple-600/20 border border-purple-500/30 px-3 py-2 rounded-2xl min-w-[70px] text-center">
-                <span className="text-xs font-black italic text-purple-300">{value}</span>
-            </div>
-        </div>
-    );
-}
+        // Initialize Lucide icons after render
+        setTimeout(() => lucide.createIcons(), 500);
+    </script>
+</body>
+</html>
 
 ```
