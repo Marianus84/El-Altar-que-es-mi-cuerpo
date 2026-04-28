@@ -1,19 +1,17 @@
 {
-  "short_name": "Altare",
-  "name": "Altare Integritatis - El Altar de mi Cuerpo",
-  "description": "Ritual de integridad, disciplina y control de la materia.",
-  "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/1063/1063310.png",
-      "type": "image/png",
-      "sizes": "512x512",
-      "purpose": "any maskable"
-    }
-  ],
-  "start_url": "./El%20altar%20que%20es%20mi%20cuerpo.html",
-  "display": "standalone",
-  "background_color": "#050505",
-  "theme_color": "#d97706",
-  "orientation": "portrait",
-  "scope": "./"
+"short_name": "PSMF Elite",
+"name": "PSMF Elite - Protocolo Mariano",
+"icons": [
+{
+"src": "https://cdn-icons-png.flaticon.com/512/1616/1616487.png",
+"sizes": "512x512",
+"type": "image/png",
+"purpose": "any maskable"
+}
+],
+"start_url": "./index.html",
+"display": "standalone",
+"theme_color": "#09090b",
+"background_color": "#09090b",
+"orientation": "portrait"
 }
