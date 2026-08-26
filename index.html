@@ -46,6 +46,7 @@
             min-height: 100vh;
             margin: auto;
             background: #f7faf8;
+            position: relative;
         }
 
         .green {
@@ -136,7 +137,6 @@
         /* =====================================================
            CÍRCULO DE AGUA
         ===================================================== */
-
         .water-circle {
             position: relative;
             overflow: hidden;
@@ -195,37 +195,19 @@
         }
 
         @keyframes waveMove {
-            from {
-                transform: translateX(0);
-            }
-
-            to {
-                transform: translateX(-12%);
-            }
+            from { transform: translateX(0); }
+            to { transform: translateX(-12%); }
         }
 
         @keyframes waveMoveReverse {
-            from {
-                transform: translateX(-8%);
-            }
-
-            to {
-                transform: translateX(8%);
-            }
+            from { transform: translateX(-8%); }
+            to { transform: translateX(8%); }
         }
 
         @keyframes shimmer {
-            0% {
-                transform: translateX(-30%) rotate(-15deg);
-            }
-
-            50% {
-                transform: translateX(30%) rotate(-15deg);
-            }
-
-            100% {
-                transform: translateX(-30%) rotate(-15deg);
-            }
+            0% { transform: translateX(-30%) rotate(-15deg); }
+            50% { transform: translateX(30%) rotate(-15deg); }
+            100% { transform: translateX(-30%) rotate(-15deg); }
         }
 
         .water-content {
@@ -352,12 +334,23 @@
             display: inline-block;
         }
 
-        .legend-green {
-            background: #20a35a;
+        .legend-green { background: #20a35a; }
+        .legend-red { background: #e91e4d; }
+        
+        /* Custom scrollbar for dropdowns */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
         }
-
-        .legend-red {
-            background: #e91e4d;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #ccc; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #aaa; 
         }
     </style>
 </head>
@@ -368,12 +361,11 @@
 
 <script type="text/babel">
 
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 /* =========================================================
-   CONFIGURACIÓN
+   CONFIGURACIÓN Y ESTADOS POR DEFECTO
 ========================================================= */
-
 const DEFAULT_SETTINGS = {
     caloriesWeekly: 16590,
     proteinDaily: 170,
@@ -381,13 +373,7 @@ const DEFAULT_SETTINGS = {
 };
 
 const DAYS = [
-    "Lunes",
-    "Martes",
-    "Miércoles",
-    "Jueves",
-    "Viernes",
-    "Sábado",
-    "Domingo"
+    "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"
 ];
 
 /* =========================================================
@@ -395,3266 +381,1110 @@ const DAYS = [
 ========================================================= */
 
 function getMonday(date = new Date()) {
-
     const d = new Date(date);
-
     d.setHours(0, 0, 0, 0);
-
     const day = d.getDay();
-
-    const diff =
-        day === 0
-            ? -6
-            : 1 - day;
-
+    const diff = day === 0 ? -6 : 1 - day;
     d.setDate(d.getDate() + diff);
-
     return d;
 }
 
-
 function dateKey(date) {
-
     const y = date.getFullYear();
-
-    const m = String(
-        date.getMonth() + 1
-    ).padStart(2, "0");
-
-    const d = String(
-        date.getDate()
-    ).padStart(2, "0");
-
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
 }
 
-
 function formatDate(date) {
-
-    return date.toLocaleDateString(
-        "es-ES",
-        {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
-        }
-    );
+    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
-
 
 function formatWeekDate(date) {
-
-    return date.toLocaleDateString(
-        "es-ES",
-        {
-            day: "2-digit",
-            month: "2-digit"
-        }
-    );
+    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
 }
 
-
 function getWeekDates(referenceDate = new Date()) {
-
-    const monday =
-        getMonday(referenceDate);
-
+    const monday = getMonday(referenceDate);
     const dates = [];
-
     for (let i = 0; i < 7; i++) {
-
-        const d =
-            new Date(monday);
-
-        d.setDate(
-            monday.getDate() + i
-        );
-
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
         dates.push(d);
     }
-
     return dates;
 }
 
-
 function clamp(value, min, max) {
-
-    return Math.max(
-        min,
-        Math.min(max, value)
-    );
+    return Math.max(min, Math.min(max, value));
 }
 
-
 function loadJSON(key, fallback) {
-
     try {
-
-        const value =
-            localStorage.getItem(key);
-
-        return value
-            ? JSON.parse(value)
-            : fallback;
-
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : fallback;
     } catch {
-
         return fallback;
     }
 }
 
-
 function isPastDate(key) {
-
-    const today =
-        new Date();
-
-    today.setHours(
-        0,
-        0,
-        0,
-        0
-    );
-
-    const date =
-        new Date(
-            key + "T00:00:00"
-        );
-
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const date = new Date(key + "T00:00:00");
     return date < today;
 }
 
-
 function formatShortDate(key) {
-
-    const date =
-        new Date(
-            key + "T00:00:00"
-        );
-
-    return date.toLocaleDateString(
-        "es-ES",
-        {
-            day: "2-digit",
-            month: "2-digit"
-        }
-    );
+    const date = new Date(key + "T00:00:00");
+    return date.toLocaleDateString("es-ES", { day: "2-digit", month: "2-digit" });
 }
 
+/* =========================================================
+   UI COMPONENT: DIALOG (Reemplaza alert/confirm)
+========================================================= */
+function CustomDialog({ config, onClose }) {
+    if (!config.show) return null;
+
+    return (
+        <div className="fixed inset-0 z-[100] modal-backdrop flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 w-full max-w-[320px] shadow-2xl animate-[fadeIn_0.2s_ease-out]">
+                {config.title && (
+                    <h3 className="text-xl font-extrabold mb-2 text-gray-800">{config.title}</h3>
+                )}
+                <p className="text-gray-600 text-sm mb-6 leading-relaxed">
+                    {config.message}
+                </p>
+                
+                <div className="flex gap-3 justify-end">
+                    {!config.isAlert && (
+                        <button 
+                            onClick={onClose}
+                            className="px-5 py-2.5 rounded-xl text-gray-600 font-semibold bg-gray-100 hover:bg-gray-200 transition-colors"
+                        >
+                            Cancelar
+                        </button>
+                    )}
+                    <button 
+                        onClick={() => {
+                            if (config.onConfirm) config.onConfirm();
+                            onClose();
+                        }}
+                        className="px-5 py-2.5 rounded-xl text-white font-semibold bg-green hover:bg-green/90 transition-colors shadow-sm"
+                    >
+                        {config.isAlert ? 'Entendido' : 'Confirmar'}
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 /* =========================================================
    APP
 ========================================================= */
-
 function App() {
+    const [activeTab, setActiveTab] = useState("home");
+    
+    // Dialog State
+    const [dialogConfig, setDialogConfig] = useState({
+        show: false, title: "", message: "", isAlert: true, onConfirm: null
+    });
 
-    const [activeTab, setActiveTab] =
-        useState("home");
+    const showAlert = (title, message) => {
+        setDialogConfig({ show: true, title, message, isAlert: true, onConfirm: null });
+    };
 
-    const [settings, setSettings] =
-        useState(() =>
-            loadJSON(
-                "nutrition_settings",
-                DEFAULT_SETTINGS
-            )
-        );
+    const showConfirm = (title, message, onConfirm) => {
+        setDialogConfig({ show: true, title, message, isAlert: false, onConfirm });
+    };
 
-    const [entries, setEntries] =
-        useState(() =>
-            loadJSON(
-                "nutrition_entries",
-                []
-            )
-        );
+    const closeDialog = () => setDialogConfig(prev => ({ ...prev, show: false }));
 
-    const [showAdd, setShowAdd] =
-        useState(false);
+    // Data States
+    const [settings, setSettings] = useState(() => loadJSON("nutrition_settings", DEFAULT_SETTINGS));
+    const [entries, setEntries] = useState(() => loadJSON("nutrition_entries", []));
+    const [savedFoods, setSavedFoods] = useState(() => loadJSON("nutrition_saved_foods", []));
+    
+    const [showAdd, setShowAdd] = useState(false);
+    const [selectedDate, setSelectedDate] = useState(dateKey(new Date()));
 
-    const [selectedDate, setSelectedDate] =
-        useState(
-            dateKey(new Date())
-        );
-
-
+    // Persist Data
     useEffect(() => {
-
-        localStorage.setItem(
-            "nutrition_settings",
-            JSON.stringify(settings)
-        );
-
+        localStorage.setItem("nutrition_settings", JSON.stringify(settings));
     }, [settings]);
 
-
     useEffect(() => {
-
-        localStorage.setItem(
-            "nutrition_entries",
-            JSON.stringify(entries)
-        );
-
+        localStorage.setItem("nutrition_entries", JSON.stringify(entries));
     }, [entries]);
 
+    useEffect(() => {
+        localStorage.setItem("nutrition_saved_foods", JSON.stringify(savedFoods));
+    }, [savedFoods]);
 
-    const weekDates =
-        getWeekDates();
-
-    const weekKeys =
-        weekDates.map(dateKey);
-
-    const todayKey =
-        dateKey(new Date());
-
+    const weekDates = getWeekDates();
+    const weekKeys = weekDates.map(dateKey);
+    const todayKey = dateKey(new Date());
 
     function getDayEntries(key) {
-
-        return entries.filter(
-            e => e.date === key
-        );
+        return entries.filter(e => e.date === key);
     }
-
 
     function getDayCalories(key) {
-
-        return getDayEntries(key)
-            .reduce(
-                (sum, e) =>
-                    sum +
-                    Number(e.calories || 0),
-                0
-            );
+        return getDayEntries(key).reduce((sum, e) => sum + Number(e.calories || 0), 0);
     }
-
 
     function getDayProtein(key) {
-
-        return getDayEntries(key)
-            .reduce(
-                (sum, e) =>
-                    sum +
-                    Number(e.protein || 0),
-                0
-            );
+        return getDayEntries(key).reduce((sum, e) => sum + Number(e.protein || 0), 0);
     }
 
-
-    const weeklyCaloriesConsumed =
-        weekKeys.reduce(
-            (sum, key) =>
-                sum +
-                getDayCalories(key),
-            0
-        );
-
-
-    const weeklyProteinConsumed =
-        weekKeys.reduce(
-            (sum, key) =>
-                sum +
-                getDayProtein(key),
-            0
-        );
-
-
-    const weeklyProteinTarget =
-        Number(settings.proteinDaily) * 7;
-
-
-    const weeklyCaloriesRemaining =
-        Math.max(
-            0,
-            Number(settings.caloriesWeekly) -
-            weeklyCaloriesConsumed
-        );
-
-
-    /* =====================================================
-       PRESUPUESTO DINÁMICO
-    ===================================================== */
+    const weeklyCaloriesConsumed = weekKeys.reduce((sum, key) => sum + getDayCalories(key), 0);
+    const weeklyProteinConsumed = weekKeys.reduce((sum, key) => sum + getDayProtein(key), 0);
+    const weeklyProteinTarget = Number(settings.proteinDaily) * 7;
+    const weeklyCaloriesRemaining = Math.max(0, Number(settings.caloriesWeekly) - weeklyCaloriesConsumed);
 
     function getDynamicDailyBudget(index) {
-
-        let remainingBudget =
-            Number(settings.caloriesWeekly);
-
+        let remainingBudget = Number(settings.caloriesWeekly);
         for (let i = 0; i < index; i++) {
-
-            remainingBudget -=
-                getDayCalories(
-                    weekKeys[i]
-                );
+            remainingBudget -= getDayCalories(weekKeys[i]);
         }
-
-        const remainingDays =
-            7 - index;
-
-        if (remainingDays <= 0) {
-            return 0;
-        }
-
-        return Math.max(
-            0,
-            remainingBudget /
-            remainingDays
-        );
+        const remainingDays = 7 - index;
+        if (remainingDays <= 0) return 0;
+        return Math.max(0, remainingBudget / remainingDays);
     }
 
-
-    const todayIndex =
-        weekKeys.indexOf(todayKey);
-
-
-    const todayBudget =
-        todayIndex >= 0
-            ? getDynamicDailyBudget(
-                todayIndex
-            )
-            : Number(
-                settings.caloriesWeekly
-            ) / 7;
-
-
-    const todayCalories =
-        getDayCalories(
-            todayKey
-        );
-
-
-    const todayProtein =
-        getDayProtein(
-            todayKey
-        );
-
-
-    const todayRemaining =
-        Math.max(
-            0,
-            todayBudget - todayCalories
-        );
-
+    const todayIndex = weekKeys.indexOf(todayKey);
+    const todayBudget = todayIndex >= 0 ? getDynamicDailyBudget(todayIndex) : Number(settings.caloriesWeekly) / 7;
+    const todayCalories = getDayCalories(todayKey);
+    const todayProtein = getDayProtein(todayKey);
+    const todayRemaining = Math.max(0, todayBudget - todayCalories);
 
     /* =====================================================
-       AÑADIR
+       MÉTODOS DE DATOS (AÑADIR, BORRAR, BACKUP)
     ===================================================== */
-
     function addEntry(data) {
-
         const newEntry = {
-
-            id:
-                Date.now() +
-                Math.random(),
-
-            date:
-                selectedDate,
-
-            name:
-                data.name,
-
-            calories:
-                Number(data.calories),
-
-            protein:
-                Number(data.protein)
-
+            id: Date.now() + Math.random(),
+            date: selectedDate,
+            name: data.name.trim(),
+            calories: Number(data.calories),
+            protein: Number(data.protein)
         };
 
+        setEntries(prev => [...prev, newEntry]);
 
-        setEntries(prev => [
-            ...prev,
-            newEntry
-        ]);
-
+        // Auto-save food to library if it doesn't exist (case insensitive)
+        const nameLower = data.name.trim().toLowerCase();
+        const existsInLibrary = savedFoods.some(f => f.name.toLowerCase() === nameLower);
+        
+        if (!existsInLibrary) {
+            setSavedFoods(prev => [...prev, {
+                id: Date.now() + Math.random(),
+                name: data.name.trim(),
+                calories: Number(data.calories),
+                protein: Number(data.protein || 0)
+            }]);
+        }
 
         setShowAdd(false);
     }
 
-
     function deleteEntry(id) {
-
-        setEntries(prev =>
-            prev.filter(
-                entry =>
-                    entry.id !== id
-            )
-        );
+        setEntries(prev => prev.filter(entry => entry.id !== id));
     }
 
+    function deleteSavedFood(id) {
+        setSavedFoods(prev => prev.filter(food => food.id !== id));
+    }
 
     function resetAll() {
-
-        const confirmed =
-            confirm(
-                "¿Seguro que quieres borrar todos los registros? Esta acción no se puede deshacer."
-            );
-
-        if (!confirmed) {
-            return;
-        }
-
-        setEntries([]);
-
-        localStorage.removeItem(
-            "nutrition_entries"
+        showConfirm(
+            "Borrar Registros", 
+            "¿Seguro que quieres borrar todos los registros de consumo? Esta acción no se puede deshacer.",
+            () => {
+                setEntries([]);
+                localStorage.removeItem("nutrition_entries");
+                showAlert("Éxito", "Registros borrados correctamente.");
+            }
         );
     }
-
-
-    /* =====================================================
-       BACKUP
-    ===================================================== */
 
     function saveBackup() {
-
         const backup = {
-
-            app:
-                "Mi Presupuesto",
-
-            version:
-                2,
-
-            exportedAt:
-                new Date().toISOString(),
-
-            settings:
-                settings,
-
-            entries:
-                entries
-
+            app: "Mi Presupuesto",
+            version: 3,
+            exportedAt: new Date().toISOString(),
+            settings: settings,
+            entries: entries,
+            savedFoods: savedFoods
         };
 
-
-        const json =
-            JSON.stringify(
-                backup,
-                null,
-                2
-            );
-
-
-        const blob =
-            new Blob(
-                [json],
-                {
-                    type:
-                        "application/json"
-                }
-            );
-
-
-        const url =
-            URL.createObjectURL(
-                blob
-            );
-
-
-        const link =
-            document.createElement(
-                "a"
-            );
-
-
+        const json = JSON.stringify(backup, null, 2);
+        const blob = new Blob([json], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
         link.href = url;
-
-
-        const today =
-            new Date()
-                .toISOString()
-                .slice(0, 10);
-
-
-        link.download =
-            `backup-calorias-${today}.json`;
-
-
-        document.body.appendChild(
-            link
-        );
-
-
+        const today = new Date().toISOString().slice(0, 10);
+        link.download = `backup-calorias-${today}.json`;
+        document.body.appendChild(link);
         link.click();
-
-
-        document.body.removeChild(
-            link
-        );
-
-
-        URL.revokeObjectURL(
-            url
-        );
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
     }
 
-
     function loadBackup(event) {
+        const file = event.target.files[0];
+        if (!file) return;
 
-        const file =
-            event.target.files[0];
-
-
-        if (!file) {
-            return;
-        }
-
-
-        const reader =
-            new FileReader();
-
-
-        reader.onload =
-            function(e) {
-
-                try {
-
-                    const backup =
-                        JSON.parse(
-                            e.target.result
-                        );
-
-
-                    if (
-                        !backup ||
-                        !backup.settings ||
-                        !Array.isArray(
-                            backup.entries
-                        )
-                    ) {
-
-                        throw new Error(
-                            "Formato inválido"
-                        );
-                    }
-
-
-                    const confirmed =
-                        confirm(
-                            "Cargar este backup reemplazará los datos actuales. ¿Quieres continuar?"
-                        );
-
-
-                    if (!confirmed) {
-
-                        event.target.value =
-                            "";
-
-                        return;
-                    }
-
-
-                    const importedSettings = {
-
-                        ...DEFAULT_SETTINGS,
-
-                        ...backup.settings,
-
-                        caloriesWeekly:
-                            Number(
-                                backup.settings
-                                    .caloriesWeekly
-                            ) || 0,
-
-                        proteinDaily:
-                            Number(
-                                backup.settings
-                                    .proteinDaily
-                            ) || 0
-
-                    };
-
-
-                    const importedEntries =
-                        backup.entries
-                            .filter(
-                                entry =>
-                                    entry &&
-                                    entry.date &&
-                                    entry.name
-                            )
-                            .map(
-                                entry => ({
-
-                                    id:
-                                        entry.id ||
-                                        Date.now() +
-                                        Math.random(),
-
-                                    date:
-                                        String(
-                                            entry.date
-                                        ),
-
-                                    name:
-                                        String(
-                                            entry.name
-                                        ),
-
-                                    calories:
-                                        Number(
-                                            entry.calories
-                                        ) || 0,
-
-                                    protein:
-                                        Number(
-                                            entry.protein
-                                        ) || 0
-
-                                })
-                            );
-
-
-                    setSettings(
-                        importedSettings
-                    );
-
-                    setEntries(
-                        importedEntries
-                    );
-
-
-                    alert(
-                        "Backup cargado correctamente."
-                    );
-
-                } catch {
-
-                    alert(
-                        "No se pudo cargar el backup. El archivo no tiene un formato válido."
-                    );
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const backup = JSON.parse(e.target.result);
+                if (!backup || !backup.settings || !Array.isArray(backup.entries)) {
+                    throw new Error("Formato inválido");
                 }
 
+                showConfirm(
+                    "Cargar Backup",
+                    "Cargar este backup reemplazará tus datos actuales. ¿Quieres continuar?",
+                    () => {
+                        const importedSettings = {
+                            ...DEFAULT_SETTINGS,
+                            ...backup.settings,
+                            caloriesWeekly: Number(backup.settings.caloriesWeekly) || 0,
+                            proteinDaily: Number(backup.settings.proteinDaily) || 0
+                        };
 
-                event.target.value =
-                    "";
+                        const importedEntries = backup.entries
+                            .filter(entry => entry && entry.date && entry.name)
+                            .map(entry => ({
+                                id: entry.id || Date.now() + Math.random(),
+                                date: String(entry.date),
+                                name: String(entry.name),
+                                calories: Number(entry.calories) || 0,
+                                protein: Number(entry.protein) || 0
+                            }));
+                        
+                        const importedSavedFoods = Array.isArray(backup.savedFoods) 
+                            ? backup.savedFoods 
+                            : [];
 
-            };
+                        setSettings(importedSettings);
+                        setEntries(importedEntries);
+                        setSavedFoods(importedSavedFoods);
 
-
+                        showAlert("Backup Restaurado", "Los datos se han cargado correctamente.");
+                    }
+                );
+            } catch {
+                showAlert("Error", "No se pudo cargar el backup. El archivo no tiene un formato válido.");
+            }
+            event.target.value = "";
+        };
         reader.readAsText(file);
     }
 
-
     return (
-
         <div className="app">
+            <CustomDialog config={dialogConfig} onClose={closeDialog} />
 
             {activeTab === "home" && (
-
                 <Home
-
-                    settings={
-                        settings
-                    }
-
-                    weekDates={
-                        weekDates
-                    }
-
-                    weekKeys={
-                        weekKeys
-                    }
-
-                    todayKey={
-                        todayKey
-                    }
-
-                    todayBudget={
-                        todayBudget
-                    }
-
-                    todayCalories={
-                        todayCalories
-                    }
-
-                    todayProtein={
-                        todayProtein
-                    }
-
-                    todayRemaining={
-                        todayRemaining
-                    }
-
-                    weeklyCaloriesConsumed={
-                        weeklyCaloriesConsumed
-                    }
-
-                    weeklyCaloriesRemaining={
-                        weeklyCaloriesRemaining
-                    }
-
-                    weeklyProteinConsumed={
-                        weeklyProteinConsumed
-                    }
-
-                    weeklyProteinTarget={
-                        weeklyProteinTarget
-                    }
-
-                    getDayCalories={
-                        getDayCalories
-                    }
-
-                    getDayProtein={
-                        getDayProtein
-                    }
-
-                    getDynamicDailyBudget={
-                        getDynamicDailyBudget
-                    }
-
-                    onAdd={() => {
-
-                        setSelectedDate(
-                            todayKey
-                        );
-
-                        setShowAdd(
-                            true
-                        );
-
-                    }}
-
-                    onSelectDay={
-                        key => {
-
-                            setSelectedDate(
-                                key
-                            );
-
-                            setShowAdd(
-                                true
-                            );
-
-                        }
-                    }
-
-                    entries={
-                        entries
-                    }
-
-                    onDelete={
-                        deleteEntry
-                    }
-
+                    settings={settings}
+                    weekDates={weekDates}
+                    weekKeys={weekKeys}
+                    todayKey={todayKey}
+                    todayBudget={todayBudget}
+                    todayCalories={todayCalories}
+                    todayProtein={todayProtein}
+                    todayRemaining={todayRemaining}
+                    weeklyCaloriesConsumed={weeklyCaloriesConsumed}
+                    weeklyCaloriesRemaining={weeklyCaloriesRemaining}
+                    weeklyProteinConsumed={weeklyProteinConsumed}
+                    weeklyProteinTarget={weeklyProteinTarget}
+                    getDayCalories={getDayCalories}
+                    getDayProtein={getDayProtein}
+                    getDynamicDailyBudget={getDynamicDailyBudget}
+                    onAdd={() => { setSelectedDate(todayKey); setShowAdd(true); }}
+                    onSelectDay={key => { setSelectedDate(key); setShowAdd(true); }}
+                    entries={entries}
+                    onDelete={deleteEntry}
                 />
-
             )}
-
 
             {activeTab === "history" && (
-
                 <History
-
-                    entries={
-                        entries
-                    }
-
-                    settings={
-                        settings
-                    }
-
-                    getDayCalories={
-                        getDayCalories
-                    }
-
-                    getDayProtein={
-                        getDayProtein
-                    }
-
-                    getDynamicDailyBudget={
-                        getDynamicDailyBudget
-                    }
-
-                    onSelectDay={
-                        key => {
-
-                            setSelectedDate(
-                                key
-                            );
-
-                            setShowAdd(
-                                true
-                            );
-
-                        }
-                    }
-
+                    entries={entries}
+                    settings={settings}
+                    getDayCalories={getDayCalories}
+                    getDayProtein={getDayProtein}
+                    getDynamicDailyBudget={getDynamicDailyBudget}
+                    onSelectDay={key => { setSelectedDate(key); setShowAdd(true); }}
                 />
-
             )}
-
+            
+            {activeTab === "foods" && (
+                <FoodLibrary 
+                    savedFoods={savedFoods}
+                    onDelete={deleteSavedFood}
+                />
+            )}
 
             {activeTab === "settings" && (
-
                 <Settings
-
-                    settings={
-                        settings
-                    }
-
-                    setSettings={
-                        setSettings
-                    }
-
-                    resetAll={
-                        resetAll
-                    }
-
-                    saveBackup={
-                        saveBackup
-                    }
-
-                    loadBackup={
-                        loadBackup
-                    }
-
+                    settings={settings}
+                    setSettings={setSettings}
+                    resetAll={resetAll}
+                    saveBackup={saveBackup}
+                    loadBackup={loadBackup}
+                    showAlert={showAlert}
                 />
-
             )}
 
-
-            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 nav-bottom z-30">
-
-                <div className="max-w-[480px] mx-auto h-[82px] flex items-center justify-around">
-
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 nav-bottom z-30 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]">
+                <div className="max-w-[480px] mx-auto h-[82px] flex items-center justify-around px-2">
                     <NavButton
-                        active={
-                            activeTab === "home"
-                        }
+                        active={activeTab === "home"}
                         icon="⌂"
                         label="Inicio"
-                        onClick={() =>
-                            setActiveTab(
-                                "home"
-                            )
-                        }
+                        onClick={() => setActiveTab("home")}
                     />
-
-
                     <NavButton
-                        active={
-                            activeTab === "history"
-                        }
+                        active={activeTab === "history"}
                         icon="▦"
                         label="Historial"
-                        onClick={() =>
-                            setActiveTab(
-                                "history"
-                            )
-                        }
+                        onClick={() => setActiveTab("history")}
                     />
-
-
                     <NavButton
-                        active={
-                            activeTab === "settings"
-                        }
+                        active={activeTab === "foods"}
+                        icon="★"
+                        label="Alimentos"
+                        onClick={() => setActiveTab("foods")}
+                    />
+                    <NavButton
+                        active={activeTab === "settings"}
                         icon="⚙"
                         label="Ajustes"
-                        onClick={() =>
-                            setActiveTab(
-                                "settings"
-                            )
-                        }
+                        onClick={() => setActiveTab("settings")}
                     />
-
                 </div>
-
             </div>
 
-
             {showAdd && (
-
                 <AddModal
-
-                    date={
-                        selectedDate
-                    }
-
-                    onClose={() =>
-                        setShowAdd(
-                            false
-                        )
-                    }
-
-                    onSave={
-                        addEntry
-                    }
-
+                    date={selectedDate}
+                    onClose={() => setShowAdd(false)}
+                    onSave={addEntry}
+                    savedFoods={savedFoods}
+                    showAlert={showAlert}
                 />
-
             )}
-
         </div>
     );
 }
 
-
 /* =========================================================
-   HOME
+   HOME TABS
 ========================================================= */
-
 function Home({
-
-    settings,
-    weekDates,
-    weekKeys,
-    todayKey,
-    todayBudget,
-    todayCalories,
-    todayProtein,
-    todayRemaining,
-    weeklyCaloriesConsumed,
-    weeklyCaloriesRemaining,
-    weeklyProteinConsumed,
-    weeklyProteinTarget,
-    getDayCalories,
-    getDayProtein,
-    getDynamicDailyBudget,
-    onAdd,
-    onSelectDay,
-    entries,
-    onDelete
-
+    settings, weekDates, weekKeys, todayKey, todayBudget, todayCalories, todayProtein,
+    todayRemaining, weeklyCaloriesConsumed, weeklyCaloriesRemaining, weeklyProteinConsumed,
+    weeklyProteinTarget, getDayCalories, getDayProtein, getDynamicDailyBudget, onAdd,
+    onSelectDay, entries, onDelete
 }) {
-
     return (
-
         <main className="safe-bottom p-5">
-
             <header className="flex justify-between items-center mb-5">
-
                 <div>
-
-                    <div className="text-sm text-gray-500">
-                        ESTA SEMANA
-                    </div>
-
-                    <h1 className="text-[28px] font-extrabold">
-
-                        {formatWeekDate(
-                            weekDates[0]
-                        )}
-
-                        {" – "}
-
-                        {formatWeekDate(
-                            weekDates[6]
-                        )}
-
+                    <div className="text-sm font-semibold tracking-wide text-gray-400">ESTA SEMANA</div>
+                    <h1 className="text-[28px] font-extrabold text-gray-800">
+                        {formatWeekDate(weekDates[0])} {" – "} {formatWeekDate(weekDates[6])}
                     </h1>
-
                 </div>
-
-
-                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-2xl text-gray-500">
-
-                    ⋁
-
-                </div>
-
             </header>
 
-
-            {/* =================================================
-               RESUMEN SEMANAL
-            ================================================= */}
-
+            {/* RESUMEN SEMANAL */}
             <section className="card p-6 mb-5">
-
                 <div className="flex items-center gap-5">
-
                     <ProgressCircle
-
-                        value={
-                            weeklyCaloriesConsumed
-                        }
-
-                        max={
-                            settings.caloriesWeekly
-                        }
-
+                        value={weeklyCaloriesConsumed}
+                        max={settings.caloriesWeekly}
                         size={175}
-
                         label="Calorías"
-
                     />
-
-
                     <div className="flex-1 space-y-5">
-
                         <MiniProgress
-
-                            value={
-                                weeklyProteinConsumed
-                            }
-
-                            max={
-                                weeklyProteinTarget
-                            }
-
+                            value={weeklyProteinConsumed}
+                            max={weeklyProteinTarget}
                             label="Proteína"
-
                             suffix="g"
-
                         />
-
-
                         <div>
-
                             <div className="flex justify-between text-xs mb-2">
-
-                                <span className="text-gray-500">
-                                    Restantes
-                                </span>
-
+                                <span className="text-gray-500">Restantes</span>
                                 <span className="font-semibold">
-
-                                    {Math.round(
-                                        weeklyCaloriesRemaining
-                                    ).toLocaleString(
-                                        "es-ES"
-                                    )}
-
-                                    {" kcal"}
-
+                                    {Math.round(weeklyCaloriesRemaining).toLocaleString("es-ES")} {" kcal"}
                                 </span>
-
                             </div>
-
-
                             <div className="text-sm text-gray-500">
-
-                                de{" "}
-
-                                {Number(
-                                    settings.caloriesWeekly
-                                ).toLocaleString(
-                                    "es-ES"
-                                )}
-
-                                {" kcal"}
-
+                                de {Number(settings.caloriesWeekly).toLocaleString("es-ES")} {" kcal"}
                             </div>
-
                         </div>
-
                     </div>
-
                 </div>
-
             </section>
 
-
-            {/* =================================================
-               PRESUPUESTO HOY
-            ================================================= */}
-
-            <section className="card p-5 mb-5">
-
+            {/* PRESUPUESTO HOY */}
+            <section className="card p-5 mb-5 relative overflow-hidden">
                 <div className="flex justify-between items-start">
-
                     <div>
-
-                        <div className="text-sm text-gray-500">
-                            PRESUPUESTO DE HOY
+                        <div className="text-sm font-semibold tracking-wide text-gray-400">PRESUPUESTO DE HOY</div>
+                        <div className="text-3xl font-extrabold mt-1 text-gray-800">
+                            {Math.round(todayBudget).toLocaleString("es-ES")}
+                            <span className="text-base font-medium text-gray-400 ml-1">{" kcal"}</span>
                         </div>
-
-
-                        <div className="text-3xl font-extrabold mt-1">
-
-                            {Math.round(
-                                todayBudget
-                            ).toLocaleString(
-                                "es-ES"
-                            )}
-
-                            <span className="text-base font-medium text-gray-400">
-                                {" kcal"}
-                            </span>
-
-                        </div>
-
-
                         <div className="text-sm text-gray-500 mt-1">
-
-                            {Math.round(
-                                todayCalories
-                            ).toLocaleString(
-                                "es-ES"
-                            )}
-
-                            {" consumidas · "}
-
-                            {Math.round(
-                                todayRemaining
-                            ).toLocaleString(
-                                "es-ES"
-                            )}
-
-                            {" restantes"}
-
+                            {Math.round(todayCalories).toLocaleString("es-ES")} consumidas · <span className="font-semibold text-gray-700">{Math.round(todayRemaining).toLocaleString("es-ES")} restantes</span>
                         </div>
-
                     </div>
-
-
-                    <button
-                        onClick={onAdd}
-                        className="bg-green text-white w-12 h-12 rounded-2xl text-2xl shadow-sm"
-                    >
+                    <button onClick={onAdd} className="bg-green text-white w-12 h-12 rounded-2xl text-2xl shadow-sm hover:scale-105 active:scale-95 transition-transform flex items-center justify-center pb-1">
                         +
                     </button>
-
                 </div>
-
 
                 <div className="mt-5">
-
-                    <div className="flex justify-between text-xs mb-2">
-
-                        <span>
-                            Calorías
-                        </span>
-
-                        <span>
-
-                            {Math.round(
-                                todayCalories
-                            )}
-
-                            {" / "}
-
-                            {Math.round(
-                                todayBudget
-                            )}
-
-                        </span>
-
+                    <div className="flex justify-between text-xs mb-2 font-medium text-gray-600">
+                        <span>Calorías</span>
+                        <span>{Math.round(todayCalories)} / {Math.round(todayBudget)}</span>
                     </div>
-
-
-                    <div className="h-2 rounded-full progress-track overflow-hidden">
-
+                    <div className="h-2.5 rounded-full progress-track overflow-hidden">
                         <div
-
-                            className={`h-full rounded-full ${
-                                todayCalories >
-                                todayBudget
-                                    ? "progress-red"
-                                    : "progress-green"
-                            }`}
-
-                            style={{
-                                width:
-                                    `${clamp(
-                                        todayCalories /
-                                        Math.max(
-                                            todayBudget,
-                                            1
-                                        ) *
-                                        100,
-                                        0,
-                                        100
-                                    )}%`
-                            }}
-
+                            className={`h-full rounded-full transition-all duration-500 ${todayCalories > todayBudget ? "progress-red" : "progress-green"}`}
+                            style={{ width: `${clamp(todayCalories / Math.max(todayBudget, 1) * 100, 0, 100)}%` }}
                         />
-
                     </div>
-
                 </div>
-
 
                 <div className="mt-4">
-
-                    <div className="flex justify-between text-xs mb-2">
-
-                        <span>
-                            Proteína
-                        </span>
-
-                        <span>
-
-                            {todayProtein}
-
-                            {" / "}
-
-                            {settings.proteinDaily}
-
-                            {" g"}
-
-                        </span>
-
+                    <div className="flex justify-between text-xs mb-2 font-medium text-gray-600">
+                        <span>Proteína</span>
+                        <span>{todayProtein} / {settings.proteinDaily} g</span>
                     </div>
-
-
-                    <div className="h-2 rounded-full progress-track overflow-hidden">
-
+                    <div className="h-2.5 rounded-full progress-track overflow-hidden">
                         <div
-
-                            className="h-full progress-red rounded-full"
-
-                            style={{
-                                width:
-                                    `${clamp(
-                                        todayProtein /
-                                        Math.max(
-                                            settings.proteinDaily,
-                                            1
-                                        ) *
-                                        100,
-                                        0,
-                                        100
-                                    )}%`
-                            }}
-
+                            className="h-full progress-green rounded-full transition-all duration-500"
+                            style={{ width: `${clamp(todayProtein / Math.max(settings.proteinDaily, 1) * 100, 0, 100)}%`, background: '#3b82f6' }}
                         />
-
                     </div>
-
                 </div>
-
             </section>
 
-
-            <div className="flex items-center justify-between mb-3">
-
-                <h2 className="text-xl font-bold">
-                    Esta semana
-                </h2>
-
-
-                <span className="text-sm text-gray-500">
-
-                    {weeklyCaloriesConsumed.toLocaleString(
-                        "es-ES"
-                    )}
-
-                    {" / "}
-
-                    {Number(
-                        settings.caloriesWeekly
-                    ).toLocaleString(
-                        "es-ES"
-                    )}
-
+            {/* LISTA DE DÍAS */}
+            <div className="flex items-center justify-between mb-3 px-1">
+                <h2 className="text-xl font-bold text-gray-800">Esta semana</h2>
+                <span className="text-sm font-semibold text-gray-500">
+                    {weeklyCaloriesConsumed.toLocaleString("es-ES")} / {Number(settings.caloriesWeekly).toLocaleString("es-ES")}
                 </span>
-
             </div>
-
 
             <div className="space-y-3">
-
-                {weekDates.map(
-                    (date, index) => {
-
-                        const key =
-                            weekKeys[index];
-
-                        const calories =
-                            getDayCalories(
-                                key
-                            );
-
-                        const protein =
-                            getDayProtein(
-                                key
-                            );
-
-                        const budget =
-                            getDynamicDailyBudget(
-                                index
-                            );
-
-                        const isToday =
-                            key === todayKey;
-
-                        const isPast =
-                            isPastDate(
-                                key
-                            );
-
-                        const dayEntries =
-                            entries.filter(
-                                e =>
-                                    e.date === key
-                            );
-
-
-                        return (
-
-                            <div
-
-                                key={key}
-
-                                className={`card p-4 day-row ${
-                                    isToday
-                                        ? "today-day"
-                                        : ""
-                                } ${
-                                    isPast
-                                        ? "past-day"
-                                        : ""
-                                }`}
-
-                            >
-
-                                <div
-
-                                    className="flex justify-between items-center cursor-pointer"
-
-                                    onClick={() =>
-                                        onSelectDay(
-                                            key
-                                        )
-                                    }
-
-                                >
-
-                                    <div>
-
-                                        <div className="flex items-center gap-2">
-
-                                            <h3 className="font-bold">
-                                                {DAYS[index]}
-                                            </h3>
-
-
-                                            {isToday && (
-
-                                                <span className="text-[10px] px-2 py-1 rounded-full bg-green/10 green font-bold">
-                                                    HOY
-                                                </span>
-
-                                            )}
-
-                                        </div>
-
-
-                                        <div className="text-xs text-gray-500 mt-1 day-date">
-
-                                            {formatDate(
-                                                date
-                                            )}
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div className="text-right">
-
-                                        <div className="font-bold">
-
-                                            {Math.round(
-                                                calories
-                                            ).toLocaleString(
-                                                "es-ES"
-                                            )}
-
-                                            {" / "}
-
-                                            {Math.round(
-                                                budget
-                                            ).toLocaleString(
-                                                "es-ES"
-                                            )}
-
-                                        </div>
-
-
-                                        <div className="text-xs text-gray-500">
-                                            kcal
-                                        </div>
-
-                                    </div>
-
-                                </div>
-
-
-                                <div className="mt-3">
-
-                                    <div className="h-2 progress-track rounded-full overflow-hidden">
-
-                                        <div
-
-                                            className={`h-full rounded-full ${
-                                                calories >
-                                                budget
-                                                    ? "progress-red"
-                                                    : "progress-green"
-                                            }`}
-
-                                            style={{
-                                                width:
-                                                    `${clamp(
-                                                        calories /
-                                                        Math.max(
-                                                            budget,
-                                                            1
-                                                        ) *
-                                                        100,
-                                                        0,
-                                                        100
-                                                    )}%`
-                                            }}
-
-                                        />
-
-                                    </div>
-
-                                </div>
-
-
-                                <div className="flex justify-between mt-3 text-xs text-gray-500">
-
-                                    <span>
-
-                                        P{" "}
-                                        {protein}
-                                        {" / "}
-                                        {settings.proteinDaily}
-                                        {" g"}
-
-                                    </span>
-
-
-                                    <span>
-
-                                        {dayEntries.length}
-
-                                        {" "}
-
-                                        {dayEntries.length === 1
-                                            ? "registro"
-                                            : "registros"}
-
-                                    </span>
-
-                                </div>
-
-
-                                {dayEntries.length > 0 && (
-
-                                    <div className="mt-4 space-y-2">
-
-                                        {dayEntries.map(
-                                            entry => (
-
-                                                <div
-
-                                                    key={
-                                                        entry.id
-                                                    }
-
-                                                    className="bg-gray-50 rounded-2xl p-3 flex justify-between items-center"
-
-                                                >
-
-                                                    <div>
-
-                                                        <div className="font-medium text-sm">
-                                                            {entry.name}
-                                                        </div>
-
-
-                                                        <div className="text-xs text-gray-500 mt-1">
-
-                                                            P{" "}
-                                                            {entry.protein}
-                                                            {" g"}
-
-                                                        </div>
-
-                                                    </div>
-
-
-                                                    <div className="flex items-center gap-3">
-
-                                                        <span className="font-semibold text-sm">
-
-                                                            {entry.calories}
-                                                            {" kcal"}
-
-                                                        </span>
-
-
-                                                        <button
-
-                                                            onClick={() =>
-                                                                onDelete(
-                                                                    entry.id
-                                                                )
-                                                            }
-
-                                                            className="text-gray-400 hover:text-red-500 text-xl"
-
-                                                        >
-                                                            ×
-                                                        </button>
-
-                                                    </div>
-
-                                                </div>
-
-                                            )
+                {weekDates.map((date, index) => {
+                    const key = weekKeys[index];
+                    const calories = getDayCalories(key);
+                    const protein = getDayProtein(key);
+                    const budget = getDynamicDailyBudget(index);
+                    const isToday = key === todayKey;
+                    const isPast = isPastDate(key);
+                    const dayEntries = entries.filter(e => e.date === key);
+
+                    return (
+                        <div key={key} className={`card p-4 day-row ${isToday ? "today-day ring-2 ring-green/20" : ""} ${isPast ? "past-day" : ""}`}>
+                            <div className="flex justify-between items-center cursor-pointer" onClick={() => onSelectDay(key)}>
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h3 className="font-bold text-gray-800">{DAYS[index]}</h3>
+                                        {isToday && (
+                                            <span className="text-[10px] px-2 py-1 rounded-full bg-green/10 green font-bold tracking-wide">HOY</span>
                                         )}
-
                                     </div>
-
-                                )}
-
+                                    <div className="text-xs font-medium text-gray-400 mt-1 day-date">{formatDate(date)}</div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-bold text-gray-800">
+                                        {Math.round(calories).toLocaleString("es-ES")} <span className="text-gray-400 font-medium">/ {Math.round(budget).toLocaleString("es-ES")}</span>
+                                    </div>
+                                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">kcal</div>
+                                </div>
                             </div>
 
-                        );
+                            <div className="mt-3">
+                                <div className="h-1.5 progress-track rounded-full overflow-hidden">
+                                    <div
+                                        className={`h-full rounded-full transition-all duration-500 ${calories > budget ? "progress-red" : "progress-green"}`}
+                                        style={{ width: `${clamp(calories / Math.max(budget, 1) * 100, 0, 100)}%` }}
+                                    />
+                                </div>
+                            </div>
 
-                    }
-                )}
+                            <div className="flex justify-between mt-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                                <span>P {protein} / {settings.proteinDaily} g</span>
+                                <span>{dayEntries.length} {dayEntries.length === 1 ? "registro" : "registros"}</span>
+                            </div>
 
+                            {dayEntries.length > 0 && (
+                                <div className="mt-4 space-y-2 border-t border-gray-50 pt-3">
+                                    {dayEntries.map(entry => (
+                                        <div key={entry.id} className="bg-gray-50/80 rounded-2xl p-3 flex justify-between items-center group">
+                                            <div>
+                                                <div className="font-bold text-sm text-gray-700">{entry.name}</div>
+                                                <div className="text-xs font-medium text-gray-500 mt-0.5">P {entry.protein} g</div>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="font-bold text-sm text-gray-700">{entry.calories} <span className="text-xs font-medium text-gray-500">kcal</span></span>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
+                                                    className="w-8 h-8 flex items-center justify-center rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm transition-colors"
+                                                >
+                                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
 
-
             <button
-
-                onClick={
-                    onAdd
-                }
-
-                className="fixed bottom-[105px] left-1/2 -translate-x-1/2 max-w-[430px] w-[calc(100%-40px)] bg-green text-white py-4 rounded-2xl font-bold floating-add z-20"
-
+                onClick={onAdd}
+                className="fixed bottom-[105px] left-1/2 -translate-x-1/2 max-w-[430px] w-[calc(100%-40px)] bg-green text-white py-4 rounded-2xl font-bold text-lg floating-add z-20 hover:bg-green/90 active:scale-95 transition-all flex items-center justify-center gap-2"
             >
-                + Añadir calorías
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                Añadir calorías
             </button>
-
         </main>
     );
 }
 
-
 /* =========================================================
-   CÍRCULO DE AGUA
+   NUEVA SECCIÓN: BIBLIOTECA DE ALIMENTOS
 ========================================================= */
-
-function ProgressCircle({
-
-    value,
-    max,
-    size,
-    label
-
-}) {
-
-    const percent =
-        max > 0
-            ? clamp(
-                value / max,
-                0,
-                1
-            )
-            : 0;
-
-
-    const percentage =
-        percent * 100;
-
+function FoodLibrary({ savedFoods, onDelete }) {
+    
+    // Sort alphabetically
+    const sortedFoods = [...savedFoods].sort((a, b) => a.name.localeCompare(b.name));
 
     return (
+        <main className="safe-bottom p-5">
+            <header className="mb-6">
+                <div className="text-sm font-semibold tracking-wide text-gray-400">MIS ALIMENTOS</div>
+                <h1 className="text-3xl font-extrabold text-gray-800">Historial</h1>
+                <p className="text-gray-500 mt-2 text-sm leading-relaxed">
+                    Aquí se guardan automáticamente los alimentos que añades para que puedas seleccionarlos rápidamente en el futuro.
+                </p>
+            </header>
 
-        <div
-            className="water-circle flex-shrink-0"
-            style={{
-                width: size,
-                height: size
-            }}
-        >
+            {sortedFoods.length === 0 ? (
+                <div className="card p-8 text-center flex flex-col items-center justify-center gap-3">
+                    <div className="w-16 h-16 bg-gray-50 rounded-full flex items-center justify-center text-3xl text-gray-300">🍽️</div>
+                    <p className="text-gray-500 text-sm">Aún no hay alimentos guardados.</p>
+                    <p className="text-gray-400 text-xs">Se guardarán automáticamente cuando añadas nuevas comidas.</p>
+                </div>
+            ) : (
+                <div className="space-y-3">
+                    {sortedFoods.map(food => (
+                        <div key={food.id} className="card p-4 flex justify-between items-center bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+                            <div>
+                                <h3 className="font-bold text-gray-800 text-base">{food.name}</h3>
+                                <div className="flex gap-3 mt-1.5 text-xs font-medium">
+                                    <span className="text-green bg-green/10 px-2 py-0.5 rounded-md">{food.calories} kcal</span>
+                                    <span className="text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md">{food.protein}g prot</span>
+                                </div>
+                            </div>
+                            
+                            <button
+                                onClick={() => onDelete(food.id)}
+                                className="w-10 h-10 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                title="Borrar alimento del historial"
+                            >
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </main>
+    );
+}
 
-            {/* AGUA */}
+/* =========================================================
+   MODAL AÑADIR (CON AUTOCOMPLETADO)
+========================================================= */
+function AddModal({ date, onClose, onSave, savedFoods, showAlert }) {
+    const [name, setName] = useState("");
+    const [calories, setCalories] = useState("");
+    const [protein, setProtein] = useState("");
+    const [showSuggestions, setShowSuggestions] = useState(false);
 
-            <div
+    // Filter logic
+    const filteredFoods = name.trim() === "" 
+        ? [] 
+        : savedFoods.filter(f => f.name.toLowerCase().includes(name.toLowerCase()));
 
-                className="water-fill"
+    // Check if the current name exactly matches a food to hide suggestions
+    const exactMatch = filteredFoods.length === 1 && filteredFoods[0].name.toLowerCase() === name.toLowerCase();
+    
+    const displaySuggestions = showSuggestions && filteredFoods.length > 0 && !exactMatch;
 
-                style={{
-                    height:
-                        `${percentage}%`
-                }}
+    function submit(e) {
+        e.preventDefault();
 
-            >
+        if (!name.trim()) {
+            showAlert("Faltan datos", "Por favor, introduce el nombre del alimento.");
+            return;
+        }
 
+        if (calories === "" || Number(calories) < 0) {
+            showAlert("Faltan datos", "Por favor, introduce las calorías correctamente.");
+            return;
+        }
+
+        if (protein !== "" && Number(protein) < 0) {
+            showAlert("Dato incorrecto", "La proteína no puede ser un valor negativo.");
+            return;
+        }
+
+        onSave({
+            name: name.trim(),
+            calories: Number(calories),
+            protein: Number(protein || 0)
+        });
+    }
+
+    function selectFood(food) {
+        setName(food.name);
+        setCalories(food.calories.toString());
+        setProtein(food.protein.toString());
+        setShowSuggestions(false);
+    }
+
+    return (
+        <div className="fixed inset-0 z-[60] modal-backdrop flex items-end justify-center animate-[fadeIn_0.2s_ease-out]">
+            <div className="bg-white w-full max-w-[480px] rounded-t-[32px] p-6 shadow-2xl relative flex flex-col max-h-[90vh]">
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full mx-auto mb-6 absolute top-3 left-1/2 -translate-x-1/2"></div>
+                
+                <div className="flex justify-between items-center mb-6 mt-2">
+                    <div>
+                        <div className="text-xs font-semibold text-green uppercase tracking-wide mb-1">
+                            {formatDate(new Date(date + "T00:00:00"))}
+                        </div>
+                        <h2 className="text-2xl font-extrabold text-gray-800">Añadir comida</h2>
+                    </div>
+                    <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <form onSubmit={submit} className="flex flex-col gap-5 overflow-y-auto custom-scrollbar pb-4">
+                    <div className="relative">
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Alimento / comida</label>
+                        <input
+                            autoFocus
+                            value={name}
+                            onChange={e => setName(e.target.value)}
+                            onFocus={() => setShowSuggestions(true)}
+                            onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                            placeholder="Ej. Pechuga de pollo"
+                            className="w-full border-2 border-gray-100 bg-gray-50 rounded-2xl px-4 py-4 text-gray-800 font-medium focus:bg-white transition-colors"
+                            autoComplete="off"
+                        />
+                        
+                        {/* SUGGESTIONS DROPDOWN */}
+                        {displaySuggestions && (
+                            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 shadow-[0_10px_25px_rgba(0,0,0,0.1)] rounded-2xl z-50 max-h-56 overflow-y-auto custom-scrollbar overflow-hidden">
+                                <div className="text-xs font-semibold text-gray-400 px-4 py-2 bg-gray-50/80 border-b border-gray-100">Alimentos guardados</div>
+                                {filteredFoods.map(f => (
+                                    <div 
+                                        key={f.id} 
+                                        onClick={() => selectFood(f)} 
+                                        className="p-3.5 border-b border-gray-50 last:border-0 hover:bg-green/5 active:bg-green/10 cursor-pointer flex justify-between items-center transition-colors"
+                                    >
+                                        <div className="font-bold text-sm text-gray-700">{f.name}</div>
+                                        <div className="flex gap-2">
+                                            <span className="text-[11px] font-semibold text-green bg-green/10 px-2 py-1 rounded-md">{f.calories} kcal</span>
+                                            <span className="text-[11px] font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded-md">{f.protein}g</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Calorías</label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="0"
+                                    value={calories}
+                                    onChange={e => setCalories(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full border-2 border-gray-100 bg-gray-50 rounded-2xl pl-4 pr-12 py-4 text-xl font-extrabold text-gray-800 focus:bg-white transition-colors"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">kcal</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Proteína</label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    inputMode="decimal"
+                                    min="0"
+                                    value={protein}
+                                    onChange={e => setProtein(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full border-2 border-gray-100 bg-gray-50 rounded-2xl pl-4 pr-8 py-4 text-xl font-extrabold text-gray-800 focus:bg-white transition-colors"
+                                />
+                                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-semibold text-gray-400">g</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mt-4 shadow-lg shadow-green/20 hover:bg-green/90 active:scale-[0.98] transition-all"
+                    >
+                        Añadir a mi día
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+}
+
+/* =========================================================
+   RESTO DE COMPONENTES (ProgressCircle, MiniProgress, History, Settings, NavButton)
+========================================================= */
+
+function ProgressCircle({ value, max, size, label }) {
+    const percent = max > 0 ? clamp(value / max, 0, 1) : 0;
+    const percentage = percent * 100;
+    return (
+        <div className="water-circle flex-shrink-0" style={{ width: size, height: size }}>
+            <div className="water-fill" style={{ height: `${percentage}%` }}>
                 <div className="water-wave"></div>
-
                 <div className="water-wave-2"></div>
-
                 <div className="water-shimmer"></div>
-
             </div>
-
-
-            {/* CONTENIDO */}
-
             <div className="water-content">
-
-                <div className="water-number">
-
-                    {Math.round(
-                        value
-                    ).toLocaleString(
-                        "es-ES"
-                    )}
-
-                </div>
-
-
-                <div className="water-max">
-
-                    /
-
-                    {" "}
-
-                    {Math.round(
-                        max
-                    ).toLocaleString(
-                        "es-ES"
-                    )}
-
-                </div>
-
-
-                <div className="water-label">
-
-                    {label}
-
-                </div>
-
+                <div className="water-number text-gray-800">{Math.round(value).toLocaleString("es-ES")}</div>
+                <div className="water-max">/ {Math.round(max).toLocaleString("es-ES")}</div>
+                <div className="water-label font-medium">{label}</div>
             </div>
-
         </div>
     );
 }
 
-
-/* =========================================================
-   MINI PROGRESS
-========================================================= */
-
-function MiniProgress({
-
-    value,
-    max,
-    label,
-    suffix
-
-}) {
-
-    const percent =
-        max > 0
-            ? clamp(
-                value /
-                max *
-                100,
-                0,
-                100
-            )
-            : 0;
-
-
+function MiniProgress({ value, max, label, suffix }) {
+    const percent = max > 0 ? clamp(value / max * 100, 0, 100) : 0;
     return (
-
         <div>
-
-            <div className="flex justify-between text-xs mb-2">
-
-                <span className="text-gray-500">
-                    {label}
-                </span>
-
-
-                <span className="font-semibold">
-
-                    {Math.round(
-                        value
-                    )}
-
-                    {" / "}
-
-                    {Math.round(
-                        max
-                    )}
-
-                    {" "}
-
-                    {suffix}
-
-                </span>
-
+            <div className="flex justify-between text-xs mb-2 font-medium">
+                <span className="text-gray-500">{label}</span>
+                <span className="font-bold text-gray-700">{Math.round(value)} / {Math.round(max)} {suffix}</span>
             </div>
-
-
             <div className="h-2 rounded-full progress-track overflow-hidden">
-
-                <div
-
-                    className="h-full progress-green rounded-full"
-
-                    style={{
-                        width:
-                            `${percent}%`
-                    }}
-
-                />
-
+                <div className="h-full progress-green rounded-full" style={{ width: `${percent}%`, background: '#3b82f6' }} />
             </div>
-
         </div>
     );
 }
 
-
-/* =========================================================
-   HISTORIAL
-========================================================= */
-
-function History({
-
-    entries,
-    settings,
-    getDayCalories,
-    getDayProtein,
-    getDynamicDailyBudget,
-    onSelectDay
-
-}) {
-
-    const [period, setPeriod] =
-        useState("week");
-
-
-    const today =
-        new Date();
-
-    today.setHours(
-        0,
-        0,
-        0,
-        0
-    );
-
-
-    /* =====================================================
-       GENERAR FECHAS SEGÚN PERÍODO
-    ===================================================== */
+function History({ entries, settings, getDayCalories, getDayProtein, getDynamicDailyBudget, onSelectDay }) {
+    const [period, setPeriod] = useState("week");
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
     function getHistoryDates() {
-
         const dates = [];
-
         if (period === "week") {
-
-            const monday =
-                getMonday(today);
-
+            const monday = getMonday(today);
             for (let i = 0; i < 7; i++) {
-
-                const d =
-                    new Date(monday);
-
-                d.setDate(
-                    monday.getDate() + i
-                );
-
+                const d = new Date(monday);
+                d.setDate(monday.getDate() + i);
                 dates.push(d);
             }
-
+        } else if (period === "month") {
+            const start = new Date(today.getFullYear(), today.getMonth(), 1);
+            const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) dates.push(new Date(d));
+        } else {
+            if (entries.length === 0) return [];
+            const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+            const start = new Date(sorted[0].date + "T00:00:00");
+            for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) dates.push(new Date(d));
         }
-
-        else if (period === "month") {
-
-            const start =
-                new Date(
-                    today.getFullYear(),
-                    today.getMonth(),
-                    1
-                );
-
-            const end =
-                new Date(
-                    today.getFullYear(),
-                    today.getMonth() + 1,
-                    0
-                );
-
-            for (
-                let d = new Date(start);
-                d <= end;
-                d.setDate(d.getDate() + 1)
-            ) {
-
-                dates.push(
-                    new Date(d)
-                );
-            }
-
-        }
-
-        else {
-
-            if (entries.length === 0) {
-                return [];
-            }
-
-
-            const sorted =
-                [...entries]
-                    .sort(
-                        (a, b) =>
-                            a.date.localeCompare(
-                                b.date
-                            )
-                    );
-
-
-            const start =
-                new Date(
-                    sorted[0].date +
-                    "T00:00:00"
-                );
-
-
-            for (
-                let d = new Date(start);
-                d <= today;
-                d.setDate(d.getDate() + 1)
-            ) {
-
-                dates.push(
-                    new Date(d)
-                );
-
-            }
-
-        }
-
         return dates;
     }
 
+    const dates = getHistoryDates();
+    const chartData = dates.map((date, index) => {
+        const key = dateKey(date);
+        const calories = getDayCalories(key);
+        let budget = period === "week" ? getDynamicDailyBudget(index) : Number(settings.caloriesWeekly) / 7;
+        return { date, key, calories, budget };
+    });
 
-    const dates =
-        getHistoryDates();
-
-
-    const keys =
-        dates.map(dateKey);
-
-
-    /* =====================================================
-       DATOS
-    ===================================================== */
-
-    const chartData =
-        dates.map(
-            (date, index) => {
-
-                const key =
-                    dateKey(date);
-
-                const calories =
-                    getDayCalories(
-                        key
-                    );
-
-
-                let budget;
-
-
-                if (period === "week") {
-
-                    budget =
-                        getDynamicDailyBudget(
-                            index
-                        );
-
-                }
-
-                else {
-
-                    /*
-                     * Para mes y total mostramos
-                     * el presupuesto diario equivalente.
-                     *
-                     * Esto permite comparar
-                     * visualmente consumo y objetivo.
-                     */
-
-                    budget =
-                        Number(
-                            settings.caloriesWeekly
-                        ) / 7;
-
-                }
-
-
-                return {
-
-                    date,
-                    key,
-                    calories,
-                    budget
-
-                };
-
-            }
-        );
-
-
-    const totalCalories =
-        chartData.reduce(
-            (sum, item) =>
-                sum +
-                item.calories,
-            0
-        );
-
-
-    const totalProtein =
-        chartData.reduce(
-            (sum, item) =>
-                sum +
-                getDayProtein(
-                    item.key
-                ),
-            0
-        );
-
-
-    const daysWithData =
-        chartData.filter(
-            item =>
-                item.calories > 0
-        ).length;
-
-
-    const averageCalories =
-        daysWithData > 0
-            ? totalCalories /
-              daysWithData
-            : 0;
-
-
-    const maxChartValue =
-        Math.max(
-            ...chartData.map(
-                item =>
-                    Math.max(
-                        item.calories,
-                        item.budget
-                    )
-            ),
-            1
-        );
-
-
-    const chartHeight =
-        185;
-
+    const totalCalories = chartData.reduce((sum, item) => sum + item.calories, 0);
+    const totalProtein = chartData.reduce((sum, item) => sum + getDayProtein(item.key), 0);
+    const daysWithData = chartData.filter(item => item.calories > 0).length;
+    const averageCalories = daysWithData > 0 ? totalCalories / daysWithData : 0;
+    const maxChartValue = Math.max(...chartData.map(item => Math.max(item.calories, item.budget)), 1);
+    const chartHeight = 185;
 
     function periodTitle() {
-
-        if (period === "week") {
-            return "Esta semana";
-        }
-
-        if (period === "month") {
-
-            return today.toLocaleDateString(
-                "es-ES",
-                {
-                    month: "long",
-                    year: "numeric"
-                }
-            );
-
-        }
-
+        if (period === "week") return "Esta semana";
+        if (period === "month") return today.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
         return "Todo el historial";
     }
 
-
     return (
-
         <main className="safe-bottom p-5">
-
             <header className="mb-5">
-
-                <div className="text-sm text-gray-500">
-                    HISTORIAL
-                </div>
-
-
-                <h1 className="text-3xl font-extrabold">
-                    Consumo
-                </h1>
-
+                <div className="text-sm font-semibold tracking-wide text-gray-400">HISTORIAL</div>
+                <h1 className="text-3xl font-extrabold text-gray-800">Consumo</h1>
             </header>
 
-
-            {/* =================================================
-               SELECTOR
-            ================================================= */}
-
-            <div className="card p-2 mb-5 flex gap-1">
-
-                {[
-                    ["week", "Semana"],
-                    ["month", "Mes"],
-                    ["all", "Total"]
-                ].map(
-                    ([value, label]) => (
-
-                        <button
-
-                            key={value}
-
-                            onClick={() =>
-                                setPeriod(
-                                    value
-                                )
-                            }
-
-                            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition ${
-                                period === value
-                                    ? "bg-green text-white"
-                                    : "text-gray-500"
-                            }`}
-
-                        >
-
-                            {label}
-
-                        </button>
-
-                    )
-                )}
-
+            <div className="card p-1.5 mb-5 flex gap-1 bg-white">
+                {[["week", "Semana"], ["month", "Mes"], ["all", "Total"]].map(([value, label]) => (
+                    <button
+                        key={value}
+                        onClick={() => setPeriod(value)}
+                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${period === value ? "bg-green text-white shadow-md shadow-green/20" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"}`}
+                    >
+                        {label}
+                    </button>
+                ))}
             </div>
-
-
-            {/* =================================================
-               RESUMEN
-            ================================================= */}
 
             <div className="grid grid-cols-2 gap-3 mb-5">
-
-                <div className="card p-5">
-
-                    <div className="text-sm text-gray-500">
-                        Calorías
+                <div className="card p-5 border border-gray-50 shadow-sm">
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Calorías</div>
+                    <div className="text-2xl font-extrabold mt-1 text-gray-800">{Math.round(totalCalories).toLocaleString("es-ES")}</div>
+                    <div className="text-xs font-medium text-gray-400 mt-1">
+                        {daysWithData > 0 ? `${Math.round(averageCalories).toLocaleString("es-ES")} kcal/día` : "Sin registros"}
                     </div>
-
-
-                    <div className="text-2xl font-extrabold mt-1">
-
-                        {Math.round(
-                            totalCalories
-                        ).toLocaleString(
-                            "es-ES"
-                        )}
-
-                    </div>
-
-
-                    <div className="text-xs text-gray-400 mt-1">
-
-                        {daysWithData > 0
-                            ? `${Math.round(
-                                averageCalories
-                            ).toLocaleString(
-                                "es-ES"
-                            )} kcal/día`
-                            : "Sin registros"}
-
-                    </div>
-
                 </div>
-
-
-                <div className="card p-5">
-
-                    <div className="text-sm text-gray-500">
-                        Proteína
+                <div className="card p-5 border border-gray-50 shadow-sm">
+                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Proteína</div>
+                    <div className="text-2xl font-extrabold mt-1 text-gray-800">{Math.round(totalProtein).toLocaleString("es-ES")} <span className="text-lg">g</span></div>
+                    <div className="text-xs font-medium text-gray-400 mt-1">
+                        {daysWithData > 0 ? `${Math.round(totalProtein / daysWithData)} g/día` : "Sin registros"}
                     </div>
-
-
-                    <div className="text-2xl font-extrabold mt-1">
-
-                        {Math.round(
-                            totalProtein
-                        ).toLocaleString(
-                            "es-ES"
-                        )}
-
-                        {" g"}
-
-                    </div>
-
-
-                    <div className="text-xs text-gray-400 mt-1">
-
-                        {daysWithData > 0
-                            ? `${Math.round(
-                                totalProtein /
-                                daysWithData
-                            )} g/día`
-                            : "Sin registros"}
-
-                    </div>
-
                 </div>
-
             </div>
 
-
-            {/* =================================================
-               GRÁFICO
-            ================================================= */}
-
-            <section className="card p-5 mb-5">
-
+            <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
-
                     <div>
-
-                        <h2 className="font-bold text-lg">
-                            {periodTitle()}
-                        </h2>
-
-                        <p className="text-xs text-gray-500 mt-1">
-                            Consumo diario vs presupuesto
-                        </p>
-
+                        <h2 className="font-bold text-lg text-gray-800 capitalize">{periodTitle()}</h2>
+                        <p className="text-xs font-medium text-gray-400 mt-0.5">Consumo diario vs presupuesto</p>
                     </div>
-
                 </div>
 
-
-                <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
-
-                    <div className="flex items-center gap-2">
-
-                        <span className="legend-dot legend-green"></span>
-
-                        Consumo
-
-                    </div>
-
-
-                    <div className="flex items-center gap-2">
-
-                        <span className="legend-dot legend-red"></span>
-
-                        Presupuesto
-
-                    </div>
-
+                <div className="flex items-center gap-4 mb-4 text-xs font-medium text-gray-500">
+                    <div className="flex items-center gap-1.5"><span className="legend-dot legend-green"></span>Consumo</div>
+                    <div className="flex items-center gap-1.5"><span className="legend-dot legend-red"></span>Presupuesto</div>
                 </div>
-
 
                 {chartData.length === 0 ? (
-
-                    <div className="py-12 text-center text-gray-400 text-sm">
-
-                        Todavía no hay registros suficientes
-                        para mostrar el historial.
-
-                    </div>
-
+                    <div className="py-12 text-center text-gray-400 text-sm font-medium">Todavía no hay registros suficientes.</div>
                 ) : (
-
                     <div className="chart-scroll">
-
-                        <div
-
-                            className="chart-inner"
-
-                            style={{
-                                minWidth:
-                                    period === "month"
-                                        ? "760px"
-                                        : period === "all"
-                                            ? `${Math.max(
-                                                chartData.length * 48,
-                                                100
-                                            )}px`
-                                            : "100%"
-                            }}
-
-                        >
-
+                        <div className="chart-inner" style={{ minWidth: period === "month" ? "760px" : period === "all" ? `${Math.max(chartData.length * 48, 100)}px` : "100%" }}>
                             <div className="history-chart">
-
-                                {/* LÍNEAS DE REFERENCIA */}
-
-                                {[0, 25, 50, 75, 100].map(
-                                    percentage => (
-
-                                        <div
-
-                                            key={
-                                                percentage
-                                            }
-
-                                            className="chart-grid-line"
-
-                                            style={{
-                                                top:
-                                                    `${100 - percentage}%`
-                                            }}
-
-                                        />
-
-                                    )
-                                )}
-
-
+                                {[0, 25, 50, 75, 100].map(percentage => (
+                                    <div key={percentage} className="chart-grid-line border-gray-100" style={{ top: `${100 - percentage}%` }} />
+                                ))}
                                 <div className="relative flex items-end justify-between gap-1 px-1">
-
-                                    {chartData.map(
-                                        item => {
-
-                                            const consumptionHeight =
-                                                item.calories /
-                                                maxChartValue *
-                                                chartHeight;
-
-
-                                            const budgetPosition =
-                                                chartHeight -
-                                                (
-                                                    item.budget /
-                                                    maxChartValue *
-                                                    chartHeight
-                                                );
-
-
-                                            const date =
-                                                item.date;
-
-
-                                            return (
-
-                                                <div
-
-                                                    key={
-                                                        item.key
-                                                    }
-
-                                                    className="bar-item flex-1"
-
-                                                >
-
-                                                    <div className="bar-area">
-
-                                                        {/* LÍNEA DE PRESUPUESTO */}
-
-                                                        <div
-
-                                                            className="budget-line"
-
-                                                            style={{
-                                                                bottom:
-                                                                    `${budgetPosition}px`
-                                                            }}
-
-                                                        />
-
-
-                                                        {/* VALOR */}
-
-                                                        {item.calories > 0 && (
-
-                                                            <div
-
-                                                                className="chart-value"
-
-                                                                style={{
-                                                                    position:
-                                                                        "absolute",
-                                                                    bottom:
-                                                                        `${Math.min(
-                                                                            consumptionHeight +
-                                                                            4,
-                                                                            chartHeight -
-                                                                            10
-                                                                        )}px`
-                                                                }}
-
-                                                            >
-
-                                                                {Math.round(
-                                                                    item.calories
-                                                                )}
-
-                                                            </div>
-
-                                                        )}
-
-
-                                                        {/* BARRA */}
-
-                                                        <div
-
-                                                            className="consumption-bar"
-
-                                                            style={{
-                                                                height:
-                                                                    `${Math.max(
-                                                                        consumptionHeight,
-                                                                        item.calories > 0
-                                                                            ? 3
-                                                                            : 0
-                                                                    )}px`
-                                                            }}
-
-                                                        />
-
-                                                    </div>
-
-
-                                                    <div className="chart-label">
-
-                                                        {period === "week"
-
-                                                            ? DAYS[
-                                                                date.getDay() === 0
-                                                                    ? 6
-                                                                    : date.getDay() - 1
-                                                            ].slice(
-                                                                0,
-                                                                2
-                                                            )
-
-                                                            : formatShortDate(
-                                                                item.key
-                                                            )}
-
-                                                    </div>
-
+                                    {chartData.map(item => {
+                                        const consumptionHeight = item.calories / maxChartValue * chartHeight;
+                                        const budgetPosition = chartHeight - (item.budget / maxChartValue * chartHeight);
+                                        return (
+                                            <div key={item.key} className="bar-item flex-1 group relative">
+                                                <div className="bar-area">
+                                                    <div className="budget-line opacity-60" style={{ bottom: `${budgetPosition}px` }} />
+                                                    {item.calories > 0 && (
+                                                        <div className="chart-value font-bold text-gray-700" style={{ position: "absolute", bottom: `${Math.min(consumptionHeight + 4, chartHeight - 10)}px` }}>
+                                                            {Math.round(item.calories)}
+                                                        </div>
+                                                    )}
+                                                    <div className={`consumption-bar ${item.calories > item.budget ? '!bg-red-400' : ''}`} style={{ height: `${Math.max(consumptionHeight, item.calories > 0 ? 4 : 0)}px` }} />
                                                 </div>
-
-                                            );
-
-                                        }
-                                    )}
-
+                                                <div className="chart-label font-medium text-gray-400">
+                                                    {period === "week" ? DAYS[item.date.getDay() === 0 ? 6 : item.date.getDay() - 1].slice(0, 2) : formatShortDate(item.key)}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-
                             </div>
-
                         </div>
-
                     </div>
-
                 )}
-
-
-                <div className="mt-4 text-xs text-gray-400">
-
-                    La línea roja representa el presupuesto
-                    disponible como referencia.
-
-                    {period === "week" &&
-                        " En la semana, el presupuesto se redistribuye dinámicamente según lo consumido."}
-
-                </div>
-
             </section>
 
-
-            {/* =================================================
-               DETALLE DIARIO
-            ================================================= */}
-
-            <div className="flex items-center justify-between mb-3">
-
-                <h2 className="text-xl font-bold">
-                    Detalle
-                </h2>
-
+            <div className="flex items-center justify-between mb-3 px-1">
+                <h2 className="text-xl font-bold text-gray-800">Detalle</h2>
             </div>
-
-
+            
             <div className="space-y-3">
+                {chartData.slice().reverse().map(item => {
+                    const protein = getDayProtein(item.key);
+                    const dayEntries = entries.filter(e => e.date === item.key);
+                    const overBudget = item.calories > item.budget;
+                    const isToday = item.key === dateKey(today);
 
-                {chartData
-                    .slice()
-                    .reverse()
-                    .map(
-                        item => {
-
-                            const protein =
-                                getDayProtein(
-                                    item.key
-                                );
-
-
-                            const dayEntries =
-                                entries.filter(
-                                    e =>
-                                        e.date ===
-                                        item.key
-                                );
-
-
-                            const overBudget =
-                                item.calories >
-                                item.budget;
-
-
-                            const isToday =
-                                item.key ===
-                                dateKey(today);
-
-
-                            return (
-
-                                <div
-
-                                    key={
-                                        item.key
-                                    }
-
-                                    onClick={() =>
-                                        onSelectDay(
-                                            item.key
-                                        )
-                                    }
-
-                                    className={`card p-4 cursor-pointer day-row ${
-                                        isToday
-                                            ? "today-day"
-                                            : ""
-                                    } ${
-                                        isPastDate(
-                                            item.key
-                                        )
-                                            ? "past-day"
-                                            : ""
-                                    }`}
-
-                                >
-
-                                    <div className="flex justify-between items-center">
-
-                                        <div>
-
-                                            <div className="flex items-center gap-2">
-
-                                                <span className="font-bold">
-
-                                                    {item.date.toLocaleDateString(
-                                                        "es-ES",
-                                                        {
-                                                            weekday:
-                                                                "long"
-                                                        }
-                                                    )}
-
-                                                </span>
-
-
-                                                {isToday && (
-
-                                                    <span className="text-[10px] px-2 py-1 rounded-full bg-green/10 green font-bold">
-                                                        HOY
-                                                    </span>
-
-                                                )}
-
-                                            </div>
-
-
-                                            <div className="text-xs text-gray-500 mt-1">
-
-                                                {formatDate(
-                                                    item.date
-                                                )}
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <div className="text-right">
-
-                                            <div className={`font-bold ${
-                                                overBudget
-                                                    ? "text-red-500"
-                                                    : ""
-                                            }`}>
-
-                                                {Math.round(
-                                                    item.calories
-                                                ).toLocaleString(
-                                                    "es-ES"
-                                                )}
-
-                                                {" kcal"}
-
-                                            </div>
-
-
-                                            <div className="text-xs text-gray-400">
-
-                                                presupuesto{" "}
-
-                                                {Math.round(
-                                                    item.budget
-                                                ).toLocaleString(
-                                                    "es-ES"
-                                                )}
-
-                                            </div>
-
-                                        </div>
-
+                    return (
+                        <div key={item.key} onClick={() => onSelectDay(item.key)} className={`card p-4 cursor-pointer day-row border border-gray-50 shadow-sm hover:shadow-md ${isToday ? "today-day ring-2 ring-green/20" : ""} ${isPastDate(item.key) ? "past-day" : ""}`}>
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-gray-800 capitalize">{item.date.toLocaleDateString("es-ES", { weekday: "long" })}</span>
+                                        {isToday && <span className="text-[10px] px-2 py-0.5 rounded-md bg-green/10 green font-bold tracking-wide">HOY</span>}
                                     </div>
-
-
-                                    <div className="grid grid-cols-2 gap-3 mt-3">
-
-                                        <div className="bg-gray-50 rounded-xl p-3">
-
-                                            <div className="text-xs text-gray-500">
-                                                Proteína
-                                            </div>
-
-                                            <div className="font-bold mt-1">
-                                                {Math.round(
-                                                    protein
-                                                )} g
-                                            </div>
-
-                                        </div>
-
-
-                                        <div className="bg-gray-50 rounded-xl p-3">
-
-                                            <div className="text-xs text-gray-500">
-                                                Registros
-                                            </div>
-
-                                            <div className="font-bold mt-1">
-                                                {dayEntries.length}
-                                            </div>
-
-                                        </div>
-
-                                    </div>
-
-
-                                    <div className="mt-3">
-
-                                        <div className="h-2 rounded-full progress-track overflow-hidden">
-
-                                            <div
-
-                                                className={`h-full rounded-full ${
-                                                    overBudget
-                                                        ? "progress-red"
-                                                        : "progress-green"
-                                                }`}
-
-                                                style={{
-                                                    width:
-                                                        `${clamp(
-                                                            item.calories /
-                                                            Math.max(
-                                                                item.budget,
-                                                                1
-                                                            ) *
-                                                            100,
-                                                            0,
-                                                            100
-                                                        )}%`
-                                                }}
-
-                                            />
-
-                                        </div>
-
-                                    </div>
-
+                                    <div className="text-xs font-medium text-gray-400 mt-1">{formatDate(item.date)}</div>
                                 </div>
-
-                            );
-
-                        }
-                    )}
-
+                                <div className="text-right">
+                                    <div className={`font-extrabold ${overBudget ? "text-red-500" : "text-gray-800"}`}>
+                                        {Math.round(item.calories).toLocaleString("es-ES")} <span className="text-[11px] font-semibold text-gray-400">kcal</span>
+                                    </div>
+                                    <div className="text-xs font-medium text-gray-400 mt-0.5">presupuesto {Math.round(item.budget).toLocaleString("es-ES")}</div>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3 mt-4">
+                                <div className="bg-gray-50 rounded-xl p-3 flex flex-col items-center justify-center">
+                                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Proteína</div>
+                                    <div className="font-extrabold text-gray-700 mt-1">{Math.round(protein)} <span className="text-xs font-medium">g</span></div>
+                                </div>
+                                <div className="bg-gray-50 rounded-xl p-3 flex flex-col items-center justify-center">
+                                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Registros</div>
+                                    <div className="font-extrabold text-gray-700 mt-1">{dayEntries.length}</div>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
             </div>
-
         </main>
     );
 }
 
-
-/* =========================================================
-   AJUSTES
-========================================================= */
-
-function Settings({
-
-    settings,
-    setSettings,
-    resetAll,
-    saveBackup,
-    loadBackup
-
-}) {
-
-    const [local, setLocal] =
-        useState(settings);
-
-
-    useEffect(() => {
-
-        setLocal(
-            settings
-        );
-
-    }, [settings]);
-
+function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, showAlert }) {
+    const [local, setLocal] = useState(settings);
+    useEffect(() => setLocal(settings), [settings]);
 
     function save() {
+        const calories = Number(local.caloriesWeekly);
+        const protein = Number(local.proteinDaily);
 
-        const calories =
-            Number(
-                local.caloriesWeekly
-            );
-
-        const protein =
-            Number(
-                local.proteinDaily
-            );
-
-
-        if (
-            !Number.isFinite(
-                calories
-            ) ||
-            calories <= 0
-        ) {
-
-            alert(
-                "Introduce un presupuesto semanal válido."
-            );
-
+        if (!Number.isFinite(calories) || calories <= 0) {
+            showAlert("Error", "Introduce un presupuesto semanal de calorías válido y mayor a 0.");
             return;
         }
-
-
-        if (
-            !Number.isFinite(
-                protein
-            ) ||
-            protein < 0
-        ) {
-
-            alert(
-                "Introduce un objetivo de proteína válido."
-            );
-
+        if (!Number.isFinite(protein) || protein < 0) {
+            showAlert("Error", "Introduce un objetivo de proteína válido.");
             return;
         }
-
-
-        const newSettings = {
-
-            ...local,
-
-            caloriesWeekly:
-                calories,
-
-            proteinDaily:
-                protein
-
-        };
-
-
-        setSettings(
-            newSettings
-        );
-
-
-        setLocal(
-            newSettings
-        );
-
-
-        alert(
-            "Configuración guardada."
-        );
-
+        setSettings({ ...local, caloriesWeekly: calories, proteinDaily: protein });
+        showAlert("¡Listo!", "Tu configuración ha sido guardada correctamente.");
     }
 
-
     return (
-
         <main className="safe-bottom p-5">
-
             <header className="mb-6">
-
-                <h1 className="text-3xl font-extrabold">
-                    Mi plan
-                </h1>
-
-
-                <p className="text-gray-500 mt-2">
-                    Configura tu presupuesto nutricional
-                </p>
-
+                <div className="text-sm font-semibold tracking-wide text-gray-400">AJUSTES</div>
+                <h1 className="text-3xl font-extrabold text-gray-800">Mi plan</h1>
             </header>
 
-
-            <section className="card p-5 mb-4">
-
-                <h2 className="font-bold text-lg mb-5">
-                    Objetivos
-                </h2>
-
-
-                <label className="block text-sm text-gray-500 mb-2">
-
-                    Presupuesto semanal de calorías
-
-                </label>
-
-
-                <input
-
-                    type="number"
-
-                    inputMode="numeric"
-
-                    value={
-                        local.caloriesWeekly
-                    }
-
-                    onChange={e =>
-                        setLocal({
-                            ...local,
-                            caloriesWeekly:
-                                e.target.value
-                        })
-                    }
-
-                    className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold mb-5"
-
-                />
-
-
-                <label className="block text-sm text-gray-500 mb-2">
-
-                    Objetivo diario de proteína
-
-                </label>
-
-
-                <input
-
-                    type="number"
-
-                    inputMode="numeric"
-
-                    value={
-                        local.proteinDaily
-                    }
-
-                    onChange={e =>
-                        setLocal({
-                            ...local,
-                            proteinDaily:
-                                e.target.value
-                        })
-                    }
-
-                    className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
-
-                />
-
-            </section>
-
-
-            <section className="card p-5 mb-4">
-
-                <h2 className="font-bold text-lg">
-                    Cómo funciona
-                </h2>
-
-
-                <p className="text-sm text-gray-500 leading-6 mt-3">
-
-                    Tu presupuesto de calorías es semanal.
-                    No tienes un límite diario fijo.
-
-                </p>
-
-
-                <p className="text-sm text-gray-500 leading-6 mt-2">
-
-                    Cada día, las calorías que quedan de la
-                    semana se redistribuyen automáticamente
-                    entre los días restantes.
-
-                </p>
-
-
-                <div className="bg-green/10 rounded-2xl p-4 mt-4 text-sm">
-
-                    <div className="font-bold green mb-2">
-                        Ejemplo
-                    </div>
-
-
-                    <div className="text-gray-600 leading-6">
-
-                        Presupuesto semanal:
-                        <strong>
-                            {" 16.590 kcal"}
-                        </strong>
-
-                        <br />
-
-                        Lunes consume:
-                        <strong>
-                            {" 2.600 kcal"}
-                        </strong>
-
-                        <br />
-
-                        Quedan:
-                        <strong>
-                            {" 13.990 kcal"}
-                        </strong>
-
-                        <br />
-
-                        Martes recibe:
-                        <strong>
-                            {" 2.331 kcal"}
-                        </strong>
-
-                        <br /><br />
-
-                        Si el martes consumes menos,
-                        el presupuesto de miércoles
-                        aumenta automáticamente.
-
-                    </div>
-
+            <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
+                <h2 className="font-bold text-lg mb-4 text-gray-800">Objetivos Nutricionales</h2>
+                
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Presupuesto semanal de calorías</label>
+                <div className="relative mb-5">
+                    <input type="number" inputMode="numeric" value={local.caloriesWeekly} onChange={e => setLocal({ ...local, caloriesWeekly: e.target.value })} className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-12 py-4 text-xl font-bold text-gray-800 transition-colors" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">kcal</span>
                 </div>
 
-            </section>
-
-
-            <section className="card p-5 mb-4">
-
-                <h2 className="font-bold text-lg">
-                    Backup
-                </h2>
-
-
-                <p className="text-sm text-gray-500 leading-6 mt-2 mb-5">
-
-                    Guarda una copia de tus registros y
-                    configuración para poder restaurarlos
-                    posteriormente.
-
-                </p>
-
-
-                <button
-
-                    onClick={
-                        saveBackup
-                    }
-
-                    className="backup-button w-full bg-green text-white py-4 rounded-2xl font-bold mb-3"
-
-                >
-
-                    ↓ Guardar backup
-
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Objetivo diario de proteína</label>
+                <div className="relative">
+                    <input type="number" inputMode="numeric" value={local.proteinDaily} onChange={e => setLocal({ ...local, proteinDaily: e.target.value })} className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-8 py-4 text-xl font-bold text-gray-800 transition-colors" />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">g</span>
+                </div>
+                
+                <button onClick={save} className="w-full bg-gray-800 text-white py-4 rounded-2xl font-bold text-lg mt-6 shadow-md hover:bg-gray-700 transition-colors">
+                    Guardar cambios
                 </button>
-
-
-                <label className="backup-button w-full bg-gray-100 text-gray-700 py-4 rounded-2xl font-bold flex items-center justify-center cursor-pointer">
-
-                    ↑ Cargar backup
-
-
-                    <input
-
-                        type="file"
-
-                        accept=".json,application/json"
-
-                        onChange={
-                            loadBackup
-                        }
-
-                        className="hidden"
-
-                    />
-
-                </label>
-
             </section>
 
+            <section className="card p-5 mb-5 border border-gray-50 shadow-sm bg-blue-50/50">
+                <h2 className="font-bold text-lg text-blue-900 flex items-center gap-2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    Cómo funciona
+                </h2>
+                <p className="text-sm text-blue-800/80 leading-relaxed mt-3 font-medium">
+                    Tu presupuesto es <strong>semanal</strong>. No tienes un límite diario fijo. Las calorías que no consumas hoy se redistribuirán automáticamente entre los días restantes de la semana, dándote total flexibilidad.
+                </p>
+            </section>
 
-            <button
+            <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
+                <h2 className="font-bold text-lg text-gray-800">Copia de Seguridad</h2>
+                <p className="text-xs font-medium text-gray-500 leading-relaxed mt-2 mb-5">
+                    Descarga un archivo con todo tu progreso y lista de alimentos guardados para no perderlos, o restaura uno antiguo.
+                </p>
+                
+                <div className="grid grid-cols-2 gap-3">
+                    <button onClick={saveBackup} className="backup-button bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-bold text-sm flex flex-col items-center gap-1">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                        Exportar Datos
+                    </button>
+                    
+                    <label className="backup-button bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-bold text-sm flex flex-col items-center gap-1 cursor-pointer">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                        Importar Datos
+                        <input type="file" accept=".json,application/json" onChange={loadBackup} className="hidden" />
+                    </label>
+                </div>
+            </section>
 
-                onClick={
-                    save
-                }
-
-                className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mb-4"
-
-            >
-
-                Guardar configuración
-
+            <button onClick={resetAll} className="w-full bg-white text-red-500 border-2 border-red-100 py-4 rounded-2xl font-bold mt-4 hover:bg-red-50 transition-colors">
+                Borrar todos los registros
             </button>
-
-
-            <button
-
-                onClick={
-                    resetAll
-                }
-
-                className="w-full bg-white text-red-500 border border-red-100 py-4 rounded-2xl font-semibold"
-
-            >
-
-                Borrar registros
-
-            </button>
-
         </main>
     );
 }
 
-
-/* =========================================================
-   MODAL AÑADIR
-========================================================= */
-
-function AddModal({
-
-    date,
-    onClose,
-    onSave
-
-}) {
-
-    const [name, setName] =
-        useState("");
-
-    const [calories, setCalories] =
-        useState("");
-
-    const [protein, setProtein] =
-        useState("");
-
-
-    function submit(e) {
-
-        e.preventDefault();
-
-
-        if (!name.trim()) {
-
-            alert(
-                "Introduce el nombre del alimento."
-            );
-
-            return;
-        }
-
-
-        if (
-            calories === "" ||
-            Number(calories) < 0
-        ) {
-
-            alert(
-                "Introduce las calorías."
-            );
-
-            return;
-        }
-
-
-        if (
-            protein !== "" &&
-            Number(protein) < 0
-        ) {
-
-            alert(
-                "La proteína no puede ser negativa."
-            );
-
-            return;
-        }
-
-
-        onSave({
-
-            name:
-                name.trim(),
-
-            calories:
-                Number(calories),
-
-            protein:
-                Number(protein || 0)
-
-        });
-
-    }
-
-
+function NavButton({ active, icon, label, onClick }) {
     return (
-
-        <div className="fixed inset-0 z-50 modal-backdrop flex items-end justify-center">
-
-            <div className="bg-white w-full max-w-[480px] rounded-t-[30px] p-6">
-
-                <div className="flex justify-between items-center mb-6">
-
-                    <div>
-
-                        <div className="text-sm text-gray-500">
-
-                            {formatDate(
-                                new Date(
-                                    date +
-                                    "T00:00:00"
-                                )
-                            )}
-
-                        </div>
-
-
-                        <h2 className="text-2xl font-extrabold">
-                            Añadir comida
-                        </h2>
-
-                    </div>
-
-
-                    <button
-
-                        onClick={
-                            onClose
-                        }
-
-                        className="w-10 h-10 rounded-full bg-gray-100 text-xl"
-
-                    >
-                        ×
-                    </button>
-
-                </div>
-
-
-                <form
-
-                    onSubmit={
-                        submit
-                    }
-
-                    className="space-y-4"
-
-                >
-
-                    <div>
-
-                        <label className="block text-sm text-gray-500 mb-2">
-                            Alimento / comida
-                        </label>
-
-
-                        <input
-
-                            autoFocus
-
-                            value={
-                                name
-                            }
-
-                            onChange={e =>
-                                setName(
-                                    e.target.value
-                                )
-                            }
-
-                            placeholder="Ej. Pechuga de pollo"
-
-                            className="w-full border border-gray-200 rounded-2xl px-4 py-4"
-
-                        />
-
-                    </div>
-
-
-                    <div>
-
-                        <label className="block text-sm text-gray-500 mb-2">
-                            Calorías
-                        </label>
-
-
-                        <input
-
-                            type="number"
-
-                            inputMode="decimal"
-
-                            min="0"
-
-                            value={
-                                calories
-                            }
-
-                            onChange={e =>
-                                setCalories(
-                                    e.target.value
-                                )
-                            }
-
-                            placeholder="500"
-
-                            className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
-
-                        />
-
-                    </div>
-
-
-                    <div>
-
-                        <label className="block text-sm text-gray-500 mb-2">
-                            Proteína (g)
-                        </label>
-
-
-                        <input
-
-                            type="number"
-
-                            inputMode="decimal"
-
-                            min="0"
-
-                            value={
-                                protein
-                            }
-
-                            onChange={e =>
-                                setProtein(
-                                    e.target.value
-                                )
-                            }
-
-                            placeholder="40"
-
-                            className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
-
-                        />
-
-                    </div>
-
-
-                    <button
-
-                        type="submit"
-
-                        className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mt-3"
-
-                    >
-                        Añadir
-                    </button>
-
-                </form>
-
-            </div>
-
-        </div>
-    );
-}
-
-
-/* =========================================================
-   NAV
-========================================================= */
-
-function NavButton({
-
-    active,
-    icon,
-    label,
-    onClick
-
-}) {
-
-    return (
-
-        <button
-
-            onClick={
-                onClick
-            }
-
-            className={`flex flex-col items-center justify-center gap-1 w-24 ${
-                active
-                    ? "green"
-                    : "text-gray-500"
-            }`}
-
-        >
-
-            <span className="text-3xl leading-none">
-                {icon}
-            </span>
-
-
-            <span className="text-xs font-medium">
-                {label}
-            </span>
-
+        <button onClick={onClick} className={`flex flex-col items-center justify-center gap-1 w-20 py-2 rounded-2xl transition-all ${active ? "text-green" : "text-gray-400 hover:text-gray-600"}`}>
+            <span className={`text-2xl leading-none transition-transform ${active ? 'scale-110' : ''}`}>{icon}</span>
+            <span className={`text-[10px] font-bold tracking-wide ${active ? 'opacity-100' : 'opacity-0 h-0 overflow-hidden'} transition-all`}>{label}</span>
         </button>
     );
 }
 
-
 /* =========================================================
-   START
+   INICIALIZACIÓN DE REACT
 ========================================================= */
-
-const root =
-    ReactDOM.createRoot(
-        document.getElementById(
-            "root"
-        )
-    );
-
-
-root.render(
-    <App />
-);
+const root = ReactDOM.createRoot(document.getElementById("root"));
+root.render(<App />);
 
 </script>
 
