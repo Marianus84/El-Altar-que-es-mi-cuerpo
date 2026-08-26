@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -104,7 +104,10 @@
         }
 
         .past-day {
-            opacity: .75;
+            opacity: .60;
+            background: #f3f4f3;
+            filter: grayscale(40%);
+            box-shadow: none !important;
         }
 
         .today-day {
@@ -333,9 +336,6 @@
 
 const { useState, useEffect } = React;
 
-/* =========================================================
-   CONFIGURACIÓN Y ESTADOS POR DEFECTO
-========================================================= */
 const DEFAULT_SETTINGS = {
     caloriesWeekly: 16590,
     proteinWeekly: 1190,
@@ -358,9 +358,6 @@ const MEAL_TYPES = [
     "Desayuno", "Almuerzo", "Cena"
 ];
 
-/* =========================================================
-   UTILIDADES
-========================================================= */
 function getMonday(date = new Date()) {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
@@ -435,9 +432,6 @@ function isCurrentTimeInRange(startStr, endStr) {
     return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
 }
 
-/* =========================================================
-   UI COMPONENT: DIALOG
-========================================================= */
 function CustomDialog({ config, onClose }) {
     if (!config.show) return null;
 
@@ -475,9 +469,6 @@ function CustomDialog({ config, onClose }) {
     );
 }
 
-/* =========================================================
-   APP
-========================================================= */
 function App() {
     const [activeTab, setActiveTab] = useState("home");
     
@@ -499,16 +490,13 @@ function App() {
     const [entries, setEntries] = useState(() => loadJSON("nutrition_entries", []));
     const [savedFoods, setSavedFoods] = useState(() => loadJSON("nutrition_saved_foods", []));
     const [stepsData, setStepsData] = useState(() => loadJSON("nutrition_steps", {}));
-    const [impulses, setImpulses] = useState(() => loadJSON("nutrition_impulses", []));
     
     const [showAdd, setShowAdd] = useState(false);
     const [selectedDate, setSelectedDate] = useState(dateKey(new Date()));
     const [selectedMealType, setSelectedMealType] = useState("Desayuno");
     const [editingEntry, setEditingEntry] = useState(null);
     const [editingFood, setEditingFood] = useState(null);
-    const [showImpulseModal, setShowImpulseModal] = useState(false);
 
-    // Navegación semanal
     const [currentWeekReference, setCurrentWeekReference] = useState(new Date());
 
     useEffect(() => {
@@ -526,10 +514,6 @@ function App() {
     useEffect(() => {
         localStorage.setItem("nutrition_steps", JSON.stringify(stepsData));
     }, [stepsData]);
-
-    useEffect(() => {
-        localStorage.setItem("nutrition_impulses", JSON.stringify(impulses));
-    }, [impulses]);
 
     const weekDates = getWeekDates(currentWeekReference);
     const weekKeys = weekDates.map(dateKey);
@@ -555,7 +539,6 @@ function App() {
         setStepsData(prev => ({ ...prev, [key]: Math.max(0, Number(val) || 0) }));
     }
 
-    // Totales consumidos en la semana
     const weeklyCaloriesConsumed = weekKeys.reduce((sum, key) => sum + getDayCalories(key), 0);
     const weeklyProteinConsumed = weekKeys.reduce((sum, key) => sum + getDayProtein(key), 0);
     const weeklyStepsConsumed = weekKeys.reduce((sum, key) => sum + getDaySteps(key), 0);
@@ -564,7 +547,6 @@ function App() {
     const weeklyProteinRemaining = Math.max(0, Number(settings.proteinWeekly || 0) - weeklyProteinConsumed);
     const weeklyStepsRemaining = Math.max(0, Number(settings.stepsWeekly || 0) - weeklyStepsConsumed);
 
-    // Presupuestos dinámicos diarios para calorías, proteína y pasos
     function getDynamicDailyBudget(index, totalWeeklyTarget, getConsumedFn) {
         let remainingBudget = Number(totalWeeklyTarget || 0);
         for (let i = 0; i < index; i++) {
@@ -577,21 +559,17 @@ function App() {
 
     const todayIndex = weekKeys.indexOf(todayKey);
     
-    // Calorías de hoy
     const todayBudget = todayIndex >= 0 ? getDynamicDailyBudget(todayIndex, settings.caloriesWeekly, getDayCalories) : Number(settings.caloriesWeekly || 0) / 7;
     const todayCalories = getDayCalories(todayKey);
     const todayRemaining = Math.max(0, todayBudget - todayCalories);
 
-    // Proteína de hoy
     const todayProteinBudget = todayIndex >= 0 ? getDynamicDailyBudget(todayIndex, settings.proteinWeekly, getDayProtein) : Number(settings.proteinWeekly || 0) / 7;
     const todayProtein = getDayProtein(todayKey);
 
-    // Pasos de hoy
     const todayStepsBudget = todayIndex >= 0 ? getDynamicDailyBudget(todayIndex, settings.stepsWeekly, getDaySteps) : Number(settings.stepsWeekly || 0) / 7;
     const todaySteps = getDaySteps(todayKey);
 
     function saveEntry(data) {
-        // Validar si el slot ya está ocupado para el día seleccionado (a menos que estemos editando el mismo registro)
         const dayEntries = getDayEntries(selectedDate);
         const existingSlotEntry = dayEntries.find(e => e.mealType === data.mealType && (!editingEntry || e.id !== editingEntry.id));
         
@@ -600,7 +578,6 @@ function App() {
             return;
         }
 
-        // Validar ventana horaria estricta si está activa y el día seleccionado es hoy
         if (settings.strictWindowsEnabled && selectedDate === todayKey && !editingEntry) {
             let start = settings.breakfastStart;
             let end = settings.breakfastEnd;
@@ -670,28 +647,15 @@ function App() {
         setEditingFood(null);
     }
 
-    function recordImpulse(reason, note) {
-        const item = {
-            id: Date.now() + Math.random(),
-            date: new Date().toISOString(),
-            reason: reason,
-            note: note || ""
-        };
-        setImpulses(prev => [item, ...prev]);
-        showAlert("Impulso registrado", "Has registrado tu estado con éxito. ¡Buen trabajo manteniendo la disciplina de tus 3 comidas!");
-    }
-
     function resetAll() {
         showConfirm(
             "Borrar Registros", 
-            "¿Seguro que quieres borrar todos los registros de consumo, pasos e impulsos? Esta acción no se puede deshacer.",
+            "¿Seguro que quieres borrar todos los registros de consumo y pasos? Esta acción no se puede deshacer.",
             () => {
                 setEntries([]);
                 setStepsData({});
-                setImpulses([]);
                 localStorage.removeItem("nutrition_entries");
                 localStorage.removeItem("nutrition_steps");
-                localStorage.removeItem("nutrition_impulses");
                 showAlert("Éxito", "Registros borrados correctamente.");
             }
         );
@@ -700,13 +664,12 @@ function App() {
     function saveBackup() {
         const backup = {
             app: "Mi Presupuesto",
-            version: 10,
+            version: 12,
             exportedAt: new Date().toISOString(),
             settings: settings,
             entries: entries,
             savedFoods: savedFoods,
-            steps: stepsData,
-            impulses: impulses
+            steps: stepsData
         };
 
         const json = JSON.stringify(backup, null, 2);
@@ -759,13 +722,11 @@ function App() {
                         
                         const importedSavedFoods = Array.isArray(backup.savedFoods) ? backup.savedFoods : [];
                         const importedSteps = backup.steps && typeof backup.steps === 'object' ? backup.steps : {};
-                        const importedImpulses = Array.isArray(backup.impulses) ? backup.impulses : [];
 
                         setSettings(importedSettings);
                         setEntries(importedEntries);
                         setSavedFoods(importedSavedFoods);
                         setStepsData(importedSteps);
-                        setImpulses(importedImpulses);
 
                         showAlert("Backup Restaurado", "Los datos se han cargado correctamente.");
                     }
@@ -818,7 +779,6 @@ function App() {
                     onEdit={entry => { setEditingEntry(entry); setSelectedDate(entry.date); setSelectedMealType(entry.mealType || "Desayuno"); setShowAdd(true); }}
                     entries={entries}
                     onDelete={deleteEntry}
-                    onOpenImpulse={() => setShowImpulseModal(true)}
                 />
             )}
 
@@ -904,145 +864,16 @@ function App() {
                     showAlert={showAlert}
                 />
             )}
-
-            {showImpulseModal && (
-                <ImpulseModal
-                    onClose={() => setShowImpulseModal(false)}
-                    onRecord={recordImpulse}
-                />
-            )}
         </div>
     );
 }
 
-/* =========================================================
-   IMPULSE / URGENCY MODAL (OPCIÓN 3)
-========================================================= */
-function ImpulseModal({ onClose, onRecord }) {
-    const [step, setStep] = useState(1); // 1: prompt, 2: timer (10 mins), 3: log form
-    const [secondsLeft, setSecondsLeft] = useState(600); // 10 minutes
-    const [reason, setReason] = useState("Aburrimiento");
-    const [note, setNote] = useState("");
-
-    useEffect(() => {
-        let timer;
-        if (step === 2 && secondsLeft > 0) {
-            timer = setInterval(() => {
-                setSecondsLeft(prev => prev - 1);
-            }, 1000);
-        } else if (step === 2 && secondsLeft === 0) {
-            setStep(3);
-        }
-        return () => clearInterval(timer);
-    }, [step, secondsLeft]);
-
-    const formatTime = (sec) => {
-        const m = Math.floor(sec / 60);
-        const s = sec % 60;
-        return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-    };
-
-    return (
-        <div className="fixed inset-0 z-[80] modal-backdrop flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]">
-            <div className="bg-white rounded-3xl p-6 w-full max-w-[340px] shadow-2xl relative">
-                <button onClick={onClose} className="absolute right-4 top-4 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200">
-                    ×
-                </button>
-
-                {step === 1 && (
-                    <div>
-                        <div className="text-3xl mb-3 text-center">🧘</div>
-                        <h3 className="text-xl font-extrabold text-gray-800 text-center mb-2">¿Ganas de picar entre horas?</h3>
-                        <p className="text-gray-600 text-sm text-center mb-6 leading-relaxed">
-                            Tienes tus 3 comidas estructuradas. ¿Es hambre real o un impulso emocional? Tómate 10 minutos de pausa antes de decidir.
-                        </p>
-                        <div className="space-y-3">
-                            <button
-                                onClick={() => setStep(2)}
-                                className="w-full py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-sm shadow-sm transition-all"
-                            >
-                                Iniciar pausa de 10 minutos
-                            </button>
-                            <button
-                                onClick={() => setStep(3)}
-                                className="w-full py-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold text-sm transition-all"
-                            >
-                                Registrar impulso directamente
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {step === 2 && (
-                    <div className="text-center py-4">
-                        <div className="text-xs font-bold text-amber-600 uppercase tracking-wide mb-2">Técnica de la pausa</div>
-                        <div className="text-5xl font-black text-gray-800 my-4 tracking-tight">{formatTime(secondsLeft)}</div>
-                        <p className="text-xs text-gray-500 leading-relaxed mb-6">
-                            Bebe un vaso de agua, respira hondo y espera a que termine el temporizador para verificar si realmente necesitas comer.
-                        </p>
-                        <button
-                            onClick={() => setStep(3)}
-                            className="w-full py-3 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-sm transition-all"
-                        >
-                            Saltar pausa y registrar
-                        </button>
-                    </div>
-                )}
-
-                {step === 3 && (
-                    <div>
-                        <h3 className="text-lg font-extrabold text-gray-800 mb-3">Registro de Impulso</h3>
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">¿Qué sentiste?</label>
-                                <select
-                                    value={reason}
-                                    onChange={e => setReason(e.target.value)}
-                                    className="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-3 py-3 text-sm text-gray-800 font-medium"
-                                >
-                                    <option value="Aburrimiento">Aburrimiento</option>
-                                    <option value="Ansiedad / Estrés">Ansiedad / Estrés</option>
-                                    <option value="Hambre real">Hambre real</option>
-                                    <option value="Antojo visual">Antojo visual</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Nota opcional</label>
-                                <input
-                                    value={note}
-                                    onChange={e => setNote(e.target.value)}
-                                    placeholder="Ej. Estaba trabajando y pensé en chocolate..."
-                                    className="w-full border-2 border-gray-100 bg-gray-50 rounded-xl px-3 py-3 text-sm text-gray-800"
-                                />
-                            </div>
-
-                            <button
-                                onClick={() => {
-                                    onRecord(reason, note);
-                                    onClose();
-                                }}
-                                className="w-full py-3.5 rounded-2xl bg-green hover:bg-green/90 text-white font-bold text-sm shadow-md transition-all mt-2"
-                            >
-                                Guardar registro anti-picoteo
-                            </button>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-/* =========================================================
-   HOME VIEW
-========================================================= */
 function Home({
     settings, weekDates, weekKeys, todayKey, todayBudget, todayCalories, todayProtein,
     todayProteinBudget, todaySteps, todayStepsBudget, todayRemaining, weeklyCaloriesConsumed,
     weeklyCaloriesRemaining, weeklyProteinConsumed, weeklyProteinRemaining, weeklyStepsConsumed,
     weeklyStepsRemaining, getDayCalories, getDayProtein, getDaySteps, setDaySteps, getDynamicDailyBudget,
-    currentWeekReference, setCurrentWeekReference, onAdd, onSelectDay, onEdit, entries, onDelete, onOpenImpulse
+    currentWeekReference, setCurrentWeekReference, onAdd, onSelectDay, onEdit, entries, onDelete
 }) {
     function changeWeek(direction) {
         const newRef = new Date(currentWeekReference);
@@ -1083,19 +914,6 @@ function Home({
                     </button>
                 </div>
             </header>
-
-            {/* BOTÓN ANTI-PICOTEO / IMPULSOS (OPCIÓN 3) */}
-            <div className="mb-5">
-                <button
-                    onClick={onOpenImpulse}
-                    className="w-full bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-800 py-3 px-4 rounded-2xl font-bold text-sm flex items-center justify-between transition-all shadow-sm"
-                >
-                    <span className="flex items-center gap-2">
-                        <span className="text-lg">🧘</span> ¿Tentación de picar entre horas?
-                    </span>
-                    <span className="bg-amber-200/70 text-amber-900 text-xs px-2.5 py-1 rounded-xl">Pausa anti-ansiedad</span>
-                </button>
-            </div>
 
             <section className="card p-6 mb-5">
                 <div className="flex items-center gap-5">
@@ -1208,6 +1026,7 @@ function Home({
                     const steps = getDaySteps(key);
                     const budget = getDynamicDailyBudget(index, settings.caloriesWeekly, getDayCalories);
                     const proteinBudget = getDynamicDailyBudget(index, settings.proteinWeekly, getDayProtein);
+                    const stepsBudget = getDynamicDailyBudget(index, settings.stepsWeekly, getDaySteps);
                     const isToday = key === todayKey;
                     const isPast = isPastDate(key);
                     const dayEntries = entries.filter(e => e.date === key);
@@ -1243,12 +1062,23 @@ function Home({
                                 </div>
                             </div>
 
-                            <div className="flex justify-between mt-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
+                            <div className="flex justify-between mt-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wide items-center">
                                 <span>P {Math.round(protein)} / {Math.round(proteinBudget)} g</span>
-                                <span className="text-amber-600 font-bold">🚶 {steps.toLocaleString("es-ES")} pasos</span>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="text-amber-600 font-bold">🚶</span>
+                                    <input
+                                        type="number"
+                                        inputMode="numeric"
+                                        value={steps === 0 ? "" : steps}
+                                        onChange={e => setDaySteps(key, e.target.value)}
+                                        onClick={e => e.stopPropagation()}
+                                        placeholder="Pasos"
+                                        className="w-24 border border-gray-200 bg-white rounded-lg px-2 py-1 text-xs font-bold text-gray-800 text-right"
+                                    />
+                                    <span className="text-[10px] text-gray-400">/ ~{Math.round(stepsBudget)}</span>
+                                </div>
                             </div>
 
-                            {/* OPZIONE 1: 3 SLOTS FIJOS OBLIGATORIOS (DESAYUNO, ALMUERZO, CENA) */}
                             <div className="mt-4 space-y-2 border-t border-gray-50 pt-3">
                                 {MEAL_TYPES.map(mealType => {
                                     const entry = dayEntries.find(e => e.mealType === mealType);
@@ -1301,9 +1131,6 @@ function Home({
     );
 }
 
-/* =========================================================
-   ADD / EDIT ENTRY MODAL
-========================================================= */
 function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAlert, initialData, existingEntries }) {
     const [name, setName] = useState(initialData ? initialData.name : "");
     const [calories, setCalories] = useState(initialData ? initialData.calories.toString() : "");
@@ -1468,9 +1295,6 @@ function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAler
     );
 }
 
-/* =========================================================
-   EDIT SAVED FOOD MODAL
-========================================================= */
 function EditFoodModal({ food, onClose, onSave, showAlert }) {
     const [name, setName] = useState(food.name);
     const [calories, setCalories] = useState(food.calories.toString());
@@ -1565,9 +1389,6 @@ function EditFoodModal({ food, onClose, onSave, showAlert }) {
     );
 }
 
-/* =========================================================
-   FOOD LIBRARY VIEW
-========================================================= */
 function FoodLibrary({ savedFoods, onDelete, onEdit }) {
     const [searchTerm, setSearchTerm] = useState("");
 
@@ -1706,9 +1527,6 @@ function MiniProgress({ value, max, label, suffix, color }) {
     );
 }
 
-/* =========================================================
-   HISTORY VIEW
-========================================================= */
 function History({ entries, settings, stepsData, getDayCalories, getDayProtein, getDaySteps, getDynamicDailyBudget, onSelectDay }) {
     const [period, setPeriod] = useState("week");
     const today = new Date();
@@ -1871,9 +1689,6 @@ function History({ entries, settings, stepsData, getDayCalories, getDayProtein, 
     );
 }
 
-/* =========================================================
-   SETTINGS VIEW (MANUAL INPUTS ONLY)
-========================================================= */
 function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, showAlert }) {
     const [local, setLocal] = useState(settings);
 
@@ -1955,7 +1770,6 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
                 </div>
             </section>
 
-            {/* OPZIONE 2: VENTANAS HORARIAS ESTRICTAS */}
             <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
                 <div className="flex justify-between items-center mb-3">
                     <div>
@@ -2029,9 +1843,6 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
     );
 }
 
-/* =========================================================
-   NAV
-========================================================= */
 function NavButton({ active, icon, label, onClick }) {
     return (
         <button
@@ -2044,9 +1855,6 @@ function NavButton({ active, icon, label, onClick }) {
     );
 }
 
-/* =========================================================
-   INICIALIZACIÓN
-========================================================= */
 const root = ReactDOM.createRoot(document.getElementById("root"));
 root.render(<App />);
 
