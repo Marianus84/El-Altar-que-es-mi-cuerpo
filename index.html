@@ -486,12 +486,18 @@ function App() {
     const [settings, setSettings] = useState(() => loadJSON("nutrition_settings", DEFAULT_SETTINGS));
     const [entries, setEntries] = useState(() => {
         const raw = loadJSON("nutrition_entries", []);
-        // Deduplicar entradas corruptas o duplicadas por ID o slot de día
         const cleanMap = new Map();
         raw.forEach(e => {
-            if (e && e.date && e.mealType) {
-                const uniqueKey = `${e.date}_${e.mealType}`;
-                cleanMap.set(uniqueKey, e); // Mantiene la última entrada válida para ese slot
+            if (e && e.date && e.name && e.calories !== undefined) {
+                const uniqueKey = e.id ? String(e.id) : `${e.date}_${e.name}_${Math.random()}`;
+                cleanMap.set(uniqueKey, {
+                    id: e.id || Date.now() + Math.random(),
+                    date: String(e.date),
+                    name: String(e.name),
+                    calories: Number(e.calories) || 0,
+                    protein: Number(e.protein) || 0,
+                    mealType: String(e.mealType || "Desayuno")
+                });
             }
         });
         return Array.from(cleanMap.values());
@@ -578,14 +584,6 @@ function App() {
     const todaySteps = getDaySteps(todayKey);
 
     function saveEntry(data) {
-        const dayEntries = getDayEntries(selectedDate);
-        const existingSlotEntry = dayEntries.find(e => e.mealType === data.mealType && (!editingEntry || e.id !== editingEntry.id));
-        
-        if (existingSlotEntry) {
-            showAlert("Slot ocupado", `Ya tienes registrado un ${data.mealType} para este día. Elimínalo o edítalo si deseas cambiarlo.`);
-            return;
-        }
-
         if (settings.strictWindowsEnabled && selectedDate === todayKey && !editingEntry) {
             let start = settings.breakfastStart;
             let end = settings.breakfastEnd;
@@ -615,9 +613,8 @@ function App() {
                 mealType: data.mealType
             } : e));
         } else {
-            // Eliminar preventivamente cualquier colisión previa en el mismo slot de fecha y comida
             setEntries(prev => [
-                ...prev.filter(e => !(e.date === selectedDate && e.mealType === data.mealType)),
+                ...prev,
                 {
                     id: Date.now() + Math.random(),
                     date: selectedDate,
@@ -675,7 +672,7 @@ function App() {
     function saveBackup() {
         const backup = {
             app: "Mi Presupuesto",
-            version: 12,
+            version: 13,
             exportedAt: new Date().toISOString(),
             settings: settings,
             entries: entries,
@@ -863,7 +860,6 @@ function App() {
                     savedFoods={savedFoods}
                     showAlert={showAlert}
                     initialData={editingEntry}
-                    existingEntries={getDayEntries(selectedDate)}
                     settings={settings}
                 />
             )}
@@ -1044,7 +1040,7 @@ function Home({
                     const dayEntries = entries.filter(e => e.date === key);
 
                     return (
-                        <div key={key} className={`card day-row ${isToday ? "today-day ring-2 ring-green/20 p-4" : ""} ${isPast ? "past-day" : "p-4"}`}>
+                        <div key={key} className={`card day-row ${isToday ? "today-day ring-2 ring-green/25 p-4" : ""} ${isPast ? "past-day" : "p-4"}`}>
                             <div className="flex justify-between items-center cursor-pointer" onClick={() => onSelectDay(key)}>
                                 <div>
                                     <div className="flex items-center gap-2">
@@ -1094,44 +1090,45 @@ function Home({
                             {(!isPast || dayEntries.length > 0) && (
                                 <div className="mt-3 space-y-2 border-t border-gray-100 pt-2.5">
                                     {MEAL_TYPES.map(mealType => {
-                                        const entry = dayEntries.find(e => e.mealType === mealType);
+                                        const slotEntries = dayEntries.filter(e => e.mealType === mealType);
                                         return (
-                                            <div key={mealType} className="bg-white/80 rounded-xl p-2.5 flex justify-between items-center shadow-sm">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${entry ? 'bg-green/10 green' : 'bg-gray-100 text-gray-400'}`}>
+                                            <div key={mealType} className="bg-white/80 rounded-xl p-2.5 shadow-sm space-y-2">
+                                                <div className="flex justify-between items-center">
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${slotEntries.length > 0 ? 'bg-green/10 green' : 'bg-gray-100 text-gray-400'}`}>
                                                         {mealType}
                                                     </span>
-                                                    {entry ? (
-                                                        <div>
-                                                            <div className="font-bold text-xs text-gray-800 cursor-pointer hover:text-green" onClick={() => onEdit(entry)}>{entry.name}</div>
-                                                            <div className="text-[11px] font-medium text-gray-500">P {entry.protein}g</div>
-                                                        </div>
-                                                    ) : (
-                                                        <span className="text-xs text-gray-400 italic font-medium">Vacío</span>
-                                                    )}
+                                                    <button
+                                                        onClick={() => onAdd(key, mealType)}
+                                                        className="px-2.5 py-1 rounded-xl bg-gray-50 text-green border border-green/20 text-xs font-bold hover:bg-green hover:text-white transition-all shadow-sm"
+                                                    >
+                                                        + Añadir
+                                                    </button>
                                                 </div>
 
-                                                <div>
-                                                    {entry ? (
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-bold text-xs text-gray-700">{entry.calories} kcal</span>
-                                                            <button
-                                                                onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
-                                                                className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm transition-colors text-sm"
-                                                                title="Eliminar comida"
-                                                            >
-                                                                ×
-                                                            </button>
-                                                        </div>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => onAdd(key, mealType)}
-                                                            className="px-2.5 py-1 rounded-xl bg-gray-50 text-green border border-green/20 text-xs font-bold hover:bg-green hover:text-white transition-all shadow-sm"
-                                                        >
-                                                            + Añadir
-                                                        </button>
-                                                    )}
-                                                </div>
+                                                {slotEntries.length > 0 ? (
+                                                    <div className="space-y-1.5 pt-1">
+                                                        {slotEntries.map(entry => (
+                                                            <div key={entry.id} className="flex justify-between items-center bg-gray-50/70 p-2 rounded-lg">
+                                                                <div>
+                                                                    <div className="font-bold text-xs text-gray-800 cursor-pointer hover:text-green" onClick={() => onEdit(entry)}>{entry.name}</div>
+                                                                    <div className="text-[10px] font-medium text-gray-500">P {entry.protein}g</div>
+                                                                </div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="font-bold text-xs text-gray-700">{entry.calories} kcal</span>
+                                                                    <button
+                                                                        onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
+                                                                        className="w-5 h-5 flex items-center justify-center rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm transition-colors text-xs"
+                                                                        title="Eliminar alimento"
+                                                                    >
+                                                                        ×
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-xs text-gray-400 italic font-medium px-1">Vacío</div>
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -1145,7 +1142,7 @@ function Home({
     );
 }
 
-function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAlert, initialData, existingEntries, settings }) {
+function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAlert, initialData, settings }) {
     const [name, setName] = useState(initialData ? initialData.name : "");
     const [calories, setCalories] = useState(initialData ? initialData.calories.toString() : "");
     const [protein, setProtein] = useState(initialData ? initialData.protein.toString() : "");
@@ -1177,14 +1174,6 @@ function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAler
             return;
         }
 
-        // Comprobación estricta de Slot Ocupado (Opción 1)
-        const isOccupied = existingEntries.some(e => e.mealType === mealType && (!initialData || e.id !== initialData.id));
-        if (isOccupied) {
-            showAlert("Slot ocupado", `Ya tienes registrado un ${mealType} para este día. Elimínalo o edítalo si deseas cambiarlo.`);
-            return;
-        }
-
-        // Comprobación estricta de Ventana Horaria (Opción 2)
         if (settings.strictWindowsEnabled && date === dateKey(new Date()) && !initialData) {
             let start = settings.breakfastStart;
             let end = settings.breakfastEnd;
@@ -1223,7 +1212,7 @@ function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAler
                             {formatDate(new Date(date + "T00:00:00"))}
                         </div>
                         <h2 className="text-2xl font-extrabold text-gray-800">
-                            {initialData ? "Editar comida" : `Añadir ${mealType}`}
+                            {initialData ? "Editar alimento" : `Añadir a ${mealType}`}
                         </h2>
                     </div>
                     <button onClick={onClose} className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors">
@@ -1233,20 +1222,17 @@ function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAler
 
                 <form onSubmit={submit} className="flex flex-col gap-5 overflow-y-auto custom-scrollbar pb-4">
                     <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Momento del día (Slot obligatorio)</label>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Momento del día</label>
                         <select
                             value={mealType}
                             onChange={e => setMealType(e.target.value)}
                             className="w-full border-2 border-gray-100 bg-gray-50 rounded-2xl px-4 py-3.5 text-gray-800 font-medium focus:bg-white transition-colors"
                         >
-                            {MEAL_TYPES.map(meal => {
-                                const isOccupied = existingEntries.some(e => e.mealType === meal && (!initialData || e.id !== initialData.id));
-                                return (
-                                    <option key={meal} value={meal}>
-                                        {meal} {isOccupied ? "(Ya ocupado)" : ""}
-                                    </option>
-                                );
-                            })}
+                            {MEAL_TYPES.map(meal => (
+                                <option key={meal} value={meal}>
+                                    {meal}
+                                </option>
+                            ))}
                         </select>
                     </div>
 
