@@ -2,10 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
-    >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
     <title>Mi Presupuesto</title>
 
@@ -35,7 +32,8 @@
         }
 
         button,
-        input {
+        input,
+        select {
             font-family: inherit;
         }
 
@@ -76,22 +74,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, .08);
         }
 
-        .circle {
-            transform: rotate(-90deg);
-        }
-
-        .circle-bg {
-            fill: none;
-            stroke: #e4eae6;
-        }
-
-        .circle-progress {
-            fill: none;
-            stroke: #20a35a;
-            stroke-linecap: round;
-            transition: stroke-dashoffset .4s ease;
-        }
-
         .modal-backdrop {
             background: rgba(0, 0, 0, .42);
             backdrop-filter: blur(3px);
@@ -105,7 +87,8 @@
             padding-bottom: env(safe-area-inset-bottom);
         }
 
-        input:focus {
+        input:focus,
+        select:focus {
             outline: none;
             border-color: #20a35a;
             box-shadow: 0 0 0 3px rgba(32, 163, 90, .12);
@@ -150,20 +133,146 @@
             box-shadow: 0 6px 20px rgba(32, 163, 90, .25);
         }
 
-        .history-tab {
-            transition: all .15s ease;
+        /* =====================================================
+           CÍRCULO DE AGUA
+        ===================================================== */
+
+        .water-circle {
+            position: relative;
+            overflow: hidden;
+            border-radius: 50%;
+            background: #f1f5f2;
+            box-shadow:
+                inset 0 0 0 8px #e4eae6,
+                0 2px 8px rgba(0, 0, 0, .05);
         }
 
-        .history-tab.active {
+        .water-fill {
+            position: absolute;
+            left: -15%;
+            width: 130%;
+            bottom: 0;
             background: #20a35a;
-            color: white;
-            box-shadow: 0 3px 10px rgba(32, 163, 90, .20);
+            transition: height .7s cubic-bezier(.22, .61, .36, 1);
+        }
+
+        .water-wave {
+            position: absolute;
+            left: -20%;
+            width: 140%;
+            height: 32px;
+            top: -15px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.28);
+            animation: waveMove 3.2s linear infinite;
+        }
+
+        .water-wave-2 {
+            position: absolute;
+            left: -20%;
+            width: 140%;
+            height: 28px;
+            top: -11px;
+            border-radius: 50%;
+            background: rgba(255,255,255,.16);
+            animation: waveMoveReverse 4.5s linear infinite;
+        }
+
+        .water-shimmer {
+            position: absolute;
+            left: -50%;
+            width: 200%;
+            height: 70%;
+            top: 15%;
+            background: linear-gradient(
+                90deg,
+                transparent,
+                rgba(255,255,255,.10),
+                transparent
+            );
+            transform: rotate(-15deg);
+            animation: shimmer 4s ease-in-out infinite;
+        }
+
+        @keyframes waveMove {
+            from {
+                transform: translateX(0);
+            }
+
+            to {
+                transform: translateX(-12%);
+            }
+        }
+
+        @keyframes waveMoveReverse {
+            from {
+                transform: translateX(-8%);
+            }
+
+            to {
+                transform: translateX(8%);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-30%) rotate(-15deg);
+            }
+
+            50% {
+                transform: translateX(30%) rotate(-15deg);
+            }
+
+            100% {
+                transform: translateX(-30%) rotate(-15deg);
+            }
+        }
+
+        .water-content {
+            position: absolute;
+            inset: 0;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+        }
+
+        .water-number {
+            font-size: 25px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .water-max {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 3px;
+        }
+
+        .water-label {
+            font-size: 14px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+
+        .history-chart {
+            position: relative;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .chart-grid-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            border-top: 1px dashed #dfe6e1;
         }
 
         .chart-scroll {
             overflow-x: auto;
             overflow-y: hidden;
-            -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
         }
 
@@ -171,8 +280,84 @@
             display: none;
         }
 
-        .chart-tooltip {
-            pointer-events: none;
+        .chart-inner {
+            min-width: 100%;
+        }
+
+        .bar-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            min-width: 48px;
+            height: 230px;
+        }
+
+        .bar-area {
+            position: relative;
+            width: 100%;
+            height: 185px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .budget-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #e91e4d;
+            z-index: 4;
+        }
+
+        .budget-line::after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: -3px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #e91e4d;
+        }
+
+        .consumption-bar {
+            width: 27px;
+            min-height: 2px;
+            background: #20a35a;
+            border-radius: 8px 8px 3px 3px;
+            transition: height .4s ease;
+            z-index: 3;
+        }
+
+        .chart-label {
+            font-size: 10px;
+            color: #6b7280;
+            margin-top: 8px;
+            white-space: nowrap;
+        }
+
+        .chart-value {
+            font-size: 9px;
+            color: #6b7280;
+            margin-bottom: 3px;
+            white-space: nowrap;
+        }
+
+        .legend-dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .legend-green {
+            background: #20a35a;
+        }
+
+        .legend-red {
+            background: #e91e4d;
         }
     </style>
 </head>
@@ -184,7 +369,6 @@
 <script type="text/babel">
 
 const { useState, useEffect } = React;
-
 
 /* =========================================================
    CONFIGURACIÓN
@@ -205,22 +389,6 @@ const DAYS = [
     "Sábado",
     "Domingo"
 ];
-
-const MONTHS = [
-    "enero",
-    "febrero",
-    "marzo",
-    "abril",
-    "mayo",
-    "junio",
-    "julio",
-    "agosto",
-    "septiembre",
-    "octubre",
-    "noviembre",
-    "diciembre"
-];
-
 
 /* =========================================================
    UTILIDADES
@@ -261,14 +429,6 @@ function dateKey(date) {
 }
 
 
-function keyToDate(key) {
-
-    return new Date(
-        key + "T00:00:00"
-    );
-}
-
-
 function formatDate(date) {
 
     return date.toLocaleDateString(
@@ -282,7 +442,7 @@ function formatDate(date) {
 }
 
 
-function formatShortDate(date) {
+function formatWeekDate(date) {
 
     return date.toLocaleDateString(
         "es-ES",
@@ -294,65 +454,23 @@ function formatShortDate(date) {
 }
 
 
-function formatChartDate(date) {
+function getWeekDates(referenceDate = new Date()) {
 
-    return date.toLocaleDateString(
-        "es-ES",
-        {
-            day: "2-digit",
-            month: "2-digit"
-        }
-    );
-}
-
-
-function getWeekDates(date = new Date()) {
-
-    const monday = getMonday(date);
+    const monday =
+        getMonday(referenceDate);
 
     const dates = [];
 
     for (let i = 0; i < 7; i++) {
 
-        const d = new Date(monday);
+        const d =
+            new Date(monday);
 
         d.setDate(
             monday.getDate() + i
         );
 
         dates.push(d);
-    }
-
-    return dates;
-}
-
-
-function getMonthDates(date = new Date()) {
-
-    const year =
-        date.getFullYear();
-
-    const month =
-        date.getMonth();
-
-    const lastDay =
-        new Date(
-            year,
-            month + 1,
-            0
-        ).getDate();
-
-    const dates = [];
-
-    for (let i = 1; i <= lastDay; i++) {
-
-        dates.push(
-            new Date(
-                year,
-                month,
-                i
-            )
-        );
     }
 
     return dates;
@@ -407,24 +525,20 @@ function isPastDate(key) {
 }
 
 
-function isFutureDate(key) {
-
-    const today =
-        new Date();
-
-    today.setHours(
-        0,
-        0,
-        0,
-        0
-    );
+function formatShortDate(key) {
 
     const date =
         new Date(
             key + "T00:00:00"
         );
 
-    return date > today;
+    return date.toLocaleDateString(
+        "es-ES",
+        {
+            day: "2-digit",
+            month: "2-digit"
+        }
+    );
 }
 
 
@@ -462,10 +576,6 @@ function App() {
         );
 
 
-    /* -----------------------------------------------------
-       GUARDAR AUTOMÁTICAMENTE
-    ----------------------------------------------------- */
-
     useEffect(() => {
 
         localStorage.setItem(
@@ -486,10 +596,6 @@ function App() {
     }, [entries]);
 
 
-    /* -----------------------------------------------------
-       FECHAS
-    ----------------------------------------------------- */
-
     const weekDates =
         getWeekDates();
 
@@ -499,10 +605,6 @@ function App() {
     const todayKey =
         dateKey(new Date());
 
-
-    /* -----------------------------------------------------
-       ENTRADAS
-    ----------------------------------------------------- */
 
     function getDayEntries(key) {
 
@@ -536,97 +638,6 @@ function App() {
     }
 
 
-    /* =====================================================
-       PRESUPUESTO DINÁMICO
-    ===================================================== */
-
-    /*
-     * Calcula el presupuesto dinámico de cualquier fecha.
-     *
-     * Esto es importante para HISTORIAL:
-     * no podemos usar únicamente la semana actual.
-     *
-     * Para cada fecha:
-     *
-     * presupuesto semanal
-     * - consumo de días anteriores
-     * --------------------------------
-     * días restantes
-     *
-     * Ejemplo:
-     *
-     * 16.590 semanal
-     *
-     * Lunes: 2.600
-     *
-     * Martes:
-     * (16.590 - 2.600) / 6
-     *
-     * Si martes consume 2.000:
-     *
-     * Miércoles:
-     * (16.590 - 2.600 - 2.000) / 5
-     */
-
-    function getDynamicBudgetForDate(date) {
-
-        const key =
-            dateKey(date);
-
-        const monday =
-            getMonday(date);
-
-        const week =
-            getWeekDates(monday);
-
-        const keys =
-            week.map(dateKey);
-
-        const index =
-            keys.indexOf(key);
-
-        if (index < 0) {
-            return 0;
-        }
-
-        let remainingBudget =
-            Number(settings.caloriesWeekly);
-
-        for (let i = 0; i < index; i++) {
-
-            remainingBudget -=
-                getDayCalories(
-                    keys[i]
-                );
-        }
-
-        const remainingDays =
-            7 - index;
-
-        if (remainingDays <= 0) {
-            return 0;
-        }
-
-        return Math.max(
-            0,
-            remainingBudget /
-            remainingDays
-        );
-    }
-
-
-    function getDynamicDailyBudget(index) {
-
-        return getDynamicBudgetForDate(
-            weekDates[index]
-        );
-    }
-
-
-    /* =====================================================
-       DATOS SEMANALES
-    ===================================================== */
-
     const weeklyCaloriesConsumed =
         weekKeys.reduce(
             (sum, key) =>
@@ -657,9 +668,37 @@ function App() {
         );
 
 
-    /* -----------------------------------------------------
-       HOY
-    ----------------------------------------------------- */
+    /* =====================================================
+       PRESUPUESTO DINÁMICO
+    ===================================================== */
+
+    function getDynamicDailyBudget(index) {
+
+        let remainingBudget =
+            Number(settings.caloriesWeekly);
+
+        for (let i = 0; i < index; i++) {
+
+            remainingBudget -=
+                getDayCalories(
+                    weekKeys[i]
+                );
+        }
+
+        const remainingDays =
+            7 - index;
+
+        if (remainingDays <= 0) {
+            return 0;
+        }
+
+        return Math.max(
+            0,
+            remainingBudget /
+            remainingDays
+        );
+    }
+
 
     const todayIndex =
         weekKeys.indexOf(todayKey);
@@ -690,13 +729,12 @@ function App() {
     const todayRemaining =
         Math.max(
             0,
-            todayBudget -
-            todayCalories
+            todayBudget - todayCalories
         );
 
 
     /* =====================================================
-       AÑADIR REGISTRO
+       AÑADIR
     ===================================================== */
 
     function addEntry(data) {
@@ -718,6 +756,7 @@ function App() {
 
             protein:
                 Number(data.protein)
+
         };
 
 
@@ -731,10 +770,6 @@ function App() {
     }
 
 
-    /* =====================================================
-       ELIMINAR
-    ===================================================== */
-
     function deleteEntry(id) {
 
         setEntries(prev =>
@@ -745,10 +780,6 @@ function App() {
         );
     }
 
-
-    /* =====================================================
-       BORRAR TODOS
-    ===================================================== */
 
     function resetAll() {
 
@@ -770,7 +801,7 @@ function App() {
 
 
     /* =====================================================
-       BACKUP — GUARDAR
+       BACKUP
     ===================================================== */
 
     function saveBackup() {
@@ -791,6 +822,7 @@ function App() {
 
             entries:
                 entries
+
         };
 
 
@@ -855,10 +887,6 @@ function App() {
         );
     }
 
-
-    /* =====================================================
-       BACKUP — CARGAR
-    ===================================================== */
 
     function loadBackup(event) {
 
@@ -932,6 +960,7 @@ function App() {
                                 backup.settings
                                     .proteinDaily
                             ) || 0
+
                     };
 
 
@@ -970,6 +999,7 @@ function App() {
                                         Number(
                                             entry.protein
                                         ) || 0
+
                                 })
                             );
 
@@ -987,7 +1017,7 @@ function App() {
                         "Backup cargado correctamente."
                     );
 
-                } catch (error) {
+                } catch {
 
                     alert(
                         "No se pudo cargar el backup. El archivo no tiene un formato válido."
@@ -997,16 +1027,13 @@ function App() {
 
                 event.target.value =
                     "";
+
             };
 
 
         reader.readAsText(file);
     }
 
-
-    /* =====================================================
-       RENDER
-    ===================================================== */
 
     return (
 
@@ -1085,6 +1112,7 @@ function App() {
                         setShowAdd(
                             true
                         );
+
                     }}
 
                     onSelectDay={
@@ -1097,6 +1125,7 @@ function App() {
                             setShowAdd(
                                 true
                             );
+
                         }
                     }
 
@@ -1107,7 +1136,9 @@ function App() {
                     onDelete={
                         deleteEntry
                     }
+
                 />
+
             )}
 
 
@@ -1119,6 +1150,10 @@ function App() {
                         entries
                     }
 
+                    settings={
+                        settings
+                    }
+
                     getDayCalories={
                         getDayCalories
                     }
@@ -1127,16 +1162,8 @@ function App() {
                         getDayProtein
                     }
 
-                    getDynamicBudgetForDate={
-                        getDynamicBudgetForDate
-                    }
-
-                    settings={
-                        settings
-                    }
-
-                    todayKey={
-                        todayKey
+                    getDynamicDailyBudget={
+                        getDynamicDailyBudget
                     }
 
                     onSelectDay={
@@ -1149,9 +1176,12 @@ function App() {
                             setShowAdd(
                                 true
                             );
+
                         }
                     }
+
                 />
+
             )}
 
 
@@ -1178,13 +1208,11 @@ function App() {
                     loadBackup={
                         loadBackup
                     }
+
                 />
+
             )}
 
-
-            {/* =================================================
-               NAVEGACIÓN
-            ================================================= */}
 
             <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 nav-bottom z-30">
 
@@ -1236,10 +1264,6 @@ function App() {
             </div>
 
 
-            {/* =================================================
-               MODAL AÑADIR
-            ================================================= */}
-
             {showAdd && (
 
                 <AddModal
@@ -1257,7 +1281,9 @@ function App() {
                     onSave={
                         addEntry
                     }
+
                 />
+
             )}
 
         </div>
@@ -1307,13 +1333,13 @@ function Home({
 
                     <h1 className="text-[28px] font-extrabold">
 
-                        {formatShortDate(
+                        {formatWeekDate(
                             weekDates[0]
                         )}
 
                         {" – "}
 
-                        {formatShortDate(
+                        {formatWeekDate(
                             weekDates[6]
                         )}
 
@@ -1340,29 +1366,38 @@ function Home({
                 <div className="flex items-center gap-5">
 
                     <ProgressCircle
+
                         value={
                             weeklyCaloriesConsumed
                         }
+
                         max={
                             settings.caloriesWeekly
                         }
+
                         size={175}
-                        stroke={14}
+
                         label="Calorías"
+
                     />
 
 
                     <div className="flex-1 space-y-5">
 
                         <MiniProgress
+
                             value={
                                 weeklyProteinConsumed
                             }
+
                             max={
                                 weeklyProteinTarget
                             }
+
                             label="Proteína"
+
                             suffix="g"
+
                         />
 
 
@@ -1413,7 +1448,7 @@ function Home({
 
 
             {/* =================================================
-               PRESUPUESTO DE HOY
+               PRESUPUESTO HOY
             ================================================= */}
 
             <section className="card p-5 mb-5">
@@ -1466,9 +1501,7 @@ function Home({
 
 
                     <button
-                        onClick={
-                            onAdd
-                        }
+                        onClick={onAdd}
                         className="bg-green text-white w-12 h-12 rounded-2xl text-2xl shadow-sm"
                     >
                         +
@@ -1476,8 +1509,6 @@ function Home({
 
                 </div>
 
-
-                {/* CALORÍAS */}
 
                 <div className="mt-5">
 
@@ -1507,7 +1538,14 @@ function Home({
                     <div className="h-2 rounded-full progress-track overflow-hidden">
 
                         <div
-                            className="h-full progress-green rounded-full"
+
+                            className={`h-full rounded-full ${
+                                todayCalories >
+                                todayBudget
+                                    ? "progress-red"
+                                    : "progress-green"
+                            }`}
+
                             style={{
                                 width:
                                     `${clamp(
@@ -1521,14 +1559,13 @@ function Home({
                                         100
                                     )}%`
                             }}
+
                         />
 
                     </div>
 
                 </div>
 
-
-                {/* PROTEÍNA */}
 
                 <div className="mt-4">
 
@@ -1541,8 +1578,11 @@ function Home({
                         <span>
 
                             {todayProtein}
+
                             {" / "}
+
                             {settings.proteinDaily}
+
                             {" g"}
 
                         </span>
@@ -1553,7 +1593,9 @@ function Home({
                     <div className="h-2 rounded-full progress-track overflow-hidden">
 
                         <div
+
                             className="h-full progress-red rounded-full"
+
                             style={{
                                 width:
                                     `${clamp(
@@ -1567,6 +1609,7 @@ function Home({
                                         100
                                     )}%`
                             }}
+
                         />
 
                     </div>
@@ -1575,10 +1618,6 @@ function Home({
 
             </section>
 
-
-            {/* =================================================
-               LISTA SEMANAL
-            ================================================= */}
 
             <div className="flex items-center justify-between mb-3">
 
@@ -1615,19 +1654,27 @@ function Home({
                             weekKeys[index];
 
                         const calories =
-                            getDayCalories(key);
+                            getDayCalories(
+                                key
+                            );
 
                         const protein =
-                            getDayProtein(key);
+                            getDayProtein(
+                                key
+                            );
 
                         const budget =
-                            getDynamicDailyBudget(index);
+                            getDynamicDailyBudget(
+                                index
+                            );
 
                         const isToday =
                             key === todayKey;
 
                         const isPast =
-                            isPastDate(key);
+                            isPastDate(
+                                key
+                            );
 
                         const dayEntries =
                             entries.filter(
@@ -1639,25 +1686,31 @@ function Home({
                         return (
 
                             <div
+
                                 key={key}
-                                className={`
-                                    card
-                                    p-4
-                                    day-row
-                                    ${isToday
+
+                                className={`card p-4 day-row ${
+                                    isToday
                                         ? "today-day"
-                                        : ""}
-                                    ${isPast
+                                        : ""
+                                } ${
+                                    isPast
                                         ? "past-day"
-                                        : ""}
-                                `}
+                                        : ""
+                                }`}
+
                             >
 
                                 <div
+
                                     className="flex justify-between items-center cursor-pointer"
+
                                     onClick={() =>
-                                        onSelectDay(key)
+                                        onSelectDay(
+                                            key
+                                        )
                                     }
+
                                 >
 
                                     <div>
@@ -1668,16 +1721,24 @@ function Home({
                                                 {DAYS[index]}
                                             </h3>
 
+
                                             {isToday && (
+
                                                 <span className="text-[10px] px-2 py-1 rounded-full bg-green/10 green font-bold">
                                                     HOY
                                                 </span>
+
                                             )}
 
                                         </div>
 
+
                                         <div className="text-xs text-gray-500 mt-1 day-date">
-                                            {formatDate(date)}
+
+                                            {formatDate(
+                                                date
+                                            )}
+
                                         </div>
 
                                     </div>
@@ -1703,6 +1764,7 @@ function Home({
 
                                         </div>
 
+
                                         <div className="text-xs text-gray-500">
                                             kcal
                                         </div>
@@ -1717,7 +1779,14 @@ function Home({
                                     <div className="h-2 progress-track rounded-full overflow-hidden">
 
                                         <div
-                                            className="h-full progress-green rounded-full"
+
+                                            className={`h-full rounded-full ${
+                                                calories >
+                                                budget
+                                                    ? "progress-red"
+                                                    : "progress-green"
+                                            }`}
+
                                             style={{
                                                 width:
                                                     `${clamp(
@@ -1731,6 +1800,7 @@ function Home({
                                                         100
                                                     )}%`
                                             }}
+
                                         />
 
                                     </div>
@@ -1750,10 +1820,13 @@ function Home({
 
                                     </span>
 
+
                                     <span>
 
                                         {dayEntries.length}
+
                                         {" "}
+
                                         {dayEntries.length === 1
                                             ? "registro"
                                             : "registros"}
@@ -1771,8 +1844,13 @@ function Home({
                                             entry => (
 
                                                 <div
-                                                    key={entry.id}
+
+                                                    key={
+                                                        entry.id
+                                                    }
+
                                                     className="bg-gray-50 rounded-2xl p-3 flex justify-between items-center"
+
                                                 >
 
                                                     <div>
@@ -1781,8 +1859,13 @@ function Home({
                                                             {entry.name}
                                                         </div>
 
+
                                                         <div className="text-xs text-gray-500 mt-1">
-                                                            P {entry.protein} g
+
+                                                            P{" "}
+                                                            {entry.protein}
+                                                            {" g"}
+
                                                         </div>
 
                                                     </div>
@@ -1791,16 +1874,23 @@ function Home({
                                                     <div className="flex items-center gap-3">
 
                                                         <span className="font-semibold text-sm">
-                                                            {entry.calories} kcal
+
+                                                            {entry.calories}
+                                                            {" kcal"}
+
                                                         </span>
 
+
                                                         <button
+
                                                             onClick={() =>
                                                                 onDelete(
                                                                     entry.id
                                                                 )
                                                             }
+
                                                             className="text-gray-400 hover:text-red-500 text-xl"
+
                                                         >
                                                             ×
                                                         </button>
@@ -1827,8 +1917,13 @@ function Home({
 
 
             <button
-                onClick={onAdd}
+
+                onClick={
+                    onAdd
+                }
+
                 className="fixed bottom-[105px] left-1/2 -translate-x-1/2 max-w-[430px] w-[calc(100%-40px)] bg-green text-white py-4 rounded-2xl font-bold floating-add z-20"
+
             >
                 + Añadir calorías
             </button>
@@ -1839,7 +1934,7 @@ function Home({
 
 
 /* =========================================================
-   CÍRCULO
+   CÍRCULO DE AGUA
 ========================================================= */
 
 function ProgressCircle({
@@ -1847,16 +1942,9 @@ function ProgressCircle({
     value,
     max,
     size,
-    stroke,
     label
 
 }) {
-
-    const radius =
-        (size - stroke) / 2;
-
-    const circumference =
-        2 * Math.PI * radius;
 
     const percent =
         max > 0
@@ -1867,60 +1955,77 @@ function ProgressCircle({
             )
             : 0;
 
-    const offset =
-        circumference *
-        (1 - percent);
+
+    const percentage =
+        percent * 100;
 
 
     return (
 
         <div
-            className="relative flex-shrink-0"
+            className="water-circle flex-shrink-0"
             style={{
                 width: size,
                 height: size
             }}
         >
 
-            <svg
-                width={size}
-                height={size}
-                className="circle"
+            {/* AGUA */}
+
+            <div
+
+                className="water-fill"
+
+                style={{
+                    height:
+                        `${percentage}%`
+                }}
+
             >
 
-                <circle
-                    className="circle-bg"
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    strokeWidth={stroke}
-                />
+                <div className="water-wave"></div>
 
-                <circle
-                    className="circle-progress"
-                    cx={size / 2}
-                    cy={size / 2}
-                    r={radius}
-                    strokeWidth={stroke}
-                    strokeDasharray={circumference}
-                    strokeDashoffset={offset}
-                />
+                <div className="water-wave-2"></div>
 
-            </svg>
+                <div className="water-shimmer"></div>
+
+            </div>
 
 
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
+            {/* CONTENIDO */}
 
-                <div className="text-[25px] font-extrabold">
-                    {Math.round(value).toLocaleString("es-ES")}
+            <div className="water-content">
+
+                <div className="water-number">
+
+                    {Math.round(
+                        value
+                    ).toLocaleString(
+                        "es-ES"
+                    )}
+
                 </div>
 
-                <div className="text-sm text-gray-400">
-                    / {Math.round(max).toLocaleString("es-ES")}
+
+                <div className="water-max">
+
+                    /
+
+                    {" "}
+
+                    {Math.round(
+                        max
+                    ).toLocaleString(
+                        "es-ES"
+                    )}
+
                 </div>
 
-                <div className="text-sm text-gray-500 mt-1">
+
+                <div className="water-label">
+
                     {label}
+
                 </div>
 
             </div>
@@ -1965,12 +2070,21 @@ function MiniProgress({
                     {label}
                 </span>
 
+
                 <span className="font-semibold">
 
-                    {Math.round(value)}
+                    {Math.round(
+                        value
+                    )}
+
                     {" / "}
-                    {Math.round(max)}
+
+                    {Math.round(
+                        max
+                    )}
+
                     {" "}
+
                     {suffix}
 
                 </span>
@@ -1981,11 +2095,14 @@ function MiniProgress({
             <div className="h-2 rounded-full progress-track overflow-hidden">
 
                 <div
+
                     className="h-full progress-green rounded-full"
+
                     style={{
                         width:
                             `${percent}%`
                     }}
+
                 />
 
             </div>
@@ -2002,11 +2119,10 @@ function MiniProgress({
 function History({
 
     entries,
+    settings,
     getDayCalories,
     getDayProtein,
-    getDynamicBudgetForDate,
-    settings,
-    todayKey,
+    getDynamicDailyBudget,
     onSelectDay
 
 }) {
@@ -2015,76 +2131,110 @@ function History({
         useState("week");
 
 
+    const today =
+        new Date();
+
+    today.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+
     /* =====================================================
-       CREAR DATOS DEL PERIODO
+       GENERAR FECHAS SEGÚN PERÍODO
     ===================================================== */
 
     function getHistoryDates() {
 
-        if (period === "week") {
-
-            return getWeekDates();
-
-        }
-
-
-        if (period === "month") {
-
-            return getMonthDates();
-
-        }
-
-
-        /*
-         * TOTAL
-         *
-         * Incluimos todos los días que
-         * tengan registros.
-         */
-
-        if (entries.length === 0) {
-            return [];
-        }
-
-
-        const keys =
-            [...new Set(
-                entries.map(
-                    entry => entry.date
-                )
-            )];
-
-
-        keys.sort();
-
-
-        const first =
-            keyToDate(keys[0]);
-
-        const last =
-            keyToDate(
-                keys[keys.length - 1]
-            );
-
-
         const dates = [];
 
-        const current =
-            new Date(first);
+        if (period === "week") {
 
-        while (
-            current <= last
-        ) {
+            const monday =
+                getMonday(today);
 
-            dates.push(
-                new Date(current)
-            );
+            for (let i = 0; i < 7; i++) {
 
-            current.setDate(
-                current.getDate() + 1
-            );
+                const d =
+                    new Date(monday);
+
+                d.setDate(
+                    monday.getDate() + i
+                );
+
+                dates.push(d);
+            }
+
         }
 
+        else if (period === "month") {
+
+            const start =
+                new Date(
+                    today.getFullYear(),
+                    today.getMonth(),
+                    1
+                );
+
+            const end =
+                new Date(
+                    today.getFullYear(),
+                    today.getMonth() + 1,
+                    0
+                );
+
+            for (
+                let d = new Date(start);
+                d <= end;
+                d.setDate(d.getDate() + 1)
+            ) {
+
+                dates.push(
+                    new Date(d)
+                );
+            }
+
+        }
+
+        else {
+
+            if (entries.length === 0) {
+                return [];
+            }
+
+
+            const sorted =
+                [...entries]
+                    .sort(
+                        (a, b) =>
+                            a.date.localeCompare(
+                                b.date
+                            )
+                    );
+
+
+            const start =
+                new Date(
+                    sorted[0].date +
+                    "T00:00:00"
+                );
+
+
+            for (
+                let d = new Date(start);
+                d <= today;
+                d.setDate(d.getDate() + 1)
+            ) {
+
+                dates.push(
+                    new Date(d)
+                );
+
+            }
+
+        }
 
         return dates;
     }
@@ -2099,30 +2249,63 @@ function History({
 
 
     /* =====================================================
-       DATOS DE LA GRÁFICA
+       DATOS
     ===================================================== */
 
     const chartData =
-        dates.map(date => {
+        dates.map(
+            (date, index) => {
 
-            const key =
-                dateKey(date);
+                const key =
+                    dateKey(date);
 
-            return {
+                const calories =
+                    getDayCalories(
+                        key
+                    );
 
-                date,
 
-                key,
+                let budget;
 
-                calories:
-                    getDayCalories(key),
 
-                budget:
-                    getDynamicBudgetForDate(
-                        date
-                    )
-            };
-        });
+                if (period === "week") {
+
+                    budget =
+                        getDynamicDailyBudget(
+                            index
+                        );
+
+                }
+
+                else {
+
+                    /*
+                     * Para mes y total mostramos
+                     * el presupuesto diario equivalente.
+                     *
+                     * Esto permite comparar
+                     * visualmente consumo y objetivo.
+                     */
+
+                    budget =
+                        Number(
+                            settings.caloriesWeekly
+                        ) / 7;
+
+                }
+
+
+                return {
+
+                    date,
+                    key,
+                    calories,
+                    budget
+
+                };
+
+            }
+        );
 
 
     const totalCalories =
@@ -2132,19 +2315,6 @@ function History({
                 item.calories,
             0
         );
-
-
-    const totalBudget =
-        period === "week"
-            ? Number(
-                settings.caloriesWeekly
-            )
-            : chartData.reduce(
-                (sum, item) =>
-                    sum +
-                    item.budget,
-                0
-            );
 
 
     const totalProtein =
@@ -2158,59 +2328,54 @@ function History({
         );
 
 
-    const exceededDays =
-        chartData.filter(
-            item =>
-                item.calories >
-                item.budget &&
-                item.calories > 0
-        ).length;
-
-
-    const daysWithFood =
+    const daysWithData =
         chartData.filter(
             item =>
                 item.calories > 0
         ).length;
 
 
-    /* =====================================================
-       TITULO
-    ===================================================== */
+    const averageCalories =
+        daysWithData > 0
+            ? totalCalories /
+              daysWithData
+            : 0;
 
-    function getTitle() {
+
+    const maxChartValue =
+        Math.max(
+            ...chartData.map(
+                item =>
+                    Math.max(
+                        item.calories,
+                        item.budget
+                    )
+            ),
+            1
+        );
+
+
+    const chartHeight =
+        185;
+
+
+    function periodTitle() {
 
         if (period === "week") {
-
-            const dates =
-                getWeekDates();
-
-            return (
-                formatShortDate(
-                    dates[0]
-                ) +
-                " – " +
-                formatShortDate(
-                    dates[6]
-                )
-            );
+            return "Esta semana";
         }
-
 
         if (period === "month") {
 
-            const now =
-                new Date();
-
-            return (
-                MONTHS[
-                    now.getMonth()
-                ] +
-                " " +
-                now.getFullYear()
+            return today.toLocaleDateString(
+                "es-ES",
+                {
+                    month: "long",
+                    year: "numeric"
+                }
             );
-        }
 
+        }
 
         return "Todo el historial";
     }
@@ -2220,18 +2385,15 @@ function History({
 
         <main className="safe-bottom p-5">
 
-            {/* =================================================
-               HEADER
-            ================================================= */}
-
             <header className="mb-5">
 
                 <div className="text-sm text-gray-500">
                     HISTORIAL
                 </div>
 
+
                 <h1 className="text-3xl font-extrabold">
-                    {getTitle()}
+                    Consumo
                 </h1>
 
             </header>
@@ -2241,66 +2403,39 @@ function History({
                SELECTOR
             ================================================= */}
 
-            <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm">
+            <div className="card p-2 mb-5 flex gap-1">
 
-                <button
-                    onClick={() =>
-                        setPeriod("week")
-                    }
-                    className={`
-                        history-tab
-                        flex-1
-                        py-3
-                        rounded-xl
-                        text-sm
-                        font-semibold
-                        ${period === "week"
-                            ? "active"
-                            : "text-gray-500"}
-                    `}
-                >
-                    Semana
-                </button>
+                {[
+                    ["week", "Semana"],
+                    ["month", "Mes"],
+                    ["all", "Total"]
+                ].map(
+                    ([value, label]) => (
 
+                        <button
 
-                <button
-                    onClick={() =>
-                        setPeriod("month")
-                    }
-                    className={`
-                        history-tab
-                        flex-1
-                        py-3
-                        rounded-xl
-                        text-sm
-                        font-semibold
-                        ${period === "month"
-                            ? "active"
-                            : "text-gray-500"}
-                    `}
-                >
-                    Mes
-                </button>
+                            key={value}
 
+                            onClick={() =>
+                                setPeriod(
+                                    value
+                                )
+                            }
 
-                <button
-                    onClick={() =>
-                        setPeriod("total")
-                    }
-                    className={`
-                        history-tab
-                        flex-1
-                        py-3
-                        rounded-xl
-                        text-sm
-                        font-semibold
-                        ${period === "total"
-                            ? "active"
-                            : "text-gray-500"}
-                    `}
-                >
-                    Total
-                </button>
+                            className={`flex-1 py-3 rounded-xl text-sm font-semibold transition ${
+                                period === value
+                                    ? "bg-green text-white"
+                                    : "text-gray-500"
+                            }`}
+
+                        >
+
+                            {label}
+
+                        </button>
+
+                    )
+                )}
 
             </div>
 
@@ -2309,13 +2444,14 @@ function History({
                RESUMEN
             ================================================= */}
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-2 gap-3 mb-5">
 
                 <div className="card p-5">
 
                     <div className="text-sm text-gray-500">
-                        Consumidas
+                        Calorías
                     </div>
+
 
                     <div className="text-2xl font-extrabold mt-1">
 
@@ -2327,8 +2463,17 @@ function History({
 
                     </div>
 
+
                     <div className="text-xs text-gray-400 mt-1">
-                        kcal
+
+                        {daysWithData > 0
+                            ? `${Math.round(
+                                averageCalories
+                            ).toLocaleString(
+                                "es-ES"
+                            )} kcal/día`
+                            : "Sin registros"}
+
                     </div>
 
                 </div>
@@ -2340,6 +2485,7 @@ function History({
                         Proteína
                     </div>
 
+
                     <div className="text-2xl font-extrabold mt-1">
 
                         {Math.round(
@@ -2348,10 +2494,20 @@ function History({
                             "es-ES"
                         )}
 
+                        {" g"}
+
                     </div>
 
+
                     <div className="text-xs text-gray-400 mt-1">
-                        gramos
+
+                        {daysWithData > 0
+                            ? `${Math.round(
+                                totalProtein /
+                                daysWithData
+                            )} g/día`
+                            : "Sin registros"}
+
                     </div>
 
                 </div>
@@ -2360,850 +2516,485 @@ function History({
 
 
             {/* =================================================
-               INDICADORES
+               GRÁFICO
             ================================================= */}
 
-            <div className="card p-5 mb-5">
+            <section className="card p-5 mb-5">
 
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between items-start mb-4">
 
                     <div>
 
-                        <div className="text-xs text-gray-500">
-                            DÍAS POR ENCIMA DEL PRESUPUESTO
-                        </div>
+                        <h2 className="font-bold text-lg">
+                            {periodTitle()}
+                        </h2>
 
-                        <div className="text-2xl font-extrabold mt-1">
-
-                            {exceededDays}
-
-                            <span className="text-sm font-medium text-gray-400">
-                                {" de "}
-                                {daysWithFood}
-                            </span>
-
-                        </div>
-
-                    </div>
-
-
-                    <div className="text-right">
-
-                        <div className="text-xs text-gray-500">
-                            PRESUPUESTO SEMANAL
-                        </div>
-
-                        <div className="font-bold mt-1">
-
-                            {Number(
-                                settings.caloriesWeekly
-                            ).toLocaleString(
-                                "es-ES"
-                            )}
-
-                            {" kcal"}
-
-                        </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Consumo diario vs presupuesto
+                        </p>
 
                     </div>
 
                 </div>
 
-            </div>
+
+                <div className="flex items-center gap-4 mb-4 text-xs text-gray-500">
+
+                    <div className="flex items-center gap-2">
+
+                        <span className="legend-dot legend-green"></span>
+
+                        Consumo
+
+                    </div>
 
 
-            {/* =================================================
-               GRÁFICA
-            ================================================= */}
+                    <div className="flex items-center gap-2">
 
-            {chartData.length > 0 ? (
+                        <span className="legend-dot legend-red"></span>
 
-                <section className="card p-5 mb-5">
+                        Presupuesto
 
-                    <div className="flex justify-between items-start mb-5">
+                    </div>
 
-                        <div>
-
-                            <h2 className="font-bold text-lg">
-                                Consumo diario
-                            </h2>
-
-                            <p className="text-xs text-gray-500 mt-1">
-                                Barras = consumo · Línea = presupuesto
-                            </p>
-
-                        </div>
+                </div>
 
 
-                        <div className="text-xs text-gray-500 text-right">
+                {chartData.length === 0 ? (
 
-                            <div className="flex items-center justify-end gap-2 mb-1">
+                    <div className="py-12 text-center text-gray-400 text-sm">
 
-                                <span
-                                    className="w-3 h-3 rounded-sm bg-green"
-                                />
+                        Todavía no hay registros suficientes
+                        para mostrar el historial.
 
-                                <span>
-                                    Consumo
-                                </span>
+                    </div>
+
+                ) : (
+
+                    <div className="chart-scroll">
+
+                        <div
+
+                            className="chart-inner"
+
+                            style={{
+                                minWidth:
+                                    period === "month"
+                                        ? "760px"
+                                        : period === "all"
+                                            ? `${Math.max(
+                                                chartData.length * 48,
+                                                100
+                                            )}px`
+                                            : "100%"
+                            }}
+
+                        >
+
+                            <div className="history-chart">
+
+                                {/* LÍNEAS DE REFERENCIA */}
+
+                                {[0, 25, 50, 75, 100].map(
+                                    percentage => (
+
+                                        <div
+
+                                            key={
+                                                percentage
+                                            }
+
+                                            className="chart-grid-line"
+
+                                            style={{
+                                                top:
+                                                    `${100 - percentage}%`
+                                            }}
+
+                                        />
+
+                                    )
+                                )}
+
+
+                                <div className="relative flex items-end justify-between gap-1 px-1">
+
+                                    {chartData.map(
+                                        item => {
+
+                                            const consumptionHeight =
+                                                item.calories /
+                                                maxChartValue *
+                                                chartHeight;
+
+
+                                            const budgetPosition =
+                                                chartHeight -
+                                                (
+                                                    item.budget /
+                                                    maxChartValue *
+                                                    chartHeight
+                                                );
+
+
+                                            const date =
+                                                item.date;
+
+
+                                            return (
+
+                                                <div
+
+                                                    key={
+                                                        item.key
+                                                    }
+
+                                                    className="bar-item flex-1"
+
+                                                >
+
+                                                    <div className="bar-area">
+
+                                                        {/* LÍNEA DE PRESUPUESTO */}
+
+                                                        <div
+
+                                                            className="budget-line"
+
+                                                            style={{
+                                                                bottom:
+                                                                    `${budgetPosition}px`
+                                                            }}
+
+                                                        />
+
+
+                                                        {/* VALOR */}
+
+                                                        {item.calories > 0 && (
+
+                                                            <div
+
+                                                                className="chart-value"
+
+                                                                style={{
+                                                                    position:
+                                                                        "absolute",
+                                                                    bottom:
+                                                                        `${Math.min(
+                                                                            consumptionHeight +
+                                                                            4,
+                                                                            chartHeight -
+                                                                            10
+                                                                        )}px`
+                                                                }}
+
+                                                            >
+
+                                                                {Math.round(
+                                                                    item.calories
+                                                                )}
+
+                                                            </div>
+
+                                                        )}
+
+
+                                                        {/* BARRA */}
+
+                                                        <div
+
+                                                            className="consumption-bar"
+
+                                                            style={{
+                                                                height:
+                                                                    `${Math.max(
+                                                                        consumptionHeight,
+                                                                        item.calories > 0
+                                                                            ? 3
+                                                                            : 0
+                                                                    )}px`
+                                                            }}
+
+                                                        />
+
+                                                    </div>
+
+
+                                                    <div className="chart-label">
+
+                                                        {period === "week"
+
+                                                            ? DAYS[
+                                                                date.getDay() === 0
+                                                                    ? 6
+                                                                    : date.getDay() - 1
+                                                            ].slice(
+                                                                0,
+                                                                2
+                                                            )
+
+                                                            : formatShortDate(
+                                                                item.key
+                                                            )}
+
+                                                    </div>
+
+                                                </div>
+
+                                            );
+
+                                        }
+                                    )}
+
+                                </div>
 
                             </div>
 
-
-                            <div className="flex items-center justify-end gap-2">
-
-                                <span
-                                    className="w-4 h-[2px] bg-gray-500"
-                                />
-
-                                <span>
-                                    Presupuesto
-                                </span>
-
-                            </div>
-
                         </div>
 
                     </div>
 
-
-                    <HistoryChart
-                        data={
-                            chartData
-                        }
-                        period={
-                            period
-                        }
-                    />
+                )}
 
 
-                    <div className="mt-4 text-xs text-gray-500 leading-5">
+                <div className="mt-4 text-xs text-gray-400">
 
-                        La línea representa el presupuesto
-                        diario dinámico que tenías disponible
-                        en cada día según lo consumido
-                        anteriormente durante esa semana.
+                    La línea roja representa el presupuesto
+                    disponible como referencia.
 
-                    </div>
+                    {period === "week" &&
+                        " En la semana, el presupuesto se redistribuye dinámicamente según lo consumido."}
 
-                </section>
+                </div>
 
-            ) : (
-
-                <section className="card p-8 mb-5 text-center">
-
-                    <div className="text-4xl mb-3">
-                        📊
-                    </div>
-
-                    <div className="font-bold">
-                        No hay registros todavía
-                    </div>
-
-                    <div className="text-sm text-gray-500 mt-2">
-                        Añade comidas para empezar a ver
-                        tu evolución.
-                    </div>
-
-                </section>
-
-            )}
+            </section>
 
 
             {/* =================================================
                DETALLE DIARIO
             ================================================= */}
 
-            {chartData.length > 0 && (
+            <div className="flex items-center justify-between mb-3">
 
-                <div>
+                <h2 className="text-xl font-bold">
+                    Detalle
+                </h2>
 
-                    <div className="flex justify-between items-center mb-3">
-
-                        <h2 className="text-xl font-bold">
-                            Detalle diario
-                        </h2>
-
-                    </div>
+            </div>
 
 
-                    <div className="space-y-3">
+            <div className="space-y-3">
 
-                        {[...chartData]
-                            .reverse()
-                            .map(item => {
+                {chartData
+                    .slice()
+                    .reverse()
+                    .map(
+                        item => {
 
-                                const protein =
-                                    getDayProtein(
+                            const protein =
+                                getDayProtein(
+                                    item.key
+                                );
+
+
+                            const dayEntries =
+                                entries.filter(
+                                    e =>
+                                        e.date ===
                                         item.key
-                                    );
+                                );
 
-                                const dayEntries =
-                                    entries.filter(
-                                        e =>
-                                            e.date ===
+
+                            const overBudget =
+                                item.calories >
+                                item.budget;
+
+
+                            const isToday =
+                                item.key ===
+                                dateKey(today);
+
+
+                            return (
+
+                                <div
+
+                                    key={
+                                        item.key
+                                    }
+
+                                    onClick={() =>
+                                        onSelectDay(
                                             item.key
-                                    );
+                                        )
+                                    }
 
-                                const exceeded =
-                                    item.calories >
-                                    item.budget &&
-                                    item.calories > 0;
+                                    className={`card p-4 cursor-pointer day-row ${
+                                        isToday
+                                            ? "today-day"
+                                            : ""
+                                    } ${
+                                        isPastDate(
+                                            item.key
+                                        )
+                                            ? "past-day"
+                                            : ""
+                                    }`}
 
-                                const isToday =
-                                    item.key ===
-                                    todayKey;
+                                >
 
-                                const isPast =
-                                    isPastDate(
-                                        item.key
-                                    );
+                                    <div className="flex justify-between items-center">
 
+                                        <div>
 
-                                return (
+                                            <div className="flex items-center gap-2">
 
-                                    <div
-                                        key={item.key}
-                                        onClick={() =>
-                                            onSelectDay(
-                                                item.key
-                                            )
-                                        }
-                                        className={`
-                                            card
-                                            p-4
-                                            cursor-pointer
-                                            day-row
-                                            ${isToday
-                                                ? "today-day"
-                                                : ""}
-                                            ${isPast
-                                                ? "past-day"
-                                                : ""}
-                                        `}
-                                    >
+                                                <span className="font-bold">
 
-                                        <div className="flex justify-between items-center">
-
-                                            <div>
-
-                                                <div className="flex items-center gap-2">
-
-                                                    <div className="font-bold">
-
-                                                        {item.date.toLocaleDateString(
-                                                            "es-ES",
-                                                            {
-                                                                weekday:
-                                                                    "long",
-                                                                day:
-                                                                    "numeric",
-                                                                month:
-                                                                    "short"
-                                                            }
-                                                        )}
-
-                                                    </div>
-
-
-                                                    {isToday && (
-
-                                                        <span className="text-[9px] px-2 py-1 rounded-full bg-green/10 green font-bold">
-
-                                                            HOY
-
-                                                        </span>
-
+                                                    {item.date.toLocaleDateString(
+                                                        "es-ES",
+                                                        {
+                                                            weekday:
+                                                                "long"
+                                                        }
                                                     )}
 
-                                                </div>
+                                                </span>
 
 
-                                                <div className="text-xs text-gray-500 mt-1">
+                                                {isToday && (
 
-                                                    {dayEntries.length}
-                                                    {" "}
-                                                    {dayEntries.length === 1
-                                                        ? "registro"
-                                                        : "registros"}
+                                                    <span className="text-[10px] px-2 py-1 rounded-full bg-green/10 green font-bold">
+                                                        HOY
+                                                    </span>
 
-                                                    {" · P "}
-                                                    {Math.round(
-                                                        protein
-                                                    )}
-                                                    {" g"}
-
-                                                </div>
+                                                )}
 
                                             </div>
 
 
-                                            <div className="text-right">
-
-                                                <div className={`font-extrabold ${
-                                                    exceeded
-                                                        ? "text-red-500"
-                                                        : "green"
-                                                }`}>
-
-                                                    {Math.round(
-                                                        item.calories
-                                                    ).toLocaleString(
-                                                        "es-ES"
-                                                    )}
-
-                                                    {" kcal"}
-
-                                                </div>
-
-
-                                                <div className="text-xs text-gray-500 mt-1">
-
-                                                    presupuesto{" "}
-
-                                                    {Math.round(
-                                                        item.budget
-                                                    ).toLocaleString(
-                                                        "es-ES"
-                                                    )}
-
-                                                </div>
-
-                                            </div>
-
-                                        </div>
-
-
-                                        {/* COMPARACIÓN */}
-
-                                        <div className="mt-3">
-
-                                            <div className="h-2 rounded-full progress-track overflow-hidden">
-
-                                                <div
-                                                    className={`h-full rounded-full ${
-                                                        exceeded
-                                                            ? "bg-red-500"
-                                                            : "bg-green"
-                                                    }`}
-                                                    style={{
-                                                        width:
-                                                            `${clamp(
-                                                                item.calories /
-                                                                Math.max(
-                                                                    item.budget,
-                                                                    1
-                                                                ) *
-                                                                100,
-                                                                0,
-                                                                100
-                                                            )}%`
-                                                    }}
-                                                />
-
-                                            </div>
-
-                                        </div>
-
-
-                                        <div className="flex justify-between mt-2 text-xs">
-
-                                            <span className="text-gray-500">
-
-                                                {exceeded
-                                                    ? `${Math.round(
-                                                        item.calories -
-                                                        item.budget
-                                                    )} kcal por encima`
-                                                    : `${Math.round(
-                                                        item.budget -
-                                                        item.calories
-                                                    )} kcal disponibles`}
-
-                                            </span>
-
-
-                                            <span className="text-gray-400">
+                                            <div className="text-xs text-gray-500 mt-1">
 
                                                 {formatDate(
                                                     item.date
                                                 )}
 
-                                            </span>
+                                            </div>
+
+                                        </div>
+
+
+                                        <div className="text-right">
+
+                                            <div className={`font-bold ${
+                                                overBudget
+                                                    ? "text-red-500"
+                                                    : ""
+                                            }`}>
+
+                                                {Math.round(
+                                                    item.calories
+                                                ).toLocaleString(
+                                                    "es-ES"
+                                                )}
+
+                                                {" kcal"}
+
+                                            </div>
+
+
+                                            <div className="text-xs text-gray-400">
+
+                                                presupuesto{" "}
+
+                                                {Math.round(
+                                                    item.budget
+                                                ).toLocaleString(
+                                                    "es-ES"
+                                                )}
+
+                                            </div>
 
                                         </div>
 
                                     </div>
 
-                                );
 
-                            })}
+                                    <div className="grid grid-cols-2 gap-3 mt-3">
 
-                    </div>
+                                        <div className="bg-gray-50 rounded-xl p-3">
 
-                </div>
+                                            <div className="text-xs text-gray-500">
+                                                Proteína
+                                            </div>
 
-            )}
+                                            <div className="font-bold mt-1">
+                                                {Math.round(
+                                                    protein
+                                                )} g
+                                            </div>
+
+                                        </div>
+
+
+                                        <div className="bg-gray-50 rounded-xl p-3">
+
+                                            <div className="text-xs text-gray-500">
+                                                Registros
+                                            </div>
+
+                                            <div className="font-bold mt-1">
+                                                {dayEntries.length}
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+
+                                    <div className="mt-3">
+
+                                        <div className="h-2 rounded-full progress-track overflow-hidden">
+
+                                            <div
+
+                                                className={`h-full rounded-full ${
+                                                    overBudget
+                                                        ? "progress-red"
+                                                        : "progress-green"
+                                                }`}
+
+                                                style={{
+                                                    width:
+                                                        `${clamp(
+                                                            item.calories /
+                                                            Math.max(
+                                                                item.budget,
+                                                                1
+                                                            ) *
+                                                            100,
+                                                            0,
+                                                            100
+                                                        )}%`
+                                                }}
+
+                                            />
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            );
+
+                        }
+                    )}
+
+            </div>
 
         </main>
-    );
-}
-
-
-/* =========================================================
-   GRÁFICA DEL HISTORIAL
-========================================================= */
-
-function HistoryChart({
-
-    data,
-    period
-
-}) {
-
-    /*
-     * En móvil:
-     *
-     * Semana -> 420 px
-     * Mes -> aproximadamente 900 px
-     * Total -> 1100 px o más
-     *
-     * Esto permite que cada día tenga suficiente
-     * espacio y que el usuario pueda deslizar.
-     */
-
-    const minWidth =
-        period === "week"
-            ? 390
-            : period === "month"
-                ? Math.max(
-                    800,
-                    data.length * 34
-                )
-                : Math.max(
-                    1000,
-                    data.length * 30
-                );
-
-
-    const width =
-        Math.max(
-            390,
-            minWidth
-        );
-
-    const height =
-        270;
-
-
-    const padding = {
-
-        top: 25,
-        right: 15,
-        bottom: 45,
-        left: 45
-
-    };
-
-
-    const chartWidth =
-        width -
-        padding.left -
-        padding.right;
-
-    const chartHeight =
-        height -
-        padding.top -
-        padding.bottom;
-
-
-    const maxValue =
-        Math.max(
-            ...data.map(
-                item =>
-                    Math.max(
-                        item.calories,
-                        item.budget
-                    )
-            ),
-            1000
-        );
-
-
-    const roundedMax =
-        Math.ceil(
-            maxValue / 500
-        ) * 500;
-
-
-    const yTicks = 4;
-
-
-    function getX(index) {
-
-        if (data.length === 1) {
-
-            return (
-                padding.left +
-                chartWidth / 2
-            );
-        }
-
-        return (
-            padding.left +
-            (
-                index /
-                (data.length - 1)
-            ) *
-            chartWidth
-        );
-    }
-
-
-    function getY(value) {
-
-        return (
-            padding.top +
-            chartHeight -
-            (
-                value /
-                roundedMax
-            ) *
-            chartHeight
-        );
-    }
-
-
-    const budgetPoints =
-        data.map(
-            (item, index) =>
-                `${getX(index)},${getY(item.budget)}`
-        ).join(" ");
-
-
-    return (
-
-        <div className="chart-scroll">
-
-            <svg
-                width={width}
-                height={height}
-                viewBox={`0 0 ${width} ${height}`}
-            >
-
-                {/* =================================================
-                   GRID
-                ================================================= */}
-
-                {Array.from({
-                    length:
-                        yTicks + 1
-                }).map(
-                    (_, index) => {
-
-                        const value =
-                            roundedMax -
-                            (
-                                index /
-                                yTicks
-                            ) *
-                            roundedMax;
-
-                        const y =
-                            getY(value);
-
-
-                        return (
-
-                            <g
-                                key={
-                                    `grid-${index}`
-                                }
-                            >
-
-                                <line
-                                    x1={
-                                        padding.left
-                                    }
-                                    x2={
-                                        width -
-                                        padding.right
-                                    }
-                                    y1={y}
-                                    y2={y}
-                                    stroke="#e8eeea"
-                                    strokeWidth="1"
-                                />
-
-
-                                <text
-                                    x="4"
-                                    y={y + 4}
-                                    fontSize="9"
-                                    fill="#9aa39e"
-                                >
-                                    {Math.round(
-                                        value
-                                    ).toLocaleString(
-                                        "es-ES"
-                                    )}
-                                </text>
-
-                            </g>
-
-                        );
-
-                    }
-                )}
-
-
-                {/* =================================================
-                   BARRAS
-                ================================================= */}
-
-                {data.map(
-                    (item, index) => {
-
-                        const x =
-                            getX(index);
-
-                        const barWidth =
-                            Math.max(
-                                8,
-                                Math.min(
-                                    24,
-                                    chartWidth /
-                                    Math.max(
-                                        data.length *
-                                        1.7,
-                                        1
-                                    )
-                                )
-                            );
-
-
-                        const barX =
-                            x -
-                            barWidth /
-                            2;
-
-
-                        const barY =
-                            getY(
-                                item.calories
-                            );
-
-
-                        const barHeight =
-                            Math.max(
-                                1,
-                                padding.top +
-                                chartHeight -
-                                barY
-                            );
-
-
-                        const exceeded =
-                            item.calories >
-                            item.budget;
-
-
-                        return (
-
-                            <g
-                                key={
-                                    `bar-${item.key}`
-                                }
-                            >
-
-                                <rect
-                                    x={barX}
-                                    y={barY}
-                                    width={barWidth}
-                                    height={barHeight}
-                                    rx="5"
-                                    fill={
-                                        exceeded
-                                            ? "#ef4444"
-                                            : "#20a35a"
-                                    }
-                                    opacity={
-                                        item.calories === 0
-                                            ? 0.12
-                                            : 0.85
-                                    }
-                                />
-
-
-                                {/* Valor cuando hay espacio */}
-
-                                {item.calories > 0 &&
-                                    period === "week" && (
-
-                                    <text
-                                        x={x}
-                                        y={
-                                            Math.max(
-                                                13,
-                                                barY - 5
-                                            )
-                                        }
-                                        textAnchor="middle"
-                                        fontSize="8"
-                                        fontWeight="600"
-                                        fill="#59635d"
-                                    >
-                                        {Math.round(
-                                            item.calories
-                                        )}
-                                    </text>
-
-                                )}
-
-                            </g>
-
-                        );
-
-                    }
-                )}
-
-
-                {/* =================================================
-                   LÍNEA DE PRESUPUESTO
-                ================================================= */}
-
-                <polyline
-                    points={
-                        budgetPoints
-                    }
-                    fill="none"
-                    stroke="#4b5563"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                />
-
-
-                {/* =================================================
-                   PUNTOS DEL PRESUPUESTO
-                ================================================= */}
-
-                {data.map(
-                    (item, index) => (
-
-                        <circle
-                            key={
-                                `budget-${item.key}`
-                            }
-                            cx={
-                                getX(index)
-                            }
-                            cy={
-                                getY(
-                                    item.budget
-                                )
-                            }
-                            r={
-                                period === "week"
-                                    ? 3
-                                    : 2
-                            }
-                            fill="#4b5563"
-                        />
-
-                    )
-                )}
-
-
-                {/* =================================================
-                   EJE X
-                ================================================= */}
-
-                {data.map(
-                    (item, index) => {
-
-                        /*
-                         * En mes y total mostramos
-                         * menos etiquetas para evitar
-                         * que se superpongan.
-                         */
-
-                        let showLabel =
-                            true;
-
-                        if (
-                            period === "month"
-                        ) {
-
-                            showLabel =
-                                index % 3 === 0 ||
-                                index ===
-                                data.length - 1;
-
-                        }
-
-
-                        if (
-                            period === "total"
-                        ) {
-
-                            showLabel =
-                                index === 0 ||
-                                index ===
-                                data.length - 1 ||
-                                index % 7 === 0;
-
-                        }
-
-
-                        if (!showLabel) {
-                            return null;
-                        }
-
-
-                        return (
-
-                            <text
-                                key={
-                                    `label-${item.key}`
-                                }
-                                x={
-                                    getX(index)
-                                }
-                                y={
-                                    height -
-                                    18
-                                }
-                                textAnchor="middle"
-                                fontSize="9"
-                                fill="#7b857f"
-                            >
-
-                                {period === "week"
-                                    ? item.date.toLocaleDateString(
-                                        "es-ES",
-                                        {
-                                            weekday:
-                                                "short"
-                                        }
-                                    ).replace(
-                                        ".",
-                                        ""
-                                    )
-                                    : formatChartDate(
-                                        item.date
-                                    )}
-
-                            </text>
-
-                        );
-
-                    }
-                )}
-
-            </svg>
-
-        </div>
     );
 }
 
@@ -3228,7 +3019,9 @@ function Settings({
 
     useEffect(() => {
 
-        setLocal(settings);
+        setLocal(
+            settings
+        );
 
     }, [settings]);
 
@@ -3285,6 +3078,7 @@ function Settings({
 
             proteinDaily:
                 protein
+
         };
 
 
@@ -3301,6 +3095,7 @@ function Settings({
         alert(
             "Configuración guardada."
         );
+
     }
 
 
@@ -3314,14 +3109,13 @@ function Settings({
                     Mi plan
                 </h1>
 
+
                 <p className="text-gray-500 mt-2">
                     Configura tu presupuesto nutricional
                 </p>
 
             </header>
 
-
-            {/* OBJETIVOS */}
 
             <section className="card p-5 mb-4">
 
@@ -3331,16 +3125,22 @@ function Settings({
 
 
                 <label className="block text-sm text-gray-500 mb-2">
+
                     Presupuesto semanal de calorías
+
                 </label>
 
 
                 <input
+
                     type="number"
+
                     inputMode="numeric"
+
                     value={
                         local.caloriesWeekly
                     }
+
                     onChange={e =>
                         setLocal({
                             ...local,
@@ -3348,21 +3148,29 @@ function Settings({
                                 e.target.value
                         })
                     }
+
                     className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold mb-5"
+
                 />
 
 
                 <label className="block text-sm text-gray-500 mb-2">
+
                     Objetivo diario de proteína
+
                 </label>
 
 
                 <input
+
                     type="number"
+
                     inputMode="numeric"
+
                     value={
                         local.proteinDaily
                     }
+
                     onChange={e =>
                         setLocal({
                             ...local,
@@ -3370,13 +3178,13 @@ function Settings({
                                 e.target.value
                         })
                     }
+
                     className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
+
                 />
 
             </section>
 
-
-            {/* FUNCIONAMIENTO */}
 
             <section className="card p-5 mb-4">
 
@@ -3450,8 +3258,6 @@ function Settings({
             </section>
 
 
-            {/* BACKUP */}
-
             <section className="card p-5 mb-4">
 
                 <h2 className="font-bold text-lg">
@@ -3469,12 +3275,17 @@ function Settings({
 
 
                 <button
+
                     onClick={
                         saveBackup
                     }
+
                     className="backup-button w-full bg-green text-white py-4 rounded-2xl font-bold mb-3"
+
                 >
+
                     ↓ Guardar backup
+
                 </button>
 
 
@@ -3482,13 +3293,19 @@ function Settings({
 
                     ↑ Cargar backup
 
+
                     <input
+
                         type="file"
+
                         accept=".json,application/json"
+
                         onChange={
                             loadBackup
                         }
+
                         className="hidden"
+
                     />
 
                 </label>
@@ -3497,18 +3314,32 @@ function Settings({
 
 
             <button
-                onClick={save}
+
+                onClick={
+                    save
+                }
+
                 className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mb-4"
+
             >
+
                 Guardar configuración
+
             </button>
 
 
             <button
-                onClick={resetAll}
+
+                onClick={
+                    resetAll
+                }
+
                 className="w-full bg-white text-red-500 border border-red-100 py-4 rounded-2xl font-semibold"
+
             >
+
                 Borrar registros
+
             </button>
 
         </main>
@@ -3591,6 +3422,7 @@ function AddModal({
                 Number(protein || 0)
 
         });
+
     }
 
 
@@ -3624,10 +3456,13 @@ function AddModal({
 
 
                     <button
+
                         onClick={
                             onClose
                         }
+
                         className="w-10 h-10 rounded-full bg-gray-100 text-xl"
+
                     >
                         ×
                     </button>
@@ -3636,10 +3471,13 @@ function AddModal({
 
 
                 <form
+
                     onSubmit={
                         submit
                     }
+
                     className="space-y-4"
+
                 >
 
                     <div>
@@ -3650,17 +3488,23 @@ function AddModal({
 
 
                         <input
+
                             autoFocus
+
                             value={
                                 name
                             }
+
                             onChange={e =>
                                 setName(
                                     e.target.value
                                 )
                             }
+
                             placeholder="Ej. Pechuga de pollo"
+
                             className="w-full border border-gray-200 rounded-2xl px-4 py-4"
+
                         />
 
                     </div>
@@ -3674,19 +3518,27 @@ function AddModal({
 
 
                         <input
+
                             type="number"
+
                             inputMode="decimal"
+
                             min="0"
+
                             value={
                                 calories
                             }
+
                             onChange={e =>
                                 setCalories(
                                     e.target.value
                                 )
                             }
+
                             placeholder="500"
+
                             className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
+
                         />
 
                     </div>
@@ -3700,27 +3552,38 @@ function AddModal({
 
 
                         <input
+
                             type="number"
+
                             inputMode="decimal"
+
                             min="0"
+
                             value={
                                 protein
                             }
+
                             onChange={e =>
                                 setProtein(
                                     e.target.value
                                 )
                             }
+
                             placeholder="40"
+
                             className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
+
                         />
 
                     </div>
 
 
                     <button
+
                         type="submit"
+
                         className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mt-3"
+
                     >
                         Añadir
                     </button>
@@ -3750,14 +3613,17 @@ function NavButton({
     return (
 
         <button
+
             onClick={
                 onClick
             }
+
             className={`flex flex-col items-center justify-center gap-1 w-24 ${
                 active
                     ? "green"
                     : "text-gray-500"
             }`}
+
         >
 
             <span className="text-3xl leading-none">
