@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+
 <html lang="es">
 <head>
     <meta charset="UTF-8">
@@ -338,6 +338,8 @@ const DEFAULT_SETTINGS = {
     proteinWeekly: 1190,
     stepsWeekly: 70000,
     name: "Mi plan",
+    initialWeight: 80,
+    targetWeight: 75,
     strictWindowsEnabled: false,
     breakfastStart: "07:00",
     breakfastEnd: "11:00",
@@ -504,6 +506,7 @@ function App() {
     });
     const [savedFoods, setSavedFoods] = useState(() => loadJSON("nutrition_saved_foods", []));
     const [stepsData, setStepsData] = useState(() => loadJSON("nutrition_steps", {}));
+    const [weightEntries, setWeightEntries] = useState(() => loadJSON("nutrition_weight", []));
     
     const [showAdd, setShowAdd] = useState(false);
     const [selectedDate, setSelectedDate] = useState(dateKey(new Date()));
@@ -528,6 +531,10 @@ function App() {
     useEffect(() => {
         localStorage.setItem("nutrition_steps", JSON.stringify(stepsData));
     }, [stepsData]);
+
+    useEffect(() => {
+        localStorage.setItem("nutrition_weight", JSON.stringify(weightEntries));
+    }, [weightEntries]);
 
     const weekDates = getWeekDates(currentWeekReference);
     const weekKeys = weekDates.map(dateKey);
@@ -677,7 +684,8 @@ function App() {
             settings: settings,
             entries: entries,
             savedFoods: savedFoods,
-            steps: stepsData
+            steps: stepsData,
+            weight: weightEntries
         };
 
         const json = JSON.stringify(backup, null, 2);
@@ -730,11 +738,13 @@ function App() {
                         
                         const importedSavedFoods = Array.isArray(backup.savedFoods) ? backup.savedFoods : [];
                         const importedSteps = backup.steps && typeof backup.steps === 'object' ? backup.steps : {};
+                        const importedWeight = Array.isArray(backup.weight) ? backup.weight : [];
 
                         setSettings(importedSettings);
                         setEntries(importedEntries);
                         setSavedFoods(importedSavedFoods);
                         setStepsData(importedSteps);
+                        setWeightEntries(importedWeight);
 
                         showAlert("Backup Restaurado", "Los datos se han cargado correctamente.");
                     }
@@ -795,11 +805,15 @@ function App() {
                     entries={entries}
                     settings={settings}
                     stepsData={stepsData}
+                    weightEntries={weightEntries}
+                    setWeightEntries={setWeightEntries}
                     getDayCalories={getDayCalories}
                     getDayProtein={getDayProtein}
                     getDaySteps={getDaySteps}
                     getDynamicDailyBudget={getDynamicDailyBudget}
                     onSelectDay={key => { setSelectedDate(key); setSelectedMealType("Desayuno"); setShowAdd(true); }}
+                    showAlert={showAlert}
+                    showConfirm={showConfirm}
                 />
             )}
             
@@ -1547,8 +1561,9 @@ function MiniProgress({ value, max, label, suffix, color }) {
     );
 }
 
-function History({ entries, settings, stepsData, getDayCalories, getDayProtein, getDaySteps, getDynamicDailyBudget, onSelectDay }) {
+function History({ entries, settings, stepsData, weightEntries, setWeightEntries, getDayCalories, getDayProtein, getDaySteps, getDynamicDailyBudget, onSelectDay, showAlert, showConfirm }) {
     const [period, setPeriod] = useState("week");
+    const [historyTab, setHistoryTab] = useState("nutrition");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -1589,10 +1604,8 @@ function History({ entries, settings, stepsData, getDayCalories, getDayProtein, 
     const averageCalories = daysWithData > 0 ? totalCalories / daysWithData : 0;
     
     const dailyBaseline = Number(settings.caloriesWeekly || 0) / 7;
-    const maxChartValue = Math.max(...chartData.map(item => Math.max(item.calories, item.budget)), dailyBaseline, 1);
-    const chartHeight = 185;
-    const baselineHeight = (dailyBaseline / maxChartValue) * chartHeight;
-
+    const maxChartValue = Math.max(...chartData.map(item => Math.max(item.calories, item.budget)), dailyBaseline, 1) * 1.15; // 15% padding top
+    
     function periodTitle() {
         if (period === "week") return "Esta semana";
         if (period === "month") return today.toLocaleDateString("es-ES", { month: "long", year: "numeric" });
@@ -1600,112 +1613,319 @@ function History({ entries, settings, stepsData, getDayCalories, getDayProtein, 
     }
 
     return (
-        <main className="safe-bottom p-5">
-            <header className="mb-5">
+        <main className="safe-bottom p-5 animate-[fadeIn_0.2s_ease-out]">
+            <header className="mb-4">
                 <div className="text-sm font-semibold tracking-wide text-gray-400">HISTORIAL</div>
-                <h1 className="text-3xl font-extrabold text-gray-800">Consumo y Actividad</h1>
+                <h1 className="text-3xl font-extrabold text-gray-800">Tus Progresos</h1>
             </header>
 
-            <div className="card p-1.5 mb-5 flex gap-1 bg-white">
-                {[["week", "Semana"], ["month", "Mes"], ["all", "Total"]].map(([value, label]) => (
-                    <button
-                        key={value}
-                        onClick={() => setPeriod(value)}
-                        className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${period === value ? "bg-green text-white shadow-md shadow-green/20" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"}`}
-                    >
-                        {label}
-                    </button>
-                ))}
+            <div className="flex gap-2 mb-5">
+                <button onClick={() => setHistoryTab("nutrition")} className={`flex-1 py-3.5 rounded-2xl font-bold text-sm transition-all ${historyTab === "nutrition" ? "bg-gray-800 text-white shadow-md" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>Nutrición y Actividad</button>
+                <button onClick={() => setHistoryTab("weight")} className={`flex-1 py-3.5 rounded-2xl font-bold text-sm transition-all ${historyTab === "weight" ? "bg-gray-800 text-white shadow-md" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>Peso Corporal</button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="card p-4 border border-gray-50 shadow-sm">
-                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Calorías</div>
-                    <div className="text-xl font-extrabold mt-1 text-gray-800">{Math.round(totalCalories).toLocaleString("es-ES")}</div>
-                    <div className="text-[11px] font-medium text-gray-400 mt-0.5">
-                        {daysWithData > 0 ? `${Math.round(averageCalories).toLocaleString("es-ES")} kcal/día` : "Sin registros"}
+            {historyTab === "nutrition" ? (
+                <>
+                    <div className="card p-1.5 mb-5 flex gap-1 bg-white">
+                        {[["week", "Semana"], ["month", "Mes"], ["all", "Total"]].map(([value, label]) => (
+                            <button
+                                key={value}
+                                onClick={() => setPeriod(value)}
+                                className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all ${period === value ? "bg-green text-white shadow-md shadow-green/20" : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"}`}
+                            >
+                                {label}
+                            </button>
+                        ))}
                     </div>
-                </div>
-                <div className="card p-4 border border-gray-50 shadow-sm">
-                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Proteína</div>
-                    <div className="text-xl font-extrabold mt-1 text-gray-800">{Math.round(totalProtein).toLocaleString("es-ES")} <span className="text-sm">g</span></div>
-                    <div className="text-[11px] font-medium text-gray-400 mt-0.5">
-                        {daysWithData > 0 ? `${Math.round(totalProtein / daysWithData)} g/día` : "Sin registros"}
+
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                        <div className="card p-4 border border-gray-50 shadow-sm text-center">
+                            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Calorías</div>
+                            <div className="text-xl font-extrabold mt-1 text-gray-800">{Math.round(totalCalories).toLocaleString("es-ES")}</div>
+                            <div className="text-[11px] font-medium text-gray-400 mt-0.5">
+                                {daysWithData > 0 ? `${Math.round(averageCalories).toLocaleString("es-ES")} kcal/día` : "Sin registros"}
+                            </div>
+                        </div>
+                        <div className="card p-4 border border-gray-50 shadow-sm text-center">
+                            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Proteína</div>
+                            <div className="text-xl font-extrabold mt-1 text-gray-800">{Math.round(totalProtein).toLocaleString("es-ES")} <span className="text-sm">g</span></div>
+                            <div className="text-[11px] font-medium text-gray-400 mt-0.5">
+                                {daysWithData > 0 ? `${Math.round(totalProtein / daysWithData)} g/día` : "Sin registros"}
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
 
-            <div className="card p-4 mb-5 border border-gray-50 shadow-sm flex items-center justify-between">
-                <div>
-                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Pasos Totales</div>
-                    <div className="text-xl font-extrabold mt-1 text-gray-800">{totalSteps.toLocaleString("es-ES")}</div>
-                </div>
-                <div className="text-right">
-                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Promedio Diario</div>
-                    <div className="text-xl font-extrabold mt-1 text-amber-600">{daysWithData > 0 ? Math.round(totalSteps / daysWithData).toLocaleString("es-ES") : 0}</div>
-                </div>
-            </div>
-
-            <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
-                <div className="flex justify-between items-start mb-4">
-                    <div>
-                        <h2 className="font-bold text-lg text-gray-800 capitalize">{periodTitle()}</h2>
-                        <p className="text-xs font-medium text-gray-400 mt-0.5">Consumo diario vs presupuesto objetivo</p>
+                    <div className="card p-4 mb-5 border border-gray-50 shadow-sm flex items-center justify-between">
+                        <div>
+                            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Pasos Totales</div>
+                            <div className="text-xl font-extrabold mt-1 text-gray-800">{totalSteps.toLocaleString("es-ES")}</div>
+                        </div>
+                        <div className="text-right">
+                            <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Promedio Diario</div>
+                            <div className="text-xl font-extrabold mt-1 text-amber-600">{daysWithData > 0 ? Math.round(totalSteps / daysWithData).toLocaleString("es-ES") : 0}</div>
+                        </div>
                     </div>
-                </div>
 
-                <div className="flex items-center gap-4 mb-4 text-xs font-medium text-gray-500">
-                    <div className="flex items-center gap-1.5"><span className="legend-dot legend-green"></span>Consumo</div>
-                    <div className="flex items-center gap-1.5"><span className="legend-dot legend-red"></span>Límite Diario</div>
-                </div>
+                    <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h2 className="font-bold text-lg text-gray-800 capitalize">{periodTitle()}</h2>
+                                <p className="text-xs font-medium text-gray-400 mt-0.5">Consumo diario vs presupuesto objetivo</p>
+                            </div>
+                        </div>
 
-                {chartData.length === 0 ? (
-                    <div className="py-12 text-center text-gray-400 text-sm font-medium">Todavía no hay registros suficientes.</div>
-                ) : (
-                    <div className="chart-scroll">
-                        <div className="chart-inner" style={{ minWidth: period === "month" ? "760px" : period === "all" ? `${Math.max(chartData.length * 48, 100)}px` : "100%" }}>
-                            <div className="history-chart">
-                                {[0, 25, 50, 75, 100].map(percentage => (
-                                    <div key={percentage} className="chart-grid-line border-gray-100" style={{ top: `${100 - percentage}%` }} />
-                                ))}
-                                
-                                <div className="relative flex items-end justify-between gap-1 px-1">
-                                    <div 
-                                        className="absolute left-0 right-0 border-t-[2px] border-dashed border-red-400 z-10 opacity-80 pointer-events-none" 
-                                        style={{ bottom: `calc(45px + ${baselineHeight}px)` }}
-                                    >
-                                        <div className="absolute -top-[22px] right-0 text-[9px] font-extrabold text-red-500 bg-white/90 px-1.5 py-0.5 rounded shadow-sm">
-                                            OBJETIVO {Math.round(dailyBaseline)}
+                        <div className="flex items-center gap-4 mb-4 text-xs font-medium text-gray-500">
+                            <div className="flex items-center gap-1.5"><span className="legend-dot legend-green"></span>Consumo</div>
+                            <div className="flex items-center gap-1.5"><span className="legend-dot legend-red"></span>Límite Diario</div>
+                        </div>
+
+                        {chartData.length === 0 ? (
+                            <div className="py-12 text-center text-gray-400 text-sm font-medium">Todavía no hay registros suficientes.</div>
+                        ) : (
+                            <div className="chart-scroll pb-2">
+                                <div className="chart-inner" style={{ minWidth: period === "month" ? "760px" : period === "all" ? `${Math.max(chartData.length * 48, 100)}px` : "100%" }}>
+                                    <div className="relative h-[200px] w-full mt-6">
+                                        {/* Líneas horizontales de guía (cuadrícula) */}
+                                        {[0, 25, 50, 75, 100].map(percentage => (
+                                            <div key={percentage} className="absolute left-0 right-0 border-t border-dashed border-gray-100 pointer-events-none" style={{ top: `${100 - percentage}%` }} />
+                                        ))}
+                                        
+                                        {/* LÍNEA DE PRESUPUESTO PERFECTAMENTE ALINEADA */}
+                                        <div 
+                                            className="absolute left-0 right-0 border-t-[2px] border-dashed border-red-400 z-10 opacity-80 pointer-events-none" 
+                                            style={{ bottom: `${(dailyBaseline / maxChartValue) * 100}%` }}
+                                        >
+                                            <div className="absolute -top-[20px] right-0 text-[9px] font-extrabold text-red-500 bg-white/90 px-1.5 py-0.5 rounded shadow-sm">
+                                                OBJETIVO {Math.round(dailyBaseline)}
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute inset-0 flex items-end justify-between gap-1 px-1">
+                                            {chartData.map(item => {
+                                                const heightPercent = Math.max((item.calories / maxChartValue) * 100, 0);
+                                                const isOverBaseline = item.calories > dailyBaseline;
+
+                                                return (
+                                                    <div key={item.key} className="flex-1 flex flex-col justify-end items-center h-full group relative">
+                                                        <div className="w-full flex items-end justify-center h-full relative">
+                                                            {item.calories > 0 && (
+                                                                <div className="absolute -top-5 text-[9px] font-bold text-gray-700 opacity-0 group-hover:opacity-100 transition-opacity bg-white/90 px-1 rounded shadow-sm whitespace-nowrap z-20">
+                                                                    {Math.round(item.calories)}
+                                                                </div>
+                                                            )}
+                                                            <div 
+                                                                className={`w-full max-w-[28px] rounded-t-md transition-all duration-300 z-10 ${isOverBaseline ? 'bg-red-400' : 'bg-green'}`} 
+                                                                style={{ height: `${item.calories > 0 ? Math.max(heightPercent, 1.5) : 0}%` }} 
+                                                            />
+                                                        </div>
+                                                        <div className="absolute -bottom-6 chart-label font-medium text-gray-400">
+                                                            {period === "week" ? DAYS[item.date.getDay() === 0 ? 6 : item.date.getDay() - 1].slice(0, 2) : formatShortDate(item.key)}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     </div>
-
-                                    {chartData.map(item => {
-                                        const consumptionHeight = item.calories / maxChartValue * chartHeight;
-                                        const isOverBaseline = item.calories > dailyBaseline;
-
-                                        return (
-                                            <div key={item.key} className="bar-item flex-1 group relative">
-                                                <div className="bar-area">
-                                                    {item.calories > 0 && (
-                                                        <div className="chart-value font-bold text-gray-700" style={{ position: "absolute", bottom: `${Math.min(consumptionHeight + 4, chartHeight - 10)}px` }}>
-                                                            {Math.round(item.calories)}
-                                                        </div>
-                                                    )}
-                                                    <div className={`consumption-bar ${isOverBaseline ? '!bg-red-400' : ''}`} style={{ height: `${Math.max(consumptionHeight, item.calories > 0 ? 4 : 0)}px` }} />
-                                                </div>
-                                                <div className="chart-label font-medium text-gray-400">
-                                                    {period === "week" ? DAYS[item.date.getDay() === 0 ? 6 : item.date.getDay() - 1].slice(0, 2) : formatShortDate(item.key)}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
+                                    <div className="h-8"></div> {/* Espaciador inferior para labels */}
                                 </div>
                             </div>
+                        )}
+                    </section>
+                </>
+            ) : (
+                <WeightDashboard 
+                    weightEntries={weightEntries} 
+                    setWeightEntries={setWeightEntries} 
+                    settings={settings}
+                    showAlert={showAlert}
+                    showConfirm={showConfirm}
+                />
+            )}
+        </main>
+    );
+}
+
+function WeightDashboard({ weightEntries, setWeightEntries, settings, showAlert, showConfirm }) {
+    const [newWeight, setNewWeight] = useState("");
+    const [newDate, setNewDate] = useState(dateKey(new Date()));
+
+    const sortedEntries = [...weightEntries].sort((a, b) => a.date.localeCompare(b.date));
+    const currentWeight = sortedEntries.length > 0 ? sortedEntries[sortedEntries.length - 1].weight : Number(settings.initialWeight);
+    const initialWeight = Number(settings.initialWeight);
+    const targetWeight = Number(settings.targetWeight);
+
+    const isLosing = initialWeight >= targetWeight;
+    let progress = 0;
+    let weightDiff = 0;
+
+    if (isLosing) {
+        weightDiff = initialWeight - currentWeight;
+        const totalToLose = initialWeight - targetWeight;
+        progress = totalToLose > 0 ? (weightDiff / totalToLose) * 100 : 0;
+    } else {
+        weightDiff = currentWeight - initialWeight;
+        const totalToGain = targetWeight - initialWeight;
+        progress = totalToGain > 0 ? (weightDiff / totalToGain) * 100 : 0;
+    }
+
+    progress = Math.max(0, Math.min(100, progress));
+    const isGoalReached = progress >= 100;
+
+    const daysElapsed = sortedEntries.length > 1 
+        ? (new Date(sortedEntries[sortedEntries.length - 1].date) - new Date(sortedEntries[0].date)) / (1000 * 60 * 60 * 24)
+        : 0;
+    const weeksElapsed = daysElapsed / 7;
+    const avgPerWeek = weeksElapsed > 0 ? (weightDiff / weeksElapsed) : 0;
+
+    const minW = Math.min(...sortedEntries.map(e => e.weight), initialWeight, targetWeight) - 2;
+    const maxW = Math.max(...sortedEntries.map(e => e.weight), initialWeight, targetWeight) + 2;
+    const range = maxW - minW;
+
+    function handleAddWeight(e) {
+        e.preventDefault();
+        const weightVal = Number(newWeight);
+        if (!weightVal || weightVal <= 0) {
+            showAlert("Error", "Introduce un peso válido.");
+            return;
+        }
+
+        const newEntry = { id: Date.now(), date: newDate, weight: weightVal };
+        const filtered = weightEntries.filter(e => e.date !== newDate);
+        setWeightEntries([...filtered, newEntry]);
+        setNewWeight("");
+        showAlert("¡Listo!", "Peso registrado correctamente.");
+    }
+
+    function deleteEntry(id) {
+        if (showConfirm) {
+            showConfirm("Borrar registro", "¿Seguro que quieres borrar este registro de peso?", () => {
+                setWeightEntries(weightEntries.filter(e => e.id !== id));
+            });
+        }
+    }
+
+    return (
+        <div className="space-y-5 animate-[fadeIn_0.2s_ease-out]">
+            <div className="card p-6 border border-gray-50 shadow-sm flex flex-col items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-green/5"></div>
+                <div className="text-sm font-semibold text-gray-500 z-10 mb-2 uppercase tracking-widest">Peso Actual</div>
+                <div className="text-[44px] font-extrabold text-gray-800 z-10 mb-5 leading-none">{currentWeight.toFixed(1)} <span className="text-xl text-gray-500 font-medium">kg</span></div>
+                
+                <div className="w-full relative z-10 mt-2">
+                    <div className="flex justify-between text-[11px] font-bold text-gray-500 mb-2 uppercase tracking-wide">
+                        <span>{initialWeight} kg (Inicial)</span>
+                        <span className={isGoalReached ? "text-green font-extrabold" : ""}>{targetWeight} kg (Objetivo)</span>
+                    </div>
+                    <div className="h-3.5 bg-white border border-gray-100 rounded-full overflow-hidden shadow-inner relative">
+                        <div className="h-full bg-green rounded-full transition-all duration-1000 relative" style={{ width: `${progress}%` }}>
+                            <div className="absolute inset-0 bg-white/20 w-full animate-[shimmer_2s_infinite]"></div>
+                        </div>
+                    </div>
+                    <div className="text-center text-xs font-extrabold text-green mt-3">
+                        {progress.toFixed(1)}% del objetivo conseguido
+                    </div>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+                <div className="card p-4 border border-gray-50 shadow-sm text-center">
+                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Total {isLosing ? 'Perdido' : 'Ganado'}</div>
+                    <div className="text-2xl font-extrabold mt-1 text-gray-800">{Math.abs(weightDiff).toFixed(1)} <span className="text-sm text-gray-500">kg</span></div>
+                </div>
+                <div className="card p-4 border border-gray-50 shadow-sm text-center">
+                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Media Semanal</div>
+                    <div className="text-2xl font-extrabold mt-1 text-gray-800">{Math.abs(avgPerWeek).toFixed(2)} <span className="text-sm text-gray-500">kg</span></div>
+                </div>
+            </div>
+
+            <section className="card p-5 border border-gray-50 shadow-sm">
+                <h3 className="font-bold text-gray-800 mb-4">Añadir Pesaje</h3>
+                <form onSubmit={handleAddWeight} className="flex gap-2">
+                    <input type="date" value={newDate} onChange={e => setNewDate(e.target.value)} className="w-[130px] border-2 border-gray-100 rounded-xl px-2 py-2 text-xs font-semibold text-gray-700 bg-gray-50" required />
+                    <input type="number" step="0.1" value={newWeight} onChange={e => setNewWeight(e.target.value)} placeholder="Ej. 74.5" className="flex-1 border-2 border-gray-100 rounded-xl px-3 py-2 text-sm font-bold text-gray-800 bg-gray-50" required />
+                    <button type="submit" className="bg-gray-800 text-white px-5 rounded-xl font-bold shadow-sm active:scale-95 transition-transform text-lg">+</button>
+                </form>
+            </section>
+
+            <section className="card p-5 border border-gray-50 shadow-sm">
+                <div className="flex justify-between items-end mb-4">
+                    <h3 className="font-bold text-gray-800">Gráfico de Tendencia</h3>
+                </div>
+                
+                {sortedEntries.length === 0 ? (
+                    <div className="text-center py-6 text-gray-400 text-sm font-medium">Añade tu primer registro para ver el gráfico.</div>
+                ) : (
+                    <div className="relative w-full h-[180px] mt-4 mb-2 pl-6">
+                        {/* Y-axis Labels */}
+                        <div className="absolute left-0 top-0 bottom-0 w-5 flex flex-col justify-between text-[9px] font-bold text-gray-400 text-right pr-1">
+                            <span>{Math.round(maxW)}</span>
+                            <span>{Math.round(maxW - (range/2))}</span>
+                            <span>{Math.round(minW)}</span>
+                        </div>
+                        
+                        <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible">
+                            {/* Grid Lines */}
+                            <line x1="0" y1="0" x2="100" y2="0" stroke="#f3f4f6" strokeWidth="1" />
+                            <line x1="0" y1="50" x2="100" y2="50" stroke="#f3f4f6" strokeWidth="1" />
+                            <line x1="0" y1="100" x2="100" y2="100" stroke="#f3f4f6" strokeWidth="1" />
+
+                            {/* Target Line */}
+                            <line 
+                                x1="0" y1={Math.max(0, Math.min(100, 100 - ((targetWeight - minW) / range) * 100))} 
+                                x2="100" y2={Math.max(0, Math.min(100, 100 - ((targetWeight - minW) / range) * 100))} 
+                                stroke="#10b981" strokeWidth="1.5" strokeDasharray="3" 
+                            />
+
+                            {/* Trend Line */}
+                            <polyline 
+                                points={sortedEntries.map((e, i) => `${sortedEntries.length === 1 ? 50 : (i / (sortedEntries.length - 1)) * 100},${100 - ((e.weight - minW) / range) * 100}`).join(" ")}
+                                fill="none" stroke="#20a35a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                            />
+                            
+                            {/* Points */}
+                            {sortedEntries.map((e, i) => (
+                                <circle 
+                                    key={e.id}
+                                    cx={sortedEntries.length === 1 ? 50 : (i / (sortedEntries.length - 1)) * 100}
+                                    cy={100 - ((e.weight - minW) / range) * 100}
+                                    r="3" fill="white" stroke="#20a35a" strokeWidth="2"
+                                />
+                            ))}
+                        </svg>
+                        <div className="absolute right-0 text-[8px] font-extrabold text-green bg-white/90 px-1 py-0.5 rounded shadow-sm z-10 border border-green/20" style={{ top: `calc(${Math.max(0, Math.min(100, 100 - ((targetWeight - minW) / range) * 100))}% - 7px)` }}>
+                            OBJ: {targetWeight}
                         </div>
                     </div>
                 )}
             </section>
-        </main>
+
+            <section className="card p-5 border border-gray-50 shadow-sm">
+                <h3 className="font-bold text-gray-800 mb-4">Historial de Pesajes</h3>
+                <div className="space-y-2">
+                    {sortedEntries.slice().reverse().map((entry, idx, arr) => {
+                        const prevEntry = arr[idx + 1];
+                        const diff = prevEntry ? entry.weight - prevEntry.weight : 0;
+                        return (
+                            <div key={entry.id} className="flex justify-between items-center p-3.5 bg-gray-50 hover:bg-gray-100 transition-colors rounded-xl border border-gray-100/50">
+                                <div>
+                                    <div className="font-extrabold text-gray-800 text-lg">{entry.weight} <span className="text-xs text-gray-500 font-medium">kg</span></div>
+                                    <div className="text-[10px] font-bold text-gray-400 mt-0.5 uppercase tracking-wider">{formatShortDate(entry.date)}</div>
+                                </div>
+                                <div className="flex items-center gap-4">
+                                    {diff !== 0 && (
+                                        <div className={`text-xs font-bold px-2 py-1 rounded-md ${diff > 0 ? 'bg-red-50 text-red-500' : 'bg-green/10 text-green'}`}>
+                                            {diff > 0 ? '+' : ''}{diff.toFixed(1)}
+                                        </div>
+                                    )}
+                                    <button onClick={() => deleteEntry(entry.id)} className="w-8 h-8 rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm flex items-center justify-center font-bold text-lg leading-none transition-colors">×</button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {sortedEntries.length === 0 && <div className="text-center py-4 text-xs font-medium text-gray-400">Sin historial</div>}
+                </div>
+            </section>
+        </div>
     );
 }
 
@@ -1718,6 +1938,8 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
         const calories = Number(local.caloriesWeekly);
         const protein = Number(local.proteinWeekly);
         const steps = Number(local.stepsWeekly);
+        const iWeight = Number(local.initialWeight);
+        const tWeight = Number(local.targetWeight);
 
         if (!Number.isFinite(calories) || calories <= 0) {
             showAlert("Error", "Introduce un presupuesto semanal de calorías válido.");
@@ -1731,12 +1953,18 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
             showAlert("Error", "Introduce un objetivo semanal de pasos válido.");
             return;
         }
+        if (!Number.isFinite(iWeight) || iWeight <= 0 || !Number.isFinite(tWeight) || tWeight <= 0) {
+            showAlert("Error", "Introduce pesos inicial y objetivo válidos.");
+            return;
+        }
         
         const updatedSettings = {
             ...local,
             caloriesWeekly: calories,
             proteinWeekly: protein,
-            stepsWeekly: steps
+            stepsWeekly: steps,
+            initialWeight: iWeight,
+            targetWeight: tWeight
         };
         
         setSettings(updatedSettings);
@@ -1778,7 +2006,7 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
                 </div>
 
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Objetivo semanal de pasos</label>
-                <div className="relative mb-4">
+                <div className="relative mb-6">
                     <input 
                         type="number" 
                         inputMode="numeric" 
@@ -1788,6 +2016,41 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">pasos</span>
                 </div>
+
+                <div className="h-px bg-gray-100 my-6"></div>
+                <h2 className="font-bold text-lg mb-4 text-gray-800">Objetivo de Peso</h2>
+
+                <div className="grid grid-cols-2 gap-4 mb-2">
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Peso Inicial</label>
+                        <div className="relative">
+                            <input 
+                                type="number" 
+                                step="0.1"
+                                inputMode="decimal" 
+                                value={local.initialWeight} 
+                                onChange={e => setLocal({ ...local, initialWeight: e.target.value })} 
+                                className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-10 py-3.5 text-lg font-bold text-gray-800 transition-colors" 
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">kg</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Peso Objetivo</label>
+                        <div className="relative">
+                            <input 
+                                type="number" 
+                                step="0.1"
+                                inputMode="decimal" 
+                                value={local.targetWeight} 
+                                onChange={e => setLocal({ ...local, targetWeight: e.target.value })} 
+                                className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-10 py-3.5 text-lg font-bold text-gray-800 transition-colors" 
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">kg</span>
+                        </div>
+                    </div>
+                </div>
+
             </section>
 
             <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
@@ -1834,31 +2097,37 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
                         </div>
                     </div>
                 )}
+                
+                <button 
+                    onClick={save} 
+                    className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mt-6 shadow-lg shadow-green/20 hover:bg-green/90 active:scale-[0.98] transition-all"
+                >
+                    Guardar cambios
+                </button>
             </section>
 
-            <button onClick={save} className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg shadow-lg shadow-green/20 hover:bg-green/90 active:scale-[0.98] transition-all mb-4">
-                Guardar cambios
-            </button>
-
             <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
-                <h2 className="font-bold text-lg text-gray-800">Copia de Seguridad</h2>
-                <p className="text-xs font-medium text-gray-500 leading-relaxed mt-2 mb-5">
-                    Descarga un archivo con todo tu progreso para no perderlo, o restaura uno antiguo.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                    <button onClick={saveBackup} className="backup-button bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-bold text-sm flex flex-col items-center gap-1">
-                        Exportar Datos
+                <h2 className="font-bold text-lg mb-4 text-gray-800 text-red-500">Zona de Peligro</h2>
+                <div className="space-y-3">
+                    <button onClick={resetAll} className="w-full py-3.5 rounded-2xl font-bold text-sm bg-red-50 text-red-600 hover:bg-red-100 transition-colors">
+                        Borrar todos los registros
                     </button>
-                    <label className="backup-button bg-gray-100 hover:bg-gray-200 text-gray-700 py-3.5 rounded-xl font-bold text-sm flex flex-col items-center gap-1 cursor-pointer">
-                        Importar Datos
-                        <input type="file" accept=".json,application/json" onChange={loadBackup} className="hidden" />
-                    </label>
                 </div>
             </section>
 
-            <button onClick={resetAll} className="w-full bg-white text-red-500 border-2 border-red-100 py-4 rounded-2xl font-bold mt-4 hover:bg-red-50 transition-colors">
-                Borrar todos los registros
-            </button>
+            <section className="card p-5 border border-gray-50 shadow-sm">
+                <h2 className="font-bold text-lg mb-4 text-gray-800">Copias de Seguridad</h2>
+                <div className="space-y-3">
+                    <button onClick={saveBackup} className="w-full py-3.5 rounded-2xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors backup-button">
+                        Exportar Backup (JSON)
+                    </button>
+                    <label className="w-full py-3.5 rounded-2xl font-bold text-sm bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors flex items-center justify-center cursor-pointer backup-button">
+                        Importar Backup
+                        <input type="file" accept=".json" onChange={loadBackup} className="hidden" />
+                    </label>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-4 text-center font-medium">Versión 1.4</p>
+            </section>
         </main>
     );
 }
