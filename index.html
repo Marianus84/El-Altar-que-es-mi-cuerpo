@@ -2,132 +2,1508 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cierre Sagrado | Protocolo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>Mi Presupuesto</title>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;700;900&display=swap');
-        body { font-family: 'Outfit', sans-serif; background: #09090b; color: #f4f4f5; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); }
-        .glow { box-shadow: 0 0 20px rgba(99, 102, 241, 0.3); }
-        .timer-progress { transition: width 1s linear; }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
-
-        const RITUAL_STEPS = [
-            { id: 'clean', title: 'Limpiar y Guardar', time: 60, icon: '✨' },
-            { id: 'teeth', title: 'Higiene Dental', time: 60, icon: '🦷' },
-            { id: 'water', title: 'Bebida Final', time: 60, icon: '🍵' },
-            { id: 'lights', title: 'Apagar Cocina', time: 0, icon: '🌙' }
-        ];
-
-        const PHRASES = [
-            "La disciplina es el puente entre metas y logros.",
-            "Un cierre sagrado asegura un nuevo amanecer brillante.",
-            "La constancia es la forma más elevada de amor propio.",
-            "Cada día que completas, tu futuro se vuelve más fuerte.",
-            "El dominio de la noche es el dominio de la vida.",
-            "Mañana te agradecerás por haber cerrado bien el hoy."
-        ];
-
-        function App() {
-            const [activeStep, setActiveStep] = useState(null);
-            const [completed, setCompleted] = useState([]);
-            const [timeLeft, setTimeLeft] = useState(0);
-            const [streak, setStreak] = useState(() => parseInt(localStorage.getItem('streak') || '0'));
-
-            useEffect(() => {
-                if (timeLeft > 0) {
-                    const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000);
-                    return () => clearInterval(timer);
-                } else if (timeLeft === 0 && activeStep !== null) {
-                    if (!completed.includes(activeStep)) {
-                        setCompleted([...completed, activeStep]);
-                    }
-                    setActiveStep(null);
-                }
-            }, [timeLeft, activeStep]);
-
-            const finishProtocol = () => {
-                const newStreak = streak + 1;
-                setStreak(newStreak);
-                localStorage.setItem('streak', newStreak);
-                setCompleted([]);
-            };
-
-            const startStep = (step) => {
-                if (completed.includes(step.id) || activeStep === step.id) return;
-                if (step.time > 0) {
-                    setTimeLeft(step.time);
-                    setActiveStep(step.id);
-                } else {
-                    setCompleted([...completed, step.id]);
-                }
-            };
-
-            return (
-                <div className="max-w-md mx-auto min-h-screen p-6 flex flex-col justify-center">
-                    <div className="text-center mb-8">
-                        <div className="inline-block px-4 py-1 rounded-full glass mb-4 text-xs font-bold tracking-widest text-indigo-400">
-                            RACHA: {streak} DÍAS
-                        </div>
-                        <h1 className="text-4xl font-black italic tracking-tighter text-indigo-500 uppercase">Cierre Sagrado</h1>
-                        <p className="text-zinc-500 font-light mt-2 uppercase tracking-[0.2em] text-xs">
-                            {PHRASES[streak % PHRASES.length]}
-                        </p>
-                    </div>
-
-                    <div className="space-y-4">
-                        {RITUAL_STEPS.map((step) => {
-                            const isDone = completed.includes(step.id);
-                            const isActive = activeStep === step.id;
-                            const progress = isActive ? ((step.time - timeLeft) / step.time) * 100 : 0;
-
-                            return (
-                                <div key={step.id} 
-                                    onClick={() => startStep(step)}
-                                    className={`relative overflow-hidden glass p-6 rounded-3xl transition-all duration-500 cursor-pointer
-                                    ${isDone ? 'border-emerald-500/50 bg-emerald-950/20' : isActive ? 'border-indigo-500 glow' : 'border-white/10 hover:border-white/20'}`}>
-                                    
-                                    {isActive && (
-                                        <div className="absolute bottom-0 left-0 h-1 bg-indigo-500 timer-progress" style={{ width: `${progress}%` }}></div>
-                                    )}
-
-                                    <div className="flex items-center gap-4 relative z-10">
-                                        <div className="text-2xl">{isDone ? '✅' : step.icon}</div>
-                                        <div>
-                                            <h3 className="font-bold text-lg">{step.title}</h3>
-                                            <p className="text-xs text-zinc-400">
-                                                {isActive ? `${timeLeft}s restantes...` : isDone ? 'Completado' : step.time > 0 ? `Requiere ${step.time}s` : 'Acción instantánea'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    {completed.length === RITUAL_STEPS.length && (
-                        <div className="mt-10 animate-pulse">
-                            <button onClick={finishProtocol} className="w-full py-6 rounded-3xl bg-indigo-600 font-black text-xl italic uppercase tracking-widest shadow-2xl shadow-indigo-600/50 hover:bg-indigo-500 transition-all">
-                                Día Cerrado
-                            </button>
-                        </div>
-                    )}
-                </div>
-            );
+        * {
+            box-sizing: border-box;
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: #f7faf8;
+            color: #14221b;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+        }
+
+        button,
+        input {
+            font-family: inherit;
+        }
+
+        .app {
+            max-width: 480px;
+            min-height: 100vh;
+            margin: auto;
+            background: #f7faf8;
+        }
+
+        .green {
+            color: #20a35a;
+        }
+
+        .bg-green {
+            background: #20a35a;
+        }
+
+        .progress-track {
+            background: #e3eae5;
+        }
+
+        .progress-green {
+            background: #20a35a;
+        }
+
+        .progress-red {
+            background: #e91e4d;
+        }
+
+        .card {
+            background: white;
+            border-radius: 25px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        }
+
+        .circle {
+            transform: rotate(-90deg);
+        }
+
+        .circle-bg {
+            fill: none;
+            stroke: #e4eae6;
+        }
+
+        .circle-progress {
+            fill: none;
+            stroke: #20a35a;
+            stroke-linecap: round;
+            transition: stroke-dashoffset .4s ease;
+        }
+
+        .small-circle-progress {
+            fill: none;
+            stroke: #20a35a;
+            stroke-linecap: round;
+        }
+
+        .modal-backdrop {
+            background: rgba(0,0,0,.42);
+            backdrop-filter: blur(3px);
+        }
+
+        .safe-bottom {
+            padding-bottom: calc(100px + env(safe-area-inset-bottom));
+        }
+
+        .nav-bottom {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #20a35a;
+            box-shadow: 0 0 0 3px rgba(32,163,90,.12);
+        }
+
+        .day-row {
+            transition: transform .15s ease;
+        }
+
+        .day-row:active {
+            transform: scale(.99);
+        }
+    </style>
+</head>
+
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+
+const { useState, useEffect } = React;
+
+/* =========================================================
+   CONFIGURACIÓN
+========================================================= */
+
+const DEFAULT_SETTINGS = {
+    caloriesWeekly: 16590,
+    proteinDaily: 170,
+    name: "Mi plan"
+};
+
+const DAYS = [
+    "Lunes",
+    "Martes",
+    "Miércoles",
+    "Jueves",
+    "Viernes",
+    "Sábado",
+    "Domingo"
+];
+
+/* =========================================================
+   UTILIDADES
+========================================================= */
+
+function getMonday(date = new Date()) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+
+    const day = d.getDay();
+
+    const diff = day === 0 ? -6 : 1 - day;
+
+    d.setDate(d.getDate() + diff);
+
+    return d;
+}
+
+function dateKey(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+
+    return `${y}-${m}-${d}`;
+}
+
+function formatDate(date) {
+    return date.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric"
+    });
+}
+
+function formatWeekDate(date) {
+    return date.toLocaleDateString("es-ES", {
+        day: "2-digit",
+        month: "2-digit"
+    });
+}
+
+function getWeekDates() {
+    const monday = getMonday();
+    const dates = [];
+
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        dates.push(d);
+    }
+
+    return dates;
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function loadJSON(key, fallback) {
+    try {
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : fallback;
+    } catch {
+        return fallback;
+    }
+}
+
+/* =========================================================
+   APP
+========================================================= */
+
+function App() {
+
+    const [activeTab, setActiveTab] = useState("home");
+
+    const [settings, setSettings] = useState(() =>
+        loadJSON("nutrition_settings", DEFAULT_SETTINGS)
+    );
+
+    const [entries, setEntries] = useState(() =>
+        loadJSON("nutrition_entries", [])
+    );
+
+    const [showAdd, setShowAdd] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+
+    const [selectedDate, setSelectedDate] = useState(
+        dateKey(new Date())
+    );
+
+    const [selectedEntry, setSelectedEntry] = useState(null);
+
+    /* -----------------------------------------------------
+       GUARDAR
+    ----------------------------------------------------- */
+
+    useEffect(() => {
+        localStorage.setItem(
+            "nutrition_settings",
+            JSON.stringify(settings)
+        );
+    }, [settings]);
+
+    useEffect(() => {
+        localStorage.setItem(
+            "nutrition_entries",
+            JSON.stringify(entries)
+        );
+    }, [entries]);
+
+    /* -----------------------------------------------------
+       FECHAS
+    ----------------------------------------------------- */
+
+    const weekDates = getWeekDates();
+
+    const todayKey = dateKey(new Date());
+
+    /* -----------------------------------------------------
+       ENTRADAS POR DÍA
+    ----------------------------------------------------- */
+
+    function getDayEntries(key) {
+        return entries.filter(e => e.date === key);
+    }
+
+    function getDayCalories(key) {
+        return getDayEntries(key)
+            .reduce((sum, e) => sum + Number(e.calories || 0), 0);
+    }
+
+    function getDayProtein(key) {
+        return getDayEntries(key)
+            .reduce((sum, e) => sum + Number(e.protein || 0), 0);
+    }
+
+    /* -----------------------------------------------------
+       SEMANA
+    ----------------------------------------------------- */
+
+    const weekKeys = weekDates.map(dateKey);
+
+    const weeklyCaloriesConsumed = weekKeys.reduce(
+        (sum, key) => sum + getDayCalories(key),
+        0
+    );
+
+    const weeklyProteinConsumed = weekKeys.reduce(
+        (sum, key) => sum + getDayProtein(key),
+        0
+    );
+
+    const weeklyCaloriesRemaining =
+        Math.max(0, settings.caloriesWeekly - weeklyCaloriesConsumed);
+
+    const weeklyProteinTarget =
+        settings.proteinDaily * 7;
+
+    /* -----------------------------------------------------
+       LÓGICA DINÁMICA
+       
+       IMPORTANTE:
+
+       El presupuesto del día NO es simplemente:
+
+           weekly / 7
+
+       Cada día se calcula según lo que ocurrió antes.
+
+       Ejemplo:
+
+       Semana = 16.590
+       Día 1 consume 2.600
+
+       Restante = 13.990
+       Días restantes = 6
+
+       Nuevo presupuesto =
+           13.990 / 6
+           = 2.331,67
+    ----------------------------------------------------- */
+
+    function getDynamicDailyBudget(index) {
+
+        let remainingBudget = settings.caloriesWeekly;
+
+        for (let i = 0; i < index; i++) {
+            remainingBudget -= getDayCalories(weekKeys[i]);
+        }
+
+        const remainingDays = 7 - index;
+
+        if (remainingDays <= 0) {
+            return 0;
+        }
+
+        return Math.max(
+            0,
+            remainingBudget / remainingDays
+        );
+    }
+
+    /* -----------------------------------------------------
+       PRESUPUESTO DE HOY
+    ----------------------------------------------------- */
+
+    const todayIndex = weekKeys.indexOf(todayKey);
+
+    const todayBudget =
+        todayIndex >= 0
+            ? getDynamicDailyBudget(todayIndex)
+            : settings.caloriesWeekly / 7;
+
+    const todayCalories =
+        getDayCalories(todayKey);
+
+    const todayProtein =
+        getDayProtein(todayKey);
+
+    const todayRemaining =
+        Math.max(0, todayBudget - todayCalories);
+
+    /* -----------------------------------------------------
+       AÑADIR COMIDA
+    ----------------------------------------------------- */
+
+    function addEntry(data) {
+
+        const newEntry = {
+            id: Date.now(),
+            date: selectedDate,
+            name: data.name,
+            calories: Number(data.calories),
+            protein: Number(data.protein)
+        };
+
+        setEntries(prev => [...prev, newEntry]);
+
+        setShowAdd(false);
+    }
+
+    /* -----------------------------------------------------
+       ELIMINAR
+    ----------------------------------------------------- */
+
+    function deleteEntry(id) {
+
+        setEntries(prev =>
+            prev.filter(entry => entry.id !== id)
+        );
+
+        setSelectedEntry(null);
+    }
+
+    /* -----------------------------------------------------
+       RESET
+    ----------------------------------------------------- */
+
+    function resetAll() {
+
+        if (!confirm(
+            "¿Seguro que quieres borrar todos los registros?"
+        )) return;
+
+        setEntries([]);
+        localStorage.removeItem("nutrition_entries");
+    }
+
+    return (
+        <div className="app">
+
+            {activeTab === "home" && (
+                <Home
+                    settings={settings}
+                    weekDates={weekDates}
+                    weekKeys={weekKeys}
+                    todayKey={todayKey}
+                    todayBudget={todayBudget}
+                    todayCalories={todayCalories}
+                    todayProtein={todayProtein}
+                    weeklyCaloriesConsumed={weeklyCaloriesConsumed}
+                    weeklyProteinConsumed={weeklyProteinConsumed}
+                    weeklyProteinTarget={weeklyProteinTarget}
+                    getDayCalories={getDayCalories}
+                    getDayProtein={getDayProtein}
+                    getDynamicDailyBudget={getDynamicDailyBudget}
+                    onAdd={() => {
+                        setSelectedDate(todayKey);
+                        setShowAdd(true);
+                    }}
+                    onSelectDay={(key) => {
+                        setSelectedDate(key);
+                        setShowAdd(true);
+                    }}
+                    entries={entries}
+                    onDelete={deleteEntry}
+                />
+            )}
+
+            {activeTab === "history" && (
+                <History
+                    weekDates={weekDates}
+                    weekKeys={weekKeys}
+                    entries={entries}
+                    getDayCalories={getDayCalories}
+                    getDayProtein={getDayProtein}
+                    getDynamicDailyBudget={getDynamicDailyBudget}
+                    settings={settings}
+                    onSelectDay={(key) => {
+                        setSelectedDate(key);
+                        setShowAdd(true);
+                    }}
+                />
+            )}
+
+            {activeTab === "settings" && (
+                <Settings
+                    settings={settings}
+                    setSettings={setSettings}
+                    resetAll={resetAll}
+                />
+            )}
+
+            {/* NAV */}
+
+            <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 nav-bottom">
+                <div className="max-w-[480px] mx-auto h-[82px] flex items-center justify-around">
+
+                    <NavButton
+                        active={activeTab === "home"}
+                        icon="⌂"
+                        label="Inicio"
+                        onClick={() => setActiveTab("home")}
+                    />
+
+                    <NavButton
+                        active={activeTab === "history"}
+                        icon="▦"
+                        label="Historial"
+                        onClick={() => setActiveTab("history")}
+                    />
+
+                    <NavButton
+                        active={activeTab === "settings"}
+                        icon="⚙"
+                        label="Ajustes"
+                        onClick={() => setActiveTab("settings")}
+                    />
+
+                </div>
+            </div>
+
+            {/* ADD MODAL */}
+
+            {showAdd && (
+                <AddModal
+                    date={selectedDate}
+                    onClose={() => setShowAdd(false)}
+                    onSave={addEntry}
+                />
+            )}
+
+        </div>
+    );
+}
+
+/* =========================================================
+   HOME
+========================================================= */
+
+function Home({
+    settings,
+    weekDates,
+    weekKeys,
+    todayKey,
+    todayBudget,
+    todayCalories,
+    todayProtein,
+    weeklyCaloriesConsumed,
+    weeklyProteinConsumed,
+    weeklyProteinTarget,
+    getDayCalories,
+    getDayProtein,
+    getDynamicDailyBudget,
+    onAdd,
+    onSelectDay,
+    entries,
+    onDelete
+}) {
+
+    const caloriePercent =
+        settings.caloriesWeekly > 0
+            ? clamp(
+                weeklyCaloriesConsumed /
+                settings.caloriesWeekly * 100,
+                0,
+                100
+            )
+            : 0;
+
+    const proteinPercent =
+        weeklyProteinTarget > 0
+            ? clamp(
+                weeklyProteinConsumed /
+                weeklyProteinTarget * 100,
+                0,
+                100
+            )
+            : 0;
+
+    return (
+        <main className="safe-bottom p-5">
+
+            {/* HEADER */}
+
+            <header className="flex justify-between items-center mb-5">
+
+                <div>
+                    <div className="text-sm text-gray-500">
+                        ESTA SEMANA
+                    </div>
+
+                    <h1 className="text-[28px] font-extrabold">
+                        {formatWeekDate(weekDates[0])}
+                        {" – "}
+                        {formatWeekDate(weekDates[6])}
+                    </h1>
+                </div>
+
+                <div className="w-12 h-12 rounded-2xl bg-white shadow-sm flex items-center justify-center text-2xl">
+                    ⋁
+                </div>
+
+            </header>
+
+            {/* WEEKLY SUMMARY */}
+
+            <section className="card p-6 mb-5">
+
+                <div className="flex items-center gap-5">
+
+                    <ProgressCircle
+                        value={weeklyCaloriesConsumed}
+                        max={settings.caloriesWeekly}
+                        size={175}
+                        stroke={14}
+                        label="Calorías"
+                    />
+
+                    <div className="flex-1 space-y-4">
+
+                        <MiniProgress
+                            value={weeklyProteinConsumed}
+                            max={weeklyProteinTarget}
+                            label="Proteína"
+                            suffix="g"
+                        />
+
+                        <MiniProgress
+                            value={weeklyCaloriesConsumed}
+                            max={settings.caloriesWeekly}
+                            label="Calorías"
+                            suffix="kcal"
+                        />
+
+                    </div>
+
+                </div>
+
+            </section>
+
+            {/* TODAY */}
+
+            <section className="card p-5 mb-5">
+
+                <div className="flex justify-between items-start">
+
+                    <div>
+                        <div className="text-sm text-gray-500">
+                            PRESUPUESTO DE HOY
+                        </div>
+
+                        <div className="text-3xl font-extrabold mt-1">
+                            {Math.round(todayBudget).toLocaleString("es-ES")}
+                            <span className="text-base font-medium text-gray-400">
+                                {" "}kcal
+                            </span>
+                        </div>
+
+                        <div className="text-sm text-gray-500 mt-1">
+                            {todayCalories.toLocaleString("es-ES")}
+                            {" "}consumidas ·{" "}
+                            {Math.round(
+                                Math.max(0, todayBudget - todayCalories)
+                            ).toLocaleString("es-ES")}
+                            {" "}restantes
+                        </div>
+                    </div>
+
+                    <button
+                        onClick={onAdd}
+                        className="bg-green text-white w-12 h-12 rounded-2xl text-2xl shadow-sm"
+                    >
+                        +
+                    </button>
+
+                </div>
+
+                <div className="mt-5">
+
+                    <div className="flex justify-between text-xs mb-2">
+                        <span>Calorías</span>
+                        <span>
+                            {Math.round(todayCalories)}
+                            {" / "}
+                            {Math.round(todayBudget)}
+                        </span>
+                    </div>
+
+                    <div className="h-2 rounded-full progress-track overflow-hidden">
+                        <div
+                            className="h-full progress-green rounded-full"
+                            style={{
+                                width: `${clamp(
+                                    todayCalories / Math.max(todayBudget, 1) * 100,
+                                    0,
+                                    100
+                                )}%`
+                            }}
+                        />
+                    </div>
+
+                </div>
+
+                <div className="mt-4">
+
+                    <div className="flex justify-between text-xs mb-2">
+                        <span>Proteína</span>
+                        <span>
+                            {todayProtein}
+                            {" / "}
+                            {settings.proteinDaily} g
+                        </span>
+                    </div>
+
+                    <div className="h-2 rounded-full progress-track overflow-hidden">
+                        <div
+                            className="h-full progress-red rounded-full"
+                            style={{
+                                width: `${clamp(
+                                    todayProtein /
+                                    Math.max(settings.proteinDaily, 1) *
+                                    100,
+                                    0,
+                                    100
+                                )}%`
+                            }}
+                        />
+                    </div>
+
+                </div>
+
+            </section>
+
+            {/* DAYS */}
+
+            <div className="flex items-center justify-between mb-3">
+
+                <h2 className="text-xl font-bold">
+                    Esta semana
+                </h2>
+
+                <span className="text-sm text-gray-500">
+                    {weeklyCaloriesConsumed.toLocaleString("es-ES")}
+                    {" / "}
+                    {settings.caloriesWeekly.toLocaleString("es-ES")}
+                </span>
+
+            </div>
+
+            <div className="space-y-3">
+
+                {weekDates.map((date, index) => {
+
+                    const key = weekKeys[index];
+
+                    const calories =
+                        getDayCalories(key);
+
+                    const protein =
+                        getDayProtein(key);
+
+                    const budget =
+                        getDynamicDailyBudget(index);
+
+                    const isToday =
+                        key === todayKey;
+
+                    const dayEntries =
+                        entries.filter(e => e.date === key);
+
+                    return (
+                        <div
+                            key={key}
+                            className={`card p-4 day-row ${
+                                isToday
+                                    ? "ring-2 ring-green/20"
+                                    : ""
+                            }`}
+                        >
+
+                            <div
+                                className="flex justify-between items-center cursor-pointer"
+                                onClick={() => onSelectDay(key)}
+                            >
+
+                                <div>
+
+                                    <div className="flex items-center gap-2">
+
+                                        <h3 className="font-bold">
+                                            {DAYS[index]}
+                                        </h3>
+
+                                        {isToday && (
+                                            <span className="text-[10px] px-2 py-1 rounded-full bg-green/10 green font-bold">
+                                                HOY
+                                            </span>
+                                        )}
+
+                                    </div>
+
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        {formatDate(date)}
+                                    </div>
+
+                                </div>
+
+                                <div className="text-right">
+
+                                    <div className="font-bold">
+                                        {Math.round(calories).toLocaleString("es-ES")}
+                                        {" / "}
+                                        {Math.round(budget).toLocaleString("es-ES")}
+                                    </div>
+
+                                    <div className="text-xs text-gray-500">
+                                        kcal
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div className="mt-3">
+
+                                <div className="h-2 progress-track rounded-full overflow-hidden">
+
+                                    <div
+                                        className="h-full progress-green rounded-full"
+                                        style={{
+                                            width: `${clamp(
+                                                calories /
+                                                Math.max(budget, 1) *
+                                                100,
+                                                0,
+                                                100
+                                            )}%`
+                                        }}
+                                    />
+
+                                </div>
+
+                            </div>
+
+                            <div className="flex justify-between mt-3 text-xs text-gray-500">
+
+                                <span>
+                                    P {protein} / {settings.proteinDaily} g
+                                </span>
+
+                                <span>
+                                    {dayEntries.length}
+                                    {" "}
+                                    {dayEntries.length === 1
+                                        ? "registro"
+                                        : "registros"}
+                                </span>
+
+                            </div>
+
+                            {/* ENTRADAS DEL DÍA */}
+
+                            {dayEntries.length > 0 && (
+                                <div className="mt-4 space-y-2">
+
+                                    {dayEntries.map(entry => (
+                                        <div
+                                            key={entry.id}
+                                            className="bg-gray-50 rounded-2xl p-3 flex justify-between items-center"
+                                        >
+
+                                            <div>
+
+                                                <div className="font-medium text-sm">
+                                                    {entry.name}
+                                                </div>
+
+                                                <div className="text-xs text-gray-500 mt-1">
+                                                    P {entry.protein} g
+                                                </div>
+
+                                            </div>
+
+                                            <div className="flex items-center gap-3">
+
+                                                <span className="font-semibold text-sm">
+                                                    {entry.calories} kcal
+                                                </span>
+
+                                                <button
+                                                    onClick={() => onDelete(entry.id)}
+                                                    className="text-gray-400 hover:text-red-500"
+                                                >
+                                                    ×
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+                                    ))}
+
+                                </div>
+                            )}
+
+                        </div>
+                    );
+                })}
+
+            </div>
+
+            {/* ADD */}
+
+            <button
+                onClick={onAdd}
+                className="fixed bottom-[105px] left-1/2 -translate-x-1/2 max-w-[430px] w-[calc(100%-40px)] bg-green text-white py-4 rounded-2xl font-bold shadow-lg"
+            >
+                + Añadir calorías
+            </button>
+
+        </main>
+    );
+}
+
+/* =========================================================
+   CÍRCULO
+========================================================= */
+
+function ProgressCircle({
+    value,
+    max,
+    size,
+    stroke,
+    label
+}) {
+
+    const radius =
+        (size - stroke) / 2;
+
+    const circumference =
+        2 * Math.PI * radius;
+
+    const percent =
+        max > 0
+            ? clamp(value / max, 0, 1)
+            : 0;
+
+    const offset =
+        circumference * (1 - percent);
+
+    return (
+        <div
+            className="relative flex-shrink-0"
+            style={{
+                width: size,
+                height: size
+            }}
+        >
+
+            <svg
+                width={size}
+                height={size}
+                className="circle"
+            >
+
+                <circle
+                    className="circle-bg"
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    strokeWidth={stroke}
+                />
+
+                <circle
+                    className="circle-progress"
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    strokeWidth={stroke}
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
+                />
+
+            </svg>
+
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+
+                <div className="text-[25px] font-extrabold">
+                    {Math.round(value).toLocaleString("es-ES")}
+                </div>
+
+                <div className="text-sm text-gray-400">
+                    / {Math.round(max).toLocaleString("es-ES")}
+                </div>
+
+                <div className="text-sm text-gray-500 mt-1">
+                    {label}
+                </div>
+
+            </div>
+
+        </div>
+    );
+}
+
+/* =========================================================
+   MINI PROGRESS
+========================================================= */
+
+function MiniProgress({
+    value,
+    max,
+    label,
+    suffix
+}) {
+
+    const percent =
+        max > 0
+            ? clamp(value / max * 100, 0, 100)
+            : 0;
+
+    return (
+        <div>
+
+            <div className="flex justify-between text-xs mb-2">
+
+                <span className="text-gray-500">
+                    {label}
+                </span>
+
+                <span className="font-semibold">
+                    {Math.round(value)}
+                    {" / "}
+                    {Math.round(max)}
+                    {" "}
+                    {suffix}
+                </span>
+
+            </div>
+
+            <div className="h-2 rounded-full progress-track overflow-hidden">
+
+                <div
+                    className="h-full progress-green rounded-full"
+                    style={{
+                        width: `${percent}%`
+                    }}
+                />
+
+            </div>
+
+        </div>
+    );
+}
+
+/* =========================================================
+   HISTORIAL
+========================================================= */
+
+function History({
+    weekDates,
+    weekKeys,
+    entries,
+    getDayCalories,
+    getDayProtein,
+    getDynamicDailyBudget,
+    settings,
+    onSelectDay
+}) {
+
+    const totalCalories =
+        weekKeys.reduce(
+            (sum, key) =>
+                sum + getDayCalories(key),
+            0
+        );
+
+    const totalProtein =
+        weekKeys.reduce(
+            (sum, key) =>
+                sum + getDayProtein(key),
+            0
+        );
+
+    return (
+        <main className="safe-bottom p-5">
+
+            <header className="mb-6">
+
+                <div className="text-sm text-gray-500">
+                    HISTORIAL
+                </div>
+
+                <h1 className="text-3xl font-extrabold">
+                    Resumen semanal
+                </h1>
+
+            </header>
+
+            <div className="grid grid-cols-2 gap-3 mb-6">
+
+                <div className="card p-5">
+
+                    <div className="text-sm text-gray-500">
+                        Calorías
+                    </div>
+
+                    <div className="text-2xl font-extrabold mt-1">
+                        {totalCalories.toLocaleString("es-ES")}
+                    </div>
+
+                    <div className="text-xs text-gray-400">
+                        de {settings.caloriesWeekly.toLocaleString("es-ES")}
+                    </div>
+
+                </div>
+
+                <div className="card p-5">
+
+                    <div className="text-sm text-gray-500">
+                        Proteína
+                    </div>
+
+                    <div className="text-2xl font-extrabold mt-1">
+                        {totalProtein.toLocaleString("es-ES")} g
+                    </div>
+
+                    <div className="text-xs text-gray-400">
+                        objetivo {settings.proteinDaily * 7} g
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div className="space-y-3">
+
+                {weekDates.map((date, index) => {
+
+                    const key = weekKeys[index];
+
+                    const calories =
+                        getDayCalories(key);
+
+                    const protein =
+                        getDayProtein(key);
+
+                    const budget =
+                        getDynamicDailyBudget(index);
+
+                    const dayEntries =
+                        entries.filter(e => e.date === key);
+
+                    return (
+                        <div
+                            key={key}
+                            onClick={() => onSelectDay(key)}
+                            className="card p-5 cursor-pointer"
+                        >
+
+                            <div className="flex justify-between">
+
+                                <div>
+                                    <div className="font-bold">
+                                        {DAYS[index]}
+                                    </div>
+
+                                    <div className="text-xs text-gray-500 mt-1">
+                                        {formatDate(date)}
+                                    </div>
+                                </div>
+
+                                <div className="text-right">
+
+                                    <div className="font-bold">
+                                        {Math.round(calories)} kcal
+                                    </div>
+
+                                    <div className="text-xs text-gray-500">
+                                        presupuesto {Math.round(budget)}
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+
+                                <div className="bg-gray-50 rounded-xl p-3">
+                                    <div className="text-gray-500 text-xs">
+                                        Proteína
+                                    </div>
+                                    <div className="font-bold mt-1">
+                                        {protein} g
+                                    </div>
+                                </div>
+
+                                <div className="bg-gray-50 rounded-xl p-3">
+                                    <div className="text-gray-500 text-xs">
+                                        Registros
+                                    </div>
+                                    <div className="font-bold mt-1">
+                                        {dayEntries.length}
+                                    </div>
+                                </div>
+
+                            </div>
+
+                        </div>
+                    );
+
+                })}
+
+            </div>
+
+        </main>
+    );
+}
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+function Settings({
+    settings,
+    setSettings,
+    resetAll
+}) {
+
+    const [local, setLocal] =
+        useState(settings);
+
+    function save() {
+        setSettings({
+            ...local,
+            caloriesWeekly:
+                Number(local.caloriesWeekly),
+            proteinDaily:
+                Number(local.proteinDaily)
+        });
+
+        alert("Configuración guardada");
+    }
+
+    return (
+        <main className="safe-bottom p-5">
+
+            <header className="mb-6">
+
+                <h1 className="text-3xl font-extrabold">
+                    Mi plan
+                </h1>
+
+                <p className="text-gray-500 mt-2">
+                    Configura tu presupuesto nutricional
+                </p>
+
+            </header>
+
+            <section className="card p-5 mb-4">
+
+                <h2 className="font-bold text-lg mb-5">
+                    Objetivos semanales
+                </h2>
+
+                <label className="block text-sm text-gray-500 mb-2">
+                    Presupuesto semanal de calorías
+                </label>
+
+                <input
+                    type="number"
+                    value={local.caloriesWeekly}
+                    onChange={e =>
+                        setLocal({
+                            ...local,
+                            caloriesWeekly: e.target.value
+                        })
+                    }
+                    className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold mb-5"
+                />
+
+                <label className="block text-sm text-gray-500 mb-2">
+                    Objetivo diario de proteína
+                </label>
+
+                <input
+                    type="number"
+                    value={local.proteinDaily}
+                    onChange={e =>
+                        setLocal({
+                            ...local,
+                            proteinDaily: e.target.value
+                        })
+                    }
+                    className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
+                />
+
+            </section>
+
+            <section className="card p-5 mb-4">
+
+                <h2 className="font-bold text-lg">
+                    Cómo funciona
+                </h2>
+
+                <p className="text-sm text-gray-500 leading-6 mt-3">
+                    Tu presupuesto de calorías es semanal.
+                    El presupuesto de cada día se recalcula
+                    automáticamente según lo que hayas consumido
+                    anteriormente durante la semana.
+                </p>
+
+                <div className="bg-green/10 rounded-2xl p-4 mt-4 text-sm">
+
+                    <div className="font-bold green mb-1">
+                        Ejemplo
+                    </div>
+
+                    <div className="text-gray-600 leading-6">
+                        Si tu presupuesto es de 16.590 kcal y
+                        consumes 2.600 kcal el lunes, los 13.990 kcal
+                        restantes se distribuyen entre los seis días
+                        restantes.
+                    </div>
+
+                </div>
+
+            </section>
+
+            <button
+                onClick={save}
+                className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mb-4"
+            >
+                Guardar configuración
+            </button>
+
+            <button
+                onClick={resetAll}
+                className="w-full bg-white text-red-500 border border-red-100 py-4 rounded-2xl font-semibold"
+            >
+                Borrar registros
+            </button>
+
+        </main>
+    );
+}
+
+/* =========================================================
+   ADD MODAL
+========================================================= */
+
+function AddModal({
+    date,
+    onClose,
+    onSave
+}) {
+
+    const [name, setName] = useState("");
+    const [calories, setCalories] = useState("");
+    const [protein, setProtein] = useState("");
+
+    function submit(e) {
+
+        e.preventDefault();
+
+        if (!name.trim()) {
+            alert("Introduce el nombre del alimento.");
+            return;
+        }
+
+        if (!calories || Number(calories) < 0) {
+            alert("Introduce las calorías.");
+            return;
+        }
+
+        onSave({
+            name: name.trim(),
+            calories: Number(calories),
+            protein: Number(protein || 0)
+        });
+    }
+
+    return (
+        <div className="fixed inset-0 z-50 modal-backdrop flex items-end justify-center">
+
+            <div className="bg-white w-full max-w-[480px] rounded-t-[30px] p-6">
+
+                <div className="flex justify-between items-center mb-6">
+
+                    <div>
+
+                        <div className="text-sm text-gray-500">
+                            {formatDate(new Date(date + "T00:00:00"))}
+                        </div>
+
+                        <h2 className="text-2xl font-extrabold">
+                            Añadir comida
+                        </h2>
+
+                    </div>
+
+                    <button
+                        onClick={onClose}
+                        className="w-10 h-10 rounded-full bg-gray-100 text-xl"
+                    >
+                        ×
+                    </button>
+
+                </div>
+
+                <form
+                    onSubmit={submit}
+                    className="space-y-4"
+                >
+
+                    <div>
+
+                        <label className="block text-sm text-gray-500 mb-2">
+                            Alimento / comida
+                        </label>
+
+                        <input
+                            autoFocus
+                            value={name}
+                            onChange={e =>
+                                setName(e.target.value)
+                            }
+                            placeholder="Ej. Pechuga de pollo"
+                            className="w-full border border-gray-200 rounded-2xl px-4 py-4"
+                        />
+
+                    </div>
+
+                    <div>
+
+                        <label className="block text-sm text-gray-500 mb-2">
+                            Calorías
+                        </label>
+
+                        <input
+                            type="number"
+                            inputMode="decimal"
+                            value={calories}
+                            onChange={e =>
+                                setCalories(e.target.value)
+                            }
+                            placeholder="500"
+                            className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
+                        />
+
+                    </div>
+
+                    <div>
+
+                        <label className="block text-sm text-gray-500 mb-2">
+                            Proteína (g)
+                        </label>
+
+                        <input
+                            type="number"
+                            inputMode="decimal"
+                            value={protein}
+                            onChange={e =>
+                                setProtein(e.target.value)
+                            }
+                            placeholder="40"
+                            className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
+                        />
+
+                    </div>
+
+                    <button
+                        type="submit"
+                        className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mt-3"
+                    >
+                        Añadir
+                    </button>
+
+                </form>
+
+            </div>
+
+        </div>
+    );
+}
+
+/* =========================================================
+   NAV BUTTON
+========================================================= */
+
+function NavButton({
+    active,
+    icon,
+    label,
+    onClick
+}) {
+
+    return (
+        <button
+            onClick={onClick}
+            className={`flex flex-col items-center justify-center gap-1 w-24 ${
+                active ? "green" : "text-gray-500"
+            }`}
+        >
+
+            <span className="text-3xl leading-none">
+                {icon}
+            </span>
+
+            <span className="text-xs font-medium">
+                {label}
+            </span>
+
+        </button>
+    );
+}
+
+/* =========================================================
+   START
+========================================================= */
+
+const root =
+    ReactDOM.createRoot(
+        document.getElementById("root")
+    );
+
+root.render(<App />);
+
+</script>
+
 </body>
 </html>
