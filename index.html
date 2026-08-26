@@ -104,10 +104,11 @@
         }
 
         .past-day {
-            opacity: .55;
-            background: #f2f4f2;
+            opacity: .60;
+            background: #edf1ed;
             box-shadow: none !important;
             padding: 12px 16px !important;
+            border: 1px solid #dce4de;
         }
 
         .today-day {
@@ -122,10 +123,6 @@
 
         .backup-button:active {
             transform: scale(.98);
-        }
-
-        .floating-add {
-            box-shadow: 0 6px 20px rgba(32, 163, 90, .25);
         }
 
         /* =====================================================
@@ -487,7 +484,18 @@ function App() {
     const closeDialog = () => setDialogConfig(prev => ({ ...prev, show: false }));
 
     const [settings, setSettings] = useState(() => loadJSON("nutrition_settings", DEFAULT_SETTINGS));
-    const [entries, setEntries] = useState(() => loadJSON("nutrition_entries", []));
+    const [entries, setEntries] = useState(() => {
+        const raw = loadJSON("nutrition_entries", []);
+        // Deduplicar entradas corruptas o duplicadas por ID o slot de día
+        const cleanMap = new Map();
+        raw.forEach(e => {
+            if (e && e.date && e.mealType) {
+                const uniqueKey = `${e.date}_${e.mealType}`;
+                cleanMap.set(uniqueKey, e); // Mantiene la última entrada válida para ese slot
+            }
+        });
+        return Array.from(cleanMap.values());
+    });
     const [savedFoods, setSavedFoods] = useState(() => loadJSON("nutrition_saved_foods", []));
     const [stepsData, setStepsData] = useState(() => loadJSON("nutrition_steps", {}));
     
@@ -607,15 +615,18 @@ function App() {
                 mealType: data.mealType
             } : e));
         } else {
-            const newEntry = {
-                id: Date.now() + Math.random(),
-                date: selectedDate,
-                name: data.name.trim(),
-                calories: Number(data.calories),
-                protein: Number(data.protein),
-                mealType: data.mealType
-            };
-            setEntries(prev => [...prev, newEntry]);
+            // Eliminar preventivamente cualquier colisión previa en el mismo slot de fecha y comida
+            setEntries(prev => [
+                ...prev.filter(e => !(e.date === selectedDate && e.mealType === data.mealType)),
+                {
+                    id: Date.now() + Math.random(),
+                    date: selectedDate,
+                    name: data.name.trim(),
+                    calories: Number(data.calories),
+                    protein: Number(data.protein),
+                    mealType: data.mealType
+                }
+            ]);
         }
 
         const nameLower = data.name.trim().toLowerCase();
@@ -853,6 +864,7 @@ function App() {
                     showAlert={showAlert}
                     initialData={editingEntry}
                     existingEntries={getDayEntries(selectedDate)}
+                    settings={settings}
                 />
             )}
 
@@ -1032,7 +1044,7 @@ function Home({
                     const dayEntries = entries.filter(e => e.date === key);
 
                     return (
-                        <div key={key} className={`card day-row ${isToday ? "today-day ring-2 ring-green/20 p-4" : ""} ${isPast ? "past-day p-3" : "p-4"}`}>
+                        <div key={key} className={`card day-row ${isToday ? "today-day ring-2 ring-green/20 p-4" : ""} ${isPast ? "past-day" : "p-4"}`}>
                             <div className="flex justify-between items-center cursor-pointer" onClick={() => onSelectDay(key)}>
                                 <div>
                                     <div className="flex items-center gap-2">
@@ -1079,14 +1091,14 @@ function Home({
                                 </div>
                             </div>
 
-                            {!isPast && (
-                                <div className="mt-3 space-y-2 border-t border-gray-50 pt-2.5">
+                            {(!isPast || dayEntries.length > 0) && (
+                                <div className="mt-3 space-y-2 border-t border-gray-100 pt-2.5">
                                     {MEAL_TYPES.map(mealType => {
                                         const entry = dayEntries.find(e => e.mealType === mealType);
                                         return (
-                                            <div key={mealType} className="bg-gray-50/90 rounded-2xl p-2.5 flex justify-between items-center">
+                                            <div key={mealType} className="bg-white/80 rounded-xl p-2.5 flex justify-between items-center shadow-sm">
                                                 <div className="flex items-center gap-2">
-                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${entry ? 'bg-green/10 green' : 'bg-gray-200 text-gray-500'}`}>
+                                                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider ${entry ? 'bg-green/10 green' : 'bg-gray-100 text-gray-400'}`}>
                                                         {mealType}
                                                     </span>
                                                     {entry ? (
@@ -1105,7 +1117,7 @@ function Home({
                                                             <span className="font-bold text-xs text-gray-700">{entry.calories} kcal</span>
                                                             <button
                                                                 onClick={(e) => { e.stopPropagation(); onDelete(entry.id); }}
-                                                                className="w-6 h-6 flex items-center justify-center rounded-full bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm transition-colors text-sm"
+                                                                className="w-6 h-6 flex items-center justify-center rounded-full bg-gray-50 text-gray-400 hover:text-red-500 hover:bg-red-50 shadow-sm transition-colors text-sm"
                                                                 title="Eliminar comida"
                                                             >
                                                                 ×
@@ -1114,7 +1126,7 @@ function Home({
                                                     ) : (
                                                         <button
                                                             onClick={() => onAdd(key, mealType)}
-                                                            className="px-2.5 py-1 rounded-xl bg-white text-green border border-green/20 text-xs font-bold hover:bg-green hover:text-white transition-all shadow-sm"
+                                                            className="px-2.5 py-1 rounded-xl bg-gray-50 text-green border border-green/20 text-xs font-bold hover:bg-green hover:text-white transition-all shadow-sm"
                                                         >
                                                             + Añadir
                                                         </button>
@@ -1133,7 +1145,7 @@ function Home({
     );
 }
 
-function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAlert, initialData, existingEntries }) {
+function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAlert, initialData, existingEntries, settings }) {
     const [name, setName] = useState(initialData ? initialData.name : "");
     const [calories, setCalories] = useState(initialData ? initialData.calories.toString() : "");
     const [protein, setProtein] = useState(initialData ? initialData.protein.toString() : "");
@@ -1163,6 +1175,26 @@ function AddModal({ date, initialMealType, onClose, onSave, savedFoods, showAler
         if (protein !== "" && Number(protein) < 0) {
             showAlert("Dato incorrecto", "La proteína no puede ser un valor negativo.");
             return;
+        }
+
+        // Comprobación estricta de Slot Ocupado (Opción 1)
+        const isOccupied = existingEntries.some(e => e.mealType === mealType && (!initialData || e.id !== initialData.id));
+        if (isOccupied) {
+            showAlert("Slot ocupado", `Ya tienes registrado un ${mealType} para este día. Elimínalo o edítalo si deseas cambiarlo.`);
+            return;
+        }
+
+        // Comprobación estricta de Ventana Horaria (Opción 2)
+        if (settings.strictWindowsEnabled && date === dateKey(new Date()) && !initialData) {
+            let start = settings.breakfastStart;
+            let end = settings.breakfastEnd;
+            if (mealType === "Almuerzo") { start = settings.lunchStart; end = settings.lunchEnd; }
+            if (mealType === "Cena") { start = settings.dinnerStart; end = settings.dinnerEnd; }
+
+            if (!isCurrentTimeInRange(start, end)) {
+                showAlert("Fuera de horario permitido", `Estás intentando registrar ${mealType} fuera de su franja horaria recomendada (${start} - ${end}).`);
+                return;
+            }
         }
 
         onSave({
