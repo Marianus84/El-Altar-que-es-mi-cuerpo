@@ -339,6 +339,7 @@ const { useState, useEffect } = React;
 const DEFAULT_SETTINGS = {
     caloriesWeekly: 16590,
     proteinDaily: 170,
+    stepsDaily: 10000,
     name: "Mi plan"
 };
 
@@ -476,13 +477,14 @@ function App() {
     const [settings, setSettings] = useState(() => loadJSON("nutrition_settings", DEFAULT_SETTINGS));
     const [entries, setEntries] = useState(() => loadJSON("nutrition_entries", []));
     const [savedFoods, setSavedFoods] = useState(() => loadJSON("nutrition_saved_foods", []));
+    const [stepsData, setStepsData] = useState(() => loadJSON("nutrition_steps", {}));
     
     const [showAdd, setShowAdd] = useState(false);
     const [selectedDate, setSelectedDate] = useState(dateKey(new Date()));
     const [editingEntry, setEditingEntry] = useState(null);
     const [editingFood, setEditingFood] = useState(null);
 
-    // Navegación semanal (permite ver semanas pasadas o futuras)
+    // Navegación semanal
     const [currentWeekReference, setCurrentWeekReference] = useState(new Date());
 
     useEffect(() => {
@@ -496,6 +498,10 @@ function App() {
     useEffect(() => {
         localStorage.setItem("nutrition_saved_foods", JSON.stringify(savedFoods));
     }, [savedFoods]);
+
+    useEffect(() => {
+        localStorage.setItem("nutrition_steps", JSON.stringify(stepsData));
+    }, [stepsData]);
 
     const weekDates = getWeekDates(currentWeekReference);
     const weekKeys = weekDates.map(dateKey);
@@ -513,13 +519,21 @@ function App() {
         return getDayEntries(key).reduce((sum, e) => sum + Number(e.protein || 0), 0);
     }
 
+    function getDaySteps(key) {
+        return Number(stepsData[key] || 0);
+    }
+
+    function setDaySteps(key, val) {
+        setStepsData(prev => ({ ...prev, [key]: Math.max(0, Number(val) || 0) }));
+    }
+
     const weeklyCaloriesConsumed = weekKeys.reduce((sum, key) => sum + getDayCalories(key), 0);
     const weeklyProteinConsumed = weekKeys.reduce((sum, key) => sum + getDayProtein(key), 0);
-    const weeklyProteinTarget = Number(settings.proteinDaily) * 7;
-    const weeklyCaloriesRemaining = Math.max(0, Number(settings.caloriesWeekly) - weeklyCaloriesConsumed);
+    const weeklyProteinTarget = Number(settings.proteinDaily || 0) * 7;
+    const weeklyCaloriesRemaining = Math.max(0, Number(settings.caloriesWeekly || 0) - weeklyCaloriesConsumed);
 
     function getDynamicDailyBudget(index) {
-        let remainingBudget = Number(settings.caloriesWeekly);
+        let remainingBudget = Number(settings.caloriesWeekly || 0);
         for (let i = 0; i < index; i++) {
             remainingBudget -= getDayCalories(weekKeys[i]);
         }
@@ -529,9 +543,10 @@ function App() {
     }
 
     const todayIndex = weekKeys.indexOf(todayKey);
-    const todayBudget = todayIndex >= 0 ? getDynamicDailyBudget(todayIndex) : Number(settings.caloriesWeekly) / 7;
+    const todayBudget = todayIndex >= 0 ? getDynamicDailyBudget(todayIndex) : Number(settings.caloriesWeekly || 0) / 7;
     const todayCalories = getDayCalories(todayKey);
     const todayProtein = getDayProtein(todayKey);
+    const todaySteps = getDaySteps(todayKey);
     const todayRemaining = Math.max(0, todayBudget - todayCalories);
 
     function saveEntry(data) {
@@ -587,10 +602,12 @@ function App() {
     function resetAll() {
         showConfirm(
             "Borrar Registros", 
-            "¿Seguro que quieres borrar todos los registros de consumo? Esta acción no se puede deshacer.",
+            "¿Seguro que quieres borrar todos los registros de consumo y pasos? Esta acción no se puede deshacer.",
             () => {
                 setEntries([]);
+                setStepsData({});
                 localStorage.removeItem("nutrition_entries");
+                localStorage.removeItem("nutrition_steps");
                 showAlert("Éxito", "Registros borrados correctamente.");
             }
         );
@@ -599,11 +616,12 @@ function App() {
     function saveBackup() {
         const backup = {
             app: "Mi Presupuesto",
-            version: 7,
+            version: 8,
             exportedAt: new Date().toISOString(),
             settings: settings,
             entries: entries,
-            savedFoods: savedFoods
+            savedFoods: savedFoods,
+            steps: stepsData
         };
 
         const json = JSON.stringify(backup, null, 2);
@@ -612,7 +630,7 @@ function App() {
         const link = document.createElement("a");
         link.href = url;
         const today = new Date().toISOString().slice(0, 10);
-        link.download = `backup-calorias-${today}.json`;
+        link.download = `backup-nutricion-${today}.json`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -639,7 +657,8 @@ function App() {
                             ...DEFAULT_SETTINGS,
                             ...backup.settings,
                             caloriesWeekly: Number(backup.settings.caloriesWeekly) || 0,
-                            proteinDaily: Number(backup.settings.proteinDaily) || 0
+                            proteinDaily: Number(backup.settings.proteinDaily) || 0,
+                            stepsDaily: Number(backup.settings.stepsDaily) || 10000
                         };
 
                         const importedEntries = backup.entries
@@ -650,16 +669,21 @@ function App() {
                                 name: String(entry.name),
                                 calories: Number(entry.calories) || 0,
                                 protein: Number(entry.protein) || 0,
-                                mealType: String(entry.mealType || "Comida")
+                                mealType: String(entry.mealType || "Desayuno")
                             }));
                         
                         const importedSavedFoods = Array.isArray(backup.savedFoods) 
                             ? backup.savedFoods 
                             : [];
 
+                        const importedSteps = backup.steps && typeof backup.steps === 'object'
+                            ? backup.steps
+                            : {};
+
                         setSettings(importedSettings);
                         setEntries(importedEntries);
                         setSavedFoods(importedSavedFoods);
+                        setStepsData(importedSteps);
 
                         showAlert("Backup Restaurado", "Los datos se han cargado correctamente.");
                     }
@@ -685,6 +709,7 @@ function App() {
                     todayBudget={todayBudget}
                     todayCalories={todayCalories}
                     todayProtein={todayProtein}
+                    todaySteps={todaySteps}
                     todayRemaining={todayRemaining}
                     weeklyCaloriesConsumed={weeklyCaloriesConsumed}
                     weeklyCaloriesRemaining={weeklyCaloriesRemaining}
@@ -692,6 +717,8 @@ function App() {
                     weeklyProteinTarget={weeklyProteinTarget}
                     getDayCalories={getDayCalories}
                     getDayProtein={getDayProtein}
+                    getDaySteps={getDaySteps}
+                    setDaySteps={setDaySteps}
                     getDynamicDailyBudget={getDynamicDailyBudget}
                     currentWeekReference={currentWeekReference}
                     setCurrentWeekReference={setCurrentWeekReference}
@@ -707,8 +734,10 @@ function App() {
                 <History
                     entries={entries}
                     settings={settings}
+                    stepsData={stepsData}
                     getDayCalories={getDayCalories}
                     getDayProtein={getDayProtein}
+                    getDaySteps={getDaySteps}
                     getDynamicDailyBudget={getDynamicDailyBudget}
                     onSelectDay={key => { setSelectedDate(key); setShowAdd(true); }}
                 />
@@ -790,8 +819,8 @@ function App() {
 ========================================================= */
 function Home({
     settings, weekDates, weekKeys, todayKey, todayBudget, todayCalories, todayProtein,
-    todayRemaining, weeklyCaloriesConsumed, weeklyCaloriesRemaining, weeklyProteinConsumed,
-    weeklyProteinTarget, getDayCalories, getDayProtein, getDynamicDailyBudget,
+    todaySteps, todayRemaining, weeklyCaloriesConsumed, weeklyCaloriesRemaining, weeklyProteinConsumed,
+    weeklyProteinTarget, getDayCalories, getDayProtein, getDaySteps, setDaySteps, getDynamicDailyBudget,
     currentWeekReference, setCurrentWeekReference, onAdd, onSelectDay, onEdit, entries, onDelete
 }) {
     function changeWeek(direction) {
@@ -842,12 +871,13 @@ function Home({
                         size={175}
                         label="Calorías"
                     />
-                    <div className="flex-1 space-y-5">
+                    <div className="flex-1 space-y-4">
                         <MiniProgress
                             value={weeklyProteinConsumed}
                             max={weeklyProteinTarget}
                             label="Proteína"
                             suffix="g"
+                            color="#3b82f6"
                         />
                         <div>
                             <div className="flex justify-between text-xs mb-2">
@@ -901,10 +931,27 @@ function Home({
                     </div>
                     <div className="h-2.5 rounded-full progress-track overflow-hidden">
                         <div
-                            className="h-full progress-green rounded-full transition-all duration-500"
+                            className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${clamp(todayProtein / Math.max(settings.proteinDaily, 1) * 100, 0, 100)}%`, background: '#3b82f6' }}
                         />
                     </div>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-gray-50 flex items-center justify-between">
+                    <div>
+                        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Pasos de hoy</div>
+                        <div className="text-lg font-bold text-gray-800 mt-0.5">
+                            {todaySteps.toLocaleString("es-ES")} <span className="text-xs font-medium text-gray-400">/ {Number(settings.stepsDaily || 10000).toLocaleString("es-ES")}</span>
+                        </div>
+                    </div>
+                    <input
+                        type="number"
+                        inputMode="numeric"
+                        value={todaySteps === 0 ? "" : todaySteps}
+                        onChange={e => setDaySteps(todayKey, e.target.value)}
+                        placeholder="Ej. 10000"
+                        className="w-32 border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-xl px-3 py-2 text-sm font-bold text-gray-800 transition-colors text-right"
+                    />
                 </div>
             </section>
 
@@ -920,6 +967,7 @@ function Home({
                     const key = weekKeys[index];
                     const calories = getDayCalories(key);
                     const protein = getDayProtein(key);
+                    const steps = getDaySteps(key);
                     const budget = getDynamicDailyBudget(index);
                     const isToday = key === todayKey;
                     const isPast = isPastDate(key);
@@ -965,7 +1013,7 @@ function Home({
 
                             <div className="flex justify-between mt-3 text-[11px] font-semibold text-gray-400 uppercase tracking-wide">
                                 <span>P {protein} / {settings.proteinDaily} g</span>
-                                <span>{dayEntries.length} {dayEntries.length === 1 ? "registro" : "registros"}</span>
+                                <span className="text-amber-600 font-bold">🚶 {steps.toLocaleString("es-ES")} pasos</span>
                             </div>
 
                             {dayEntries.length > 0 && (
@@ -1397,7 +1445,7 @@ function ProgressCircle({ value, max, size, label }) {
     );
 }
 
-function MiniProgress({ value, max, label, suffix }) {
+function MiniProgress({ value, max, label, suffix, color }) {
     const percent = max > 0 ? clamp(value / max * 100, 0, 100) : 0;
     return (
         <div>
@@ -1406,7 +1454,7 @@ function MiniProgress({ value, max, label, suffix }) {
                 <span className="font-bold text-gray-700">{Math.round(value)} / {Math.round(max)} {suffix}</span>
             </div>
             <div className="h-2 rounded-full progress-track overflow-hidden">
-                <div className="h-full progress-green rounded-full" style={{ width: `${percent}%`, background: '#3b82f6' }} />
+                <div className="h-full rounded-full" style={{ width: `${percent}%`, background: color || '#20a35a' }} />
             </div>
         </div>
     );
@@ -1415,7 +1463,7 @@ function MiniProgress({ value, max, label, suffix }) {
 /* =========================================================
    HISTORY VIEW
 ========================================================= */
-function History({ entries, settings, getDayCalories, getDayProtein, getDynamicDailyBudget, onSelectDay }) {
+function History({ entries, settings, stepsData, getDayCalories, getDayProtein, getDaySteps, getDynamicDailyBudget, onSelectDay }) {
     const [period, setPeriod] = useState("week");
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1446,16 +1494,17 @@ function History({ entries, settings, getDayCalories, getDayProtein, getDynamicD
     const chartData = dates.map((date) => {
         const key = dateKey(date);
         const calories = getDayCalories(key);
-        const budget = Number(settings.caloriesWeekly) / 7;
+        const budget = Number(settings.caloriesWeekly || 0) / 7;
         return { date, key, calories, budget };
     });
 
     const totalCalories = chartData.reduce((sum, item) => sum + item.calories, 0);
     const totalProtein = chartData.reduce((sum, item) => sum + getDayProtein(item.key), 0);
-    const daysWithData = chartData.filter(item => item.calories > 0).length;
+    const totalSteps = chartData.reduce((sum, item) => sum + getDaySteps(item.key), 0);
+    const daysWithData = chartData.filter(item => item.calories > 0 || getDaySteps(item.key) > 0).length;
     const averageCalories = daysWithData > 0 ? totalCalories / daysWithData : 0;
     
-    const dailyBaseline = Number(settings.caloriesWeekly) / 7;
+    const dailyBaseline = Number(settings.caloriesWeekly || 0) / 7;
     const maxChartValue = Math.max(...chartData.map(item => Math.max(item.calories, item.budget)), dailyBaseline, 1);
     const chartHeight = 185;
     const baselineHeight = (dailyBaseline / maxChartValue) * chartHeight;
@@ -1470,7 +1519,7 @@ function History({ entries, settings, getDayCalories, getDayProtein, getDynamicD
         <main className="safe-bottom p-5">
             <header className="mb-5">
                 <div className="text-sm font-semibold tracking-wide text-gray-400">HISTORIAL</div>
-                <h1 className="text-3xl font-extrabold text-gray-800">Consumo</h1>
+                <h1 className="text-3xl font-extrabold text-gray-800">Consumo y Actividad</h1>
             </header>
 
             <div className="card p-1.5 mb-5 flex gap-1 bg-white">
@@ -1485,20 +1534,31 @@ function History({ entries, settings, getDayCalories, getDayProtein, getDynamicD
                 ))}
             </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-5">
-                <div className="card p-5 border border-gray-50 shadow-sm">
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Calorías</div>
-                    <div className="text-2xl font-extrabold mt-1 text-gray-800">{Math.round(totalCalories).toLocaleString("es-ES")}</div>
-                    <div className="text-xs font-medium text-gray-400 mt-1">
+            <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="card p-4 border border-gray-50 shadow-sm">
+                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Calorías</div>
+                    <div className="text-xl font-extrabold mt-1 text-gray-800">{Math.round(totalCalories).toLocaleString("es-ES")}</div>
+                    <div className="text-[11px] font-medium text-gray-400 mt-0.5">
                         {daysWithData > 0 ? `${Math.round(averageCalories).toLocaleString("es-ES")} kcal/día` : "Sin registros"}
                     </div>
                 </div>
-                <div className="card p-5 border border-gray-50 shadow-sm">
-                    <div className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Proteína</div>
-                    <div className="text-2xl font-extrabold mt-1 text-gray-800">{Math.round(totalProtein).toLocaleString("es-ES")} <span className="text-lg">g</span></div>
-                    <div className="text-xs font-medium text-gray-400 mt-1">
+                <div className="card p-4 border border-gray-50 shadow-sm">
+                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Proteína</div>
+                    <div className="text-xl font-extrabold mt-1 text-gray-800">{Math.round(totalProtein).toLocaleString("es-ES")} <span className="text-sm">g</span></div>
+                    <div className="text-[11px] font-medium text-gray-400 mt-0.5">
                         {daysWithData > 0 ? `${Math.round(totalProtein / daysWithData)} g/día` : "Sin registros"}
                     </div>
+                </div>
+            </div>
+
+            <div className="card p-4 mb-5 border border-gray-50 shadow-sm flex items-center justify-between">
+                <div>
+                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Pasos Totales</div>
+                    <div className="text-xl font-extrabold mt-1 text-gray-800">{totalSteps.toLocaleString("es-ES")}</div>
+                </div>
+                <div className="text-right">
+                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Promedio Diario</div>
+                    <div className="text-xl font-extrabold mt-1 text-amber-600">{daysWithData > 0 ? Math.round(totalSteps / daysWithData).toLocaleString("es-ES") : 0}</div>
                 </div>
             </div>
 
@@ -1569,6 +1629,7 @@ function History({ entries, settings, getDayCalories, getDayProtein, getDynamicD
             <div className="space-y-3">
                 {chartData.slice().reverse().map(item => {
                     const protein = getDayProtein(item.key);
+                    const steps = getDaySteps(item.key);
                     const dayEntries = entries.filter(e => e.date === item.key);
                     const overBudget = item.calories > item.budget;
                     const isToday = item.key === dateKey(today);
@@ -1591,14 +1652,18 @@ function History({ entries, settings, getDayCalories, getDayProtein, getDynamicD
                                 </div>
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-3 mt-4">
-                                <div className="bg-gray-50 rounded-xl p-3 flex flex-col items-center justify-center">
-                                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Proteína</div>
-                                    <div className="font-extrabold text-gray-700 mt-1">{Math.round(protein)} <span className="text-xs font-medium">g</span></div>
+                            <div className="grid grid-cols-3 gap-2 mt-4">
+                                <div className="bg-gray-50 rounded-xl p-2.5 flex flex-col items-center justify-center">
+                                    <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide">Proteína</div>
+                                    <div className="font-extrabold text-gray-700 mt-1 text-sm">{Math.round(protein)} g</div>
                                 </div>
-                                <div className="bg-gray-50 rounded-xl p-3 flex flex-col items-center justify-center">
-                                    <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wide">Registros</div>
-                                    <div className="font-extrabold text-gray-700 mt-1">{dayEntries.length}</div>
+                                <div className="bg-gray-50 rounded-xl p-2.5 flex flex-col items-center justify-center">
+                                    <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide">Pasos</div>
+                                    <div className="font-extrabold text-amber-600 mt-1 text-sm">{steps.toLocaleString("es-ES")}</div>
+                                </div>
+                                <div className="bg-gray-50 rounded-xl p-2.5 flex flex-col items-center justify-center">
+                                    <div className="text-[9px] font-semibold text-gray-400 uppercase tracking-wide">Registros</div>
+                                    <div className="font-extrabold text-gray-700 mt-1 text-sm">{dayEntries.length}</div>
                                 </div>
                             </div>
                         </div>
@@ -1610,62 +1675,17 @@ function History({ entries, settings, getDayCalories, getDayProtein, getDynamicD
 }
 
 /* =========================================================
-   SETTINGS VIEW
+   SETTINGS VIEW (MANUAL INPUTS ONLY)
 ========================================================= */
 function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, showAlert }) {
     const [local, setLocal] = useState(settings);
-    
-    const [weight, setWeight] = useState("70");
-    const [height, setHeight] = useState("175");
-    const [age, setAge] = useState("25");
-    const [gender, setGender] = useState("male");
-    const [activity, setActivity] = useState("1.375");
-    const [goalRate, setGoalRate] = useState("-500");
 
     useEffect(() => setLocal(settings), [settings]);
-
-    function calculateTDEEAndApply() {
-        const w = parseFloat(weight);
-        const h = parseFloat(height);
-        const a = parseInt(age);
-        const act = parseFloat(activity);
-        const diff = parseFloat(goalRate);
-
-        if (!w || !h || !a || w <= 0 || h <= 0 || a <= 0) {
-            showAlert("Datos incompletos", "Por favor, introduce peso, altura y edad válidos para calcular tu gasto.");
-            return;
-        }
-
-        let bmr = 0;
-        if (gender === "male") {
-            bmr = (10 * w) + (6.25 * h) - (5 * a) + 5;
-        } else {
-            bmr = (10 * w) + (6.25 * h) - (5 * a) - 161;
-        }
-
-        const tdee = bmr * act;
-        const targetDaily = tdee + diff;
-        const targetWeekly = Math.round(targetDaily * 7);
-
-        if (targetWeekly <= 500) {
-            showAlert("Precaución", "El objetivo calórico resultante es demasiado bajo y poco saludable.");
-            return;
-        }
-
-        const suggestedProtein = Math.round(w * 2.0);
-
-        setLocal(prev => ({
-            ...prev,
-            caloriesWeekly: targetWeekly,
-            proteinDaily: suggestedProtein
-        }));
-
-        showAlert("¡Cálculo completado!", `Hemos calculado tu mantenimiento (${Math.round(tdee)} kcal/día) y aplicado tu objetivo. ¡Tu nuevo presupuesto semanal es de ${targetWeekly.toLocaleString("es-ES")} kcal y tu proteína sugerida es ${suggestedProtein}g!`);
-    }
 
     function save() {
         const calories = Number(local.caloriesWeekly);
         const protein = Number(local.proteinDaily);
+        const steps = Number(local.stepsDaily);
 
         if (!Number.isFinite(calories) || calories <= 0) {
             showAlert("Error", "Introduce un presupuesto semanal de calorías válido y mayor a 0.");
@@ -1675,11 +1695,16 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
             showAlert("Error", "Introduce un objetivo de proteína válido.");
             return;
         }
+        if (!Number.isFinite(steps) || steps < 0) {
+            showAlert("Error", "Introduce un objetivo de pasos válido.");
+            return;
+        }
         
         const updatedSettings = {
             ...settings,
             caloriesWeekly: calories,
-            proteinDaily: protein
+            proteinDaily: protein,
+            stepsDaily: steps
         };
         
         setSettings(updatedSettings);
@@ -1693,83 +1718,46 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
                 <h1 className="text-3xl font-extrabold text-gray-800">Mi plan</h1>
             </header>
 
-            <section className="card p-5 mb-5 border border-green/20 shadow-sm bg-green/[0.02]">
-                <h2 className="font-bold text-lg mb-1 text-gray-800 flex items-center gap-2">
-                    <span>🧮</span> Calculadora de Presupuesto
-                </h2>
-                <p className="text-xs text-gray-500 mb-4 leading-relaxed">
-                    Calcula automáticamente tus calorías semanales en base a tus medidas y tu meta de peso.
-                </p>
-
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Peso (kg)</label>
-                        <input type="number" value={weight} onChange={e => setWeight(e.target.value)} className="w-full border-2 border-gray-100 bg-white rounded-xl px-3 py-2.5 text-sm font-bold text-gray-800" />
-                    </div>
-                    <div>
-                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Altura (cm)</label>
-                        <input type="number" value={height} onChange={e => setHeight(e.target.value)} className="w-full border-2 border-gray-100 bg-white rounded-xl px-3 py-2.5 text-sm font-bold text-gray-800" />
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Edad (años)</label>
-                        <input type="number" value={age} onChange={e => setAge(e.target.value)} className="w-full border-2 border-gray-100 bg-white rounded-xl px-3 py-2.5 text-sm font-bold text-gray-800" />
-                    </div>
-                    <div>
-                        <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Género</label>
-                        <select value={gender} onChange={e => setGender(e.target.value)} className="w-full border-2 border-gray-100 bg-white rounded-xl px-3 py-2.5 text-sm font-bold text-gray-800">
-                            <option value="male">Hombre</option>
-                            <option value="female">Mujer</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div className="mb-3">
-                    <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Nivel de Actividad Física</label>
-                    <select value={activity} onChange={e => setActivity(e.target.value)} className="w-full border-2 border-gray-100 bg-white rounded-xl px-3 py-2.5 text-sm font-bold text-gray-800">
-                        <option value="1.2">Sedentario (poco o nada ejercicio)</option>
-                        <option value="1.375">Ligero (ejercicio 1-3 días/semana)</option>
-                        <option value="1.55">Moderado (ejercicio 3-5 días/semana)</option>
-                        <option value="1.725">Intenso (ejercicio 6-7 días/semana)</option>
-                        <option value="1.9">Muy intenso (trabajo físico / doble entreno)</option>
-                    </select>
-                </div>
-
-                <div className="mb-4">
-                    <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-1">Objetivo y Velocidad</label>
-                    <select value={goalRate} onChange={e => setGoalRate(e.target.value)} className="w-full border-2 border-gray-100 bg-white rounded-xl px-3 py-2.5 text-sm font-bold text-gray-800">
-                        <option value="-750">Pérdida rápida (-0.75 kg/sem)</option>
-                        <option value="-500">Pérdida estándar (-0.5 kg/sem)</option>
-                        <option value="-250">Pérdida suave (-0.25 kg/sem)</option>
-                        <option value="0">Mantenimiento de peso</option>
-                        <option value="250">Ganancia limpia (+0.25 kg/sem)</option>
-                        <option value="500">Volumen tradicional (+0.5 kg/sem)</option>
-                    </select>
-                </div>
-
-                <button onClick={calculateTDEEAndApply} className="w-full bg-green/10 text-green border border-green/30 py-3 rounded-xl font-bold text-sm hover:bg-green/20 transition-colors">
-                    Calcular y aplicar al plan
-                </button>
-            </section>
-
             <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
-                <h2 className="font-bold text-lg mb-4 text-gray-800">Objetivos Nutricionales</h2>
+                <h2 className="font-bold text-lg mb-4 text-gray-800">Objetivos Nutricionales y Actividad</h2>
                 
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Presupuesto semanal de calorías</label>
-                <div className="relative mb-5">
-                    <input type="number" inputMode="numeric" value={local.caloriesWeekly} onChange={e => setLocal({ ...local, caloriesWeekly: e.target.value })} className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-12 py-4 text-xl font-bold text-gray-800 transition-colors" />
+                <div className="relative mb-4">
+                    <input 
+                        type="number" 
+                        inputMode="numeric" 
+                        value={local.caloriesWeekly} 
+                        onChange={e => setLocal({ ...local, caloriesWeekly: e.target.value })} 
+                        className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-12 py-3.5 text-xl font-bold text-gray-800 transition-colors" 
+                    />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">kcal</span>
                 </div>
 
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Objetivo diario de proteína</label>
-                <div className="relative">
-                    <input type="number" inputMode="numeric" value={local.proteinDaily} onChange={e => setLocal({ ...local, proteinDaily: e.target.value })} className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-8 py-4 text-xl font-bold text-gray-800 transition-colors" />
+                <div className="relative mb-4">
+                    <input 
+                        type="number" 
+                        inputMode="numeric" 
+                        value={local.proteinDaily} 
+                        onChange={e => setLocal({ ...local, proteinDaily: e.target.value })} 
+                        className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-8 py-3.5 text-xl font-bold text-gray-800 transition-colors" 
+                    />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">g</span>
                 </div>
+
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Objetivo diario de pasos</label>
+                <div className="relative">
+                    <input 
+                        type="number" 
+                        inputMode="numeric" 
+                        value={local.stepsDaily} 
+                        onChange={e => setLocal({ ...local, stepsDaily: e.target.value })} 
+                        className="w-full border-2 border-gray-100 bg-gray-50 focus:bg-white rounded-2xl pl-4 pr-14 py-3.5 text-xl font-bold text-gray-800 transition-colors" 
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-gray-400">pasos</span>
+                </div>
                 
-                <button onClick={save} className="w-full bg-gray-800 text-white py-4 rounded-2xl font-bold text-lg mt-6 shadow-md hover:bg-gray-700 transition-colors">
+                <button onClick={save} className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mt-6 shadow-lg shadow-green/20 hover:bg-green/90 active:scale-[0.98] transition-all">
                     Guardar cambios
                 </button>
             </section>
@@ -1780,14 +1768,14 @@ function Settings({ settings, setSettings, resetAll, saveBackup, loadBackup, sho
                     Cómo funciona
                 </h2>
                 <p className="text-sm text-blue-800/80 leading-relaxed mt-3 font-medium">
-                    Tu presupuesto es <strong>semanal</strong>. No tienes un límite diario fijo. Las calorías que no consumas hoy se redistribuirán automáticamente entre los días restantes de la semana, dándote total flexibilidad.
+                    Tu presupuesto es <strong>semanal</strong>. No tienes un límite diario fijo. Las calorías que no consumas hoy se redistribuirán automáticamente entre los días restantes de la semana, dándote total flexibilidad. También puedes registrar tus pasos diarios para mantener el control de tu NEAT.
                 </p>
             </section>
 
             <section className="card p-5 mb-5 border border-gray-50 shadow-sm">
                 <h2 className="font-bold text-lg text-gray-800">Copia de Seguridad</h2>
                 <p className="text-xs font-medium text-gray-500 leading-relaxed mt-2 mb-5">
-                    Descarga un archivo con todo tu progreso y lista de alimentos guardados para no perderlos, o restaura uno antiguo.
+                    Descarga un archivo con todo tu progreso, pasos y lista de alimentos guardados para no perderlos, o restaura uno antiguo.
                 </p>
                 
                 <div className="grid grid-cols-2 gap-3">
