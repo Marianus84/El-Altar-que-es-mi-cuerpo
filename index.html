@@ -2,7 +2,10 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+    >
 
     <title>Mi Presupuesto</title>
 
@@ -116,12 +119,6 @@
             transform: scale(.99);
         }
 
-        /*
-         * DÍAS PASADOS
-         *
-         * Se ven ligeramente grises y apagados,
-         * pero siguen siendo completamente funcionales.
-         */
         .past-day {
             opacity: .62;
             filter: grayscale(12%);
@@ -152,6 +149,31 @@
         .floating-add {
             box-shadow: 0 6px 20px rgba(32, 163, 90, .25);
         }
+
+        .history-tab {
+            transition: all .15s ease;
+        }
+
+        .history-tab.active {
+            background: #20a35a;
+            color: white;
+            box-shadow: 0 3px 10px rgba(32, 163, 90, .20);
+        }
+
+        .chart-scroll {
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        .chart-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .chart-tooltip {
+            pointer-events: none;
+        }
     </style>
 </head>
 
@@ -162,6 +184,7 @@
 <script type="text/babel">
 
 const { useState, useEffect } = React;
+
 
 /* =========================================================
    CONFIGURACIÓN
@@ -182,6 +205,22 @@ const DAYS = [
     "Sábado",
     "Domingo"
 ];
+
+const MONTHS = [
+    "enero",
+    "febrero",
+    "marzo",
+    "abril",
+    "mayo",
+    "junio",
+    "julio",
+    "agosto",
+    "septiembre",
+    "octubre",
+    "noviembre",
+    "diciembre"
+];
+
 
 /* =========================================================
    UTILIDADES
@@ -222,6 +261,14 @@ function dateKey(date) {
 }
 
 
+function keyToDate(key) {
+
+    return new Date(
+        key + "T00:00:00"
+    );
+}
+
+
 function formatDate(date) {
 
     return date.toLocaleDateString(
@@ -235,7 +282,7 @@ function formatDate(date) {
 }
 
 
-function formatWeekDate(date) {
+function formatShortDate(date) {
 
     return date.toLocaleDateString(
         "es-ES",
@@ -247,9 +294,21 @@ function formatWeekDate(date) {
 }
 
 
-function getWeekDates() {
+function formatChartDate(date) {
 
-    const monday = getMonday();
+    return date.toLocaleDateString(
+        "es-ES",
+        {
+            day: "2-digit",
+            month: "2-digit"
+        }
+    );
+}
+
+
+function getWeekDates(date = new Date()) {
+
+    const monday = getMonday(date);
 
     const dates = [];
 
@@ -262,6 +321,38 @@ function getWeekDates() {
         );
 
         dates.push(d);
+    }
+
+    return dates;
+}
+
+
+function getMonthDates(date = new Date()) {
+
+    const year =
+        date.getFullYear();
+
+    const month =
+        date.getMonth();
+
+    const lastDay =
+        new Date(
+            year,
+            month + 1,
+            0
+        ).getDate();
+
+    const dates = [];
+
+    for (let i = 1; i <= lastDay; i++) {
+
+        dates.push(
+            new Date(
+                year,
+                month,
+                i
+            )
+        );
     }
 
     return dates;
@@ -295,10 +386,6 @@ function loadJSON(key, fallback) {
 }
 
 
-/*
- * Devuelve true si una fecha pertenece
- * a un día anterior a hoy.
- */
 function isPastDate(key) {
 
     const today =
@@ -317,6 +404,27 @@ function isPastDate(key) {
         );
 
     return date < today;
+}
+
+
+function isFutureDate(key) {
+
+    const today =
+        new Date();
+
+    today.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    const date =
+        new Date(
+            key + "T00:00:00"
+        );
+
+    return date > today;
 }
 
 
@@ -429,6 +537,93 @@ function App() {
 
 
     /* =====================================================
+       PRESUPUESTO DINÁMICO
+    ===================================================== */
+
+    /*
+     * Calcula el presupuesto dinámico de cualquier fecha.
+     *
+     * Esto es importante para HISTORIAL:
+     * no podemos usar únicamente la semana actual.
+     *
+     * Para cada fecha:
+     *
+     * presupuesto semanal
+     * - consumo de días anteriores
+     * --------------------------------
+     * días restantes
+     *
+     * Ejemplo:
+     *
+     * 16.590 semanal
+     *
+     * Lunes: 2.600
+     *
+     * Martes:
+     * (16.590 - 2.600) / 6
+     *
+     * Si martes consume 2.000:
+     *
+     * Miércoles:
+     * (16.590 - 2.600 - 2.000) / 5
+     */
+
+    function getDynamicBudgetForDate(date) {
+
+        const key =
+            dateKey(date);
+
+        const monday =
+            getMonday(date);
+
+        const week =
+            getWeekDates(monday);
+
+        const keys =
+            week.map(dateKey);
+
+        const index =
+            keys.indexOf(key);
+
+        if (index < 0) {
+            return 0;
+        }
+
+        let remainingBudget =
+            Number(settings.caloriesWeekly);
+
+        for (let i = 0; i < index; i++) {
+
+            remainingBudget -=
+                getDayCalories(
+                    keys[i]
+                );
+        }
+
+        const remainingDays =
+            7 - index;
+
+        if (remainingDays <= 0) {
+            return 0;
+        }
+
+        return Math.max(
+            0,
+            remainingBudget /
+            remainingDays
+        );
+    }
+
+
+    function getDynamicDailyBudget(index) {
+
+        return getDynamicBudgetForDate(
+            weekDates[index]
+        );
+    }
+
+
+    /* =====================================================
        DATOS SEMANALES
     ===================================================== */
 
@@ -460,65 +655,6 @@ function App() {
             Number(settings.caloriesWeekly) -
             weeklyCaloriesConsumed
         );
-
-
-    /* =====================================================
-       PRESUPUESTO DINÁMICO
-       
-       El presupuesto de cada día depende
-       de TODO lo consumido en los días anteriores.
-
-       Ejemplo:
-
-       16.590 semanal
-
-       Lunes consume 2.600
-
-       Quedan:
-       16.590 - 2.600 = 13.990
-
-       Martes recibe:
-       13.990 / 6 = 2.331,67
-
-       Si martes consume 2.000:
-
-       Quedan:
-       11.990
-
-       Miércoles recibe:
-       11.990 / 5 = 2.398
-    ===================================================== */
-
-    function getDynamicDailyBudget(index) {
-
-        let remainingBudget =
-            Number(settings.caloriesWeekly);
-
-        /*
-         * Restamos únicamente los días
-         * anteriores al día consultado.
-         */
-        for (let i = 0; i < index; i++) {
-
-            remainingBudget -=
-                getDayCalories(
-                    weekKeys[i]
-                );
-        }
-
-        const remainingDays =
-            7 - index;
-
-        if (remainingDays <= 0) {
-            return 0;
-        }
-
-        return Math.max(
-            0,
-            remainingBudget /
-            remainingDays
-        );
-    }
 
 
     /* -----------------------------------------------------
@@ -611,7 +747,7 @@ function App() {
 
 
     /* =====================================================
-       BORRAR TODOS LOS REGISTROS
+       BORRAR TODOS
     ===================================================== */
 
     function resetAll() {
@@ -645,7 +781,7 @@ function App() {
                 "Mi Presupuesto",
 
             version:
-                1,
+                2,
 
             exportedAt:
                 new Date().toISOString(),
@@ -750,9 +886,6 @@ function App() {
                         );
 
 
-                    /*
-                     * Validación básica
-                     */
                     if (
                         !backup ||
                         !backup.settings ||
@@ -982,18 +1115,6 @@ function App() {
 
                 <History
 
-                    weekDates={
-                        weekDates
-                    }
-
-                    weekKeys={
-                        weekKeys
-                    }
-
-                    todayKey={
-                        todayKey
-                    }
-
                     entries={
                         entries
                     }
@@ -1006,12 +1127,16 @@ function App() {
                         getDayProtein
                     }
 
-                    getDynamicDailyBudget={
-                        getDynamicDailyBudget
+                    getDynamicBudgetForDate={
+                        getDynamicBudgetForDate
                     }
 
                     settings={
                         settings
+                    }
+
+                    todayKey={
+                        todayKey
                     }
 
                     onSelectDay={
@@ -1172,10 +1297,6 @@ function Home({
 
         <main className="safe-bottom p-5">
 
-            {/* =================================================
-               HEADER
-            ================================================= */}
-
             <header className="flex justify-between items-center mb-5">
 
                 <div>
@@ -1186,13 +1307,13 @@ function Home({
 
                     <h1 className="text-[28px] font-extrabold">
 
-                        {formatWeekDate(
+                        {formatShortDate(
                             weekDates[0]
                         )}
 
                         {" – "}
 
-                        {formatWeekDate(
+                        {formatShortDate(
                             weekDates[6]
                         )}
 
@@ -1219,19 +1340,14 @@ function Home({
                 <div className="flex items-center gap-5">
 
                     <ProgressCircle
-
                         value={
                             weeklyCaloriesConsumed
                         }
-
                         max={
                             settings.caloriesWeekly
                         }
-
                         size={175}
-
                         stroke={14}
-
                         label="Calorías"
                     />
 
@@ -1239,17 +1355,13 @@ function Home({
                     <div className="flex-1 space-y-5">
 
                         <MiniProgress
-
                             value={
                                 weeklyProteinConsumed
                             }
-
                             max={
                                 weeklyProteinTarget
                             }
-
                             label="Proteína"
-
                             suffix="g"
                         />
 
@@ -1324,9 +1436,7 @@ function Home({
                             )}
 
                             <span className="text-base font-medium text-gray-400">
-
                                 {" kcal"}
-
                             </span>
 
                         </div>
@@ -1356,17 +1466,12 @@ function Home({
 
 
                     <button
-
                         onClick={
                             onAdd
                         }
-
                         className="bg-green text-white w-12 h-12 rounded-2xl text-2xl shadow-sm"
-
                     >
-
                         +
-
                     </button>
 
                 </div>
@@ -1402,9 +1507,7 @@ function Home({
                     <div className="h-2 rounded-full progress-track overflow-hidden">
 
                         <div
-
                             className="h-full progress-green rounded-full"
-
                             style={{
                                 width:
                                     `${clamp(
@@ -1418,7 +1521,6 @@ function Home({
                                         100
                                     )}%`
                             }}
-
                         />
 
                     </div>
@@ -1439,11 +1541,8 @@ function Home({
                         <span>
 
                             {todayProtein}
-
                             {" / "}
-
                             {settings.proteinDaily}
-
                             {" g"}
 
                         </span>
@@ -1454,9 +1553,7 @@ function Home({
                     <div className="h-2 rounded-full progress-track overflow-hidden">
 
                         <div
-
                             className="h-full progress-red rounded-full"
-
                             style={{
                                 width:
                                     `${clamp(
@@ -1470,7 +1567,6 @@ function Home({
                                         100
                                     )}%`
                             }}
-
                         />
 
                     </div>
@@ -1518,34 +1614,20 @@ function Home({
                         const key =
                             weekKeys[index];
 
-
                         const calories =
-                            getDayCalories(
-                                key
-                            );
-
+                            getDayCalories(key);
 
                         const protein =
-                            getDayProtein(
-                                key
-                            );
-
+                            getDayProtein(key);
 
                         const budget =
-                            getDynamicDailyBudget(
-                                index
-                            );
-
+                            getDynamicDailyBudget(index);
 
                         const isToday =
                             key === todayKey;
 
-
                         const isPast =
-                            isPastDate(
-                                key
-                            );
-
+                            isPastDate(key);
 
                         const dayEntries =
                             entries.filter(
@@ -1557,37 +1639,25 @@ function Home({
                         return (
 
                             <div
-
                                 key={key}
-
                                 className={`
                                     card
                                     p-4
                                     day-row
-
                                     ${isToday
                                         ? "today-day"
                                         : ""}
-
                                     ${isPast
                                         ? "past-day"
                                         : ""}
                                 `}
-
                             >
 
-                                {/* CABECERA DEL DÍA */}
-
                                 <div
-
                                     className="flex justify-between items-center cursor-pointer"
-
                                     onClick={() =>
-                                        onSelectDay(
-                                            key
-                                        )
+                                        onSelectDay(key)
                                     }
-
                                 >
 
                                     <div>
@@ -1595,31 +1665,19 @@ function Home({
                                         <div className="flex items-center gap-2">
 
                                             <h3 className="font-bold">
-
                                                 {DAYS[index]}
-
                                             </h3>
 
-
                                             {isToday && (
-
                                                 <span className="text-[10px] px-2 py-1 rounded-full bg-green/10 green font-bold">
-
                                                     HOY
-
                                                 </span>
-
                                             )}
 
                                         </div>
 
-
                                         <div className="text-xs text-gray-500 mt-1 day-date">
-
-                                            {formatDate(
-                                                date
-                                            )}
-
+                                            {formatDate(date)}
                                         </div>
 
                                     </div>
@@ -1645,7 +1703,6 @@ function Home({
 
                                         </div>
 
-
                                         <div className="text-xs text-gray-500">
                                             kcal
                                         </div>
@@ -1655,16 +1712,12 @@ function Home({
                                 </div>
 
 
-                                {/* BARRA */}
-
                                 <div className="mt-3">
 
                                     <div className="h-2 progress-track rounded-full overflow-hidden">
 
                                         <div
-
                                             className="h-full progress-green rounded-full"
-
                                             style={{
                                                 width:
                                                     `${clamp(
@@ -1678,15 +1731,12 @@ function Home({
                                                         100
                                                     )}%`
                                             }}
-
                                         />
 
                                     </div>
 
                                 </div>
 
-
-                                {/* PROTEÍNA / REGISTROS */}
 
                                 <div className="flex justify-between mt-3 text-xs text-gray-500">
 
@@ -1700,13 +1750,10 @@ function Home({
 
                                     </span>
 
-
                                     <span>
 
                                         {dayEntries.length}
-
                                         {" "}
-
                                         {dayEntries.length === 1
                                             ? "registro"
                                             : "registros"}
@@ -1716,8 +1763,6 @@ function Home({
                                 </div>
 
 
-                                {/* REGISTROS */}
-
                                 {dayEntries.length > 0 && (
 
                                     <div className="mt-4 space-y-2">
@@ -1726,30 +1771,18 @@ function Home({
                                             entry => (
 
                                                 <div
-
-                                                    key={
-                                                        entry.id
-                                                    }
-
+                                                    key={entry.id}
                                                     className="bg-gray-50 rounded-2xl p-3 flex justify-between items-center"
-
                                                 >
 
                                                     <div>
 
                                                         <div className="font-medium text-sm">
-
                                                             {entry.name}
-
                                                         </div>
 
-
                                                         <div className="text-xs text-gray-500 mt-1">
-
-                                                            P{" "}
-                                                            {entry.protein}
-                                                            {" g"}
-
+                                                            P {entry.protein} g
                                                         </div>
 
                                                     </div>
@@ -1758,27 +1791,18 @@ function Home({
                                                     <div className="flex items-center gap-3">
 
                                                         <span className="font-semibold text-sm">
-
-                                                            {entry.calories}
-                                                            {" kcal"}
-
+                                                            {entry.calories} kcal
                                                         </span>
 
-
                                                         <button
-
                                                             onClick={() =>
                                                                 onDelete(
                                                                     entry.id
                                                                 )
                                                             }
-
                                                             className="text-gray-400 hover:text-red-500 text-xl"
-
                                                         >
-
                                                             ×
-
                                                         </button>
 
                                                     </div>
@@ -1795,28 +1819,18 @@ function Home({
                             </div>
 
                         );
+
                     }
                 )}
 
             </div>
 
 
-            {/* =================================================
-               BOTÓN AÑADIR
-            ================================================= */}
-
             <button
-
-                onClick={
-                    onAdd
-                }
-
+                onClick={onAdd}
                 className="fixed bottom-[105px] left-1/2 -translate-x-1/2 max-w-[430px] w-[calc(100%-40px)] bg-green text-white py-4 rounded-2xl font-bold floating-add z-20"
-
             >
-
                 + Añadir calorías
-
             </button>
 
         </main>
@@ -1825,7 +1839,7 @@ function Home({
 
 
 /* =========================================================
-   CÍRCULO DE PROGRESO
+   CÍRCULO
 ========================================================= */
 
 function ProgressCircle({
@@ -1841,10 +1855,8 @@ function ProgressCircle({
     const radius =
         (size - stroke) / 2;
 
-
     const circumference =
         2 * Math.PI * radius;
-
 
     const percent =
         max > 0
@@ -1855,7 +1867,6 @@ function ProgressCircle({
             )
             : 0;
 
-
     const offset =
         circumference *
         (1 - percent);
@@ -1864,75 +1875,35 @@ function ProgressCircle({
     return (
 
         <div
-
             className="relative flex-shrink-0"
-
             style={{
                 width: size,
                 height: size
             }}
-
         >
 
             <svg
-
                 width={size}
                 height={size}
                 className="circle"
-
             >
 
                 <circle
-
                     className="circle-bg"
-
-                    cx={
-                        size / 2
-                    }
-
-                    cy={
-                        size / 2
-                    }
-
-                    r={
-                        radius
-                    }
-
-                    strokeWidth={
-                        stroke
-                    }
-
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    strokeWidth={stroke}
                 />
 
-
                 <circle
-
                     className="circle-progress"
-
-                    cx={
-                        size / 2
-                    }
-
-                    cy={
-                        size / 2
-                    }
-
-                    r={
-                        radius
-                    }
-
-                    strokeWidth={
-                        stroke
-                    }
-
-                    strokeDasharray={
-                        circumference
-                    }
-
-                    strokeDashoffset={
-                        offset
-                    }
-
+                    cx={size / 2}
+                    cy={size / 2}
+                    r={radius}
+                    strokeWidth={stroke}
+                    strokeDasharray={circumference}
+                    strokeDashoffset={offset}
                 />
 
             </svg>
@@ -1941,33 +1912,15 @@ function ProgressCircle({
             <div className="absolute inset-0 flex flex-col items-center justify-center">
 
                 <div className="text-[25px] font-extrabold">
-
-                    {Math.round(
-                        value
-                    ).toLocaleString(
-                        "es-ES"
-                    )}
-
+                    {Math.round(value).toLocaleString("es-ES")}
                 </div>
-
 
                 <div className="text-sm text-gray-400">
-
-                    /{" "}
-
-                    {Math.round(
-                        max
-                    ).toLocaleString(
-                        "es-ES"
-                    )}
-
+                    / {Math.round(max).toLocaleString("es-ES")}
                 </div>
 
-
                 <div className="text-sm text-gray-500 mt-1">
-
                     {label}
-
                 </div>
 
             </div>
@@ -2009,26 +1962,15 @@ function MiniProgress({
             <div className="flex justify-between text-xs mb-2">
 
                 <span className="text-gray-500">
-
                     {label}
-
                 </span>
-
 
                 <span className="font-semibold">
 
-                    {Math.round(
-                        value
-                    )}
-
+                    {Math.round(value)}
                     {" / "}
-
-                    {Math.round(
-                        max
-                    )}
-
+                    {Math.round(max)}
                     {" "}
-
                     {suffix}
 
                 </span>
@@ -2039,14 +1981,11 @@ function MiniProgress({
             <div className="h-2 rounded-full progress-track overflow-hidden">
 
                 <div
-
                     className="h-full progress-green rounded-full"
-
                     style={{
                         width:
                             `${percent}%`
                     }}
-
                 />
 
             </div>
@@ -2062,87 +2001,334 @@ function MiniProgress({
 
 function History({
 
-    weekDates,
-    weekKeys,
-    todayKey,
     entries,
     getDayCalories,
     getDayProtein,
-    getDynamicDailyBudget,
+    getDynamicBudgetForDate,
     settings,
+    todayKey,
     onSelectDay
 
 }) {
 
+    const [period, setPeriod] =
+        useState("week");
+
+
+    /* =====================================================
+       CREAR DATOS DEL PERIODO
+    ===================================================== */
+
+    function getHistoryDates() {
+
+        if (period === "week") {
+
+            return getWeekDates();
+
+        }
+
+
+        if (period === "month") {
+
+            return getMonthDates();
+
+        }
+
+
+        /*
+         * TOTAL
+         *
+         * Incluimos todos los días que
+         * tengan registros.
+         */
+
+        if (entries.length === 0) {
+            return [];
+        }
+
+
+        const keys =
+            [...new Set(
+                entries.map(
+                    entry => entry.date
+                )
+            )];
+
+
+        keys.sort();
+
+
+        const first =
+            keyToDate(keys[0]);
+
+        const last =
+            keyToDate(
+                keys[keys.length - 1]
+            );
+
+
+        const dates = [];
+
+        const current =
+            new Date(first);
+
+        while (
+            current <= last
+        ) {
+
+            dates.push(
+                new Date(current)
+            );
+
+            current.setDate(
+                current.getDate() + 1
+            );
+        }
+
+
+        return dates;
+    }
+
+
+    const dates =
+        getHistoryDates();
+
+
+    const keys =
+        dates.map(dateKey);
+
+
+    /* =====================================================
+       DATOS DE LA GRÁFICA
+    ===================================================== */
+
+    const chartData =
+        dates.map(date => {
+
+            const key =
+                dateKey(date);
+
+            return {
+
+                date,
+
+                key,
+
+                calories:
+                    getDayCalories(key),
+
+                budget:
+                    getDynamicBudgetForDate(
+                        date
+                    )
+            };
+        });
+
+
     const totalCalories =
-        weekKeys.reduce(
-            (sum, key) =>
+        chartData.reduce(
+            (sum, item) =>
                 sum +
-                getDayCalories(
-                    key
-                ),
+                item.calories,
             0
         );
+
+
+    const totalBudget =
+        period === "week"
+            ? Number(
+                settings.caloriesWeekly
+            )
+            : chartData.reduce(
+                (sum, item) =>
+                    sum +
+                    item.budget,
+                0
+            );
 
 
     const totalProtein =
-        weekKeys.reduce(
-            (sum, key) =>
+        chartData.reduce(
+            (sum, item) =>
                 sum +
                 getDayProtein(
-                    key
+                    item.key
                 ),
             0
         );
+
+
+    const exceededDays =
+        chartData.filter(
+            item =>
+                item.calories >
+                item.budget &&
+                item.calories > 0
+        ).length;
+
+
+    const daysWithFood =
+        chartData.filter(
+            item =>
+                item.calories > 0
+        ).length;
+
+
+    /* =====================================================
+       TITULO
+    ===================================================== */
+
+    function getTitle() {
+
+        if (period === "week") {
+
+            const dates =
+                getWeekDates();
+
+            return (
+                formatShortDate(
+                    dates[0]
+                ) +
+                " – " +
+                formatShortDate(
+                    dates[6]
+                )
+            );
+        }
+
+
+        if (period === "month") {
+
+            const now =
+                new Date();
+
+            return (
+                MONTHS[
+                    now.getMonth()
+                ] +
+                " " +
+                now.getFullYear()
+            );
+        }
+
+
+        return "Todo el historial";
+    }
 
 
     return (
 
         <main className="safe-bottom p-5">
 
-            <header className="mb-6">
+            {/* =================================================
+               HEADER
+            ================================================= */}
+
+            <header className="mb-5">
 
                 <div className="text-sm text-gray-500">
                     HISTORIAL
                 </div>
 
                 <h1 className="text-3xl font-extrabold">
-                    Resumen semanal
+                    {getTitle()}
                 </h1>
 
             </header>
 
 
-            {/* RESUMEN */}
+            {/* =================================================
+               SELECTOR
+            ================================================= */}
 
-            <div className="grid grid-cols-2 gap-3 mb-6">
+            <div className="bg-white rounded-2xl p-1 flex mb-5 shadow-sm">
+
+                <button
+                    onClick={() =>
+                        setPeriod("week")
+                    }
+                    className={`
+                        history-tab
+                        flex-1
+                        py-3
+                        rounded-xl
+                        text-sm
+                        font-semibold
+                        ${period === "week"
+                            ? "active"
+                            : "text-gray-500"}
+                    `}
+                >
+                    Semana
+                </button>
+
+
+                <button
+                    onClick={() =>
+                        setPeriod("month")
+                    }
+                    className={`
+                        history-tab
+                        flex-1
+                        py-3
+                        rounded-xl
+                        text-sm
+                        font-semibold
+                        ${period === "month"
+                            ? "active"
+                            : "text-gray-500"}
+                    `}
+                >
+                    Mes
+                </button>
+
+
+                <button
+                    onClick={() =>
+                        setPeriod("total")
+                    }
+                    className={`
+                        history-tab
+                        flex-1
+                        py-3
+                        rounded-xl
+                        text-sm
+                        font-semibold
+                        ${period === "total"
+                            ? "active"
+                            : "text-gray-500"}
+                    `}
+                >
+                    Total
+                </button>
+
+            </div>
+
+
+            {/* =================================================
+               RESUMEN
+            ================================================= */}
+
+            <div className="grid grid-cols-2 gap-3 mb-4">
 
                 <div className="card p-5">
 
                     <div className="text-sm text-gray-500">
-                        Calorías
+                        Consumidas
                     </div>
-
 
                     <div className="text-2xl font-extrabold mt-1">
 
-                        {totalCalories.toLocaleString(
-                            "es-ES"
-                        )}
-
-                    </div>
-
-
-                    <div className="text-xs text-gray-400">
-
-                        de{" "}
-
-                        {Number(
-                            settings.caloriesWeekly
+                        {Math.round(
+                            totalCalories
                         ).toLocaleString(
                             "es-ES"
                         )}
 
+                    </div>
+
+                    <div className="text-xs text-gray-400 mt-1">
+                        kcal
                     </div>
 
                 </div>
@@ -2154,27 +2340,70 @@ function History({
                         Proteína
                     </div>
 
-
                     <div className="text-2xl font-extrabold mt-1">
 
-                        {totalProtein.toLocaleString(
+                        {Math.round(
+                            totalProtein
+                        ).toLocaleString(
                             "es-ES"
                         )}
 
-                        {" g"}
+                    </div>
+
+                    <div className="text-xs text-gray-400 mt-1">
+                        gramos
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* =================================================
+               INDICADORES
+            ================================================= */}
+
+            <div className="card p-5 mb-5">
+
+                <div className="flex justify-between items-center">
+
+                    <div>
+
+                        <div className="text-xs text-gray-500">
+                            DÍAS POR ENCIMA DEL PRESUPUESTO
+                        </div>
+
+                        <div className="text-2xl font-extrabold mt-1">
+
+                            {exceededDays}
+
+                            <span className="text-sm font-medium text-gray-400">
+                                {" de "}
+                                {daysWithFood}
+                            </span>
+
+                        </div>
 
                     </div>
 
 
-                    <div className="text-xs text-gray-400">
+                    <div className="text-right">
 
-                        objetivo{" "}
+                        <div className="text-xs text-gray-500">
+                            PRESUPUESTO SEMANAL
+                        </div>
 
-                        {Number(
-                            settings.proteinDaily
-                        ) * 7}
+                        <div className="font-bold mt-1">
 
-                        {" g"}
+                            {Number(
+                                settings.caloriesWeekly
+                            ).toLocaleString(
+                                "es-ES"
+                            )}
+
+                            {" kcal"}
+
+                        </div>
 
                     </div>
 
@@ -2183,190 +2412,798 @@ function History({
             </div>
 
 
-            {/* DÍAS */}
+            {/* =================================================
+               GRÁFICA
+            ================================================= */}
 
-            <div className="space-y-3">
+            {chartData.length > 0 ? (
 
-                {weekDates.map(
-                    (date, index) => {
+                <section className="card p-5 mb-5">
 
-                        const key =
-                            weekKeys[index];
+                    <div className="flex justify-between items-start mb-5">
 
+                        <div>
 
-                        const calories =
-                            getDayCalories(
-                                key
-                            );
+                            <h2 className="font-bold text-lg">
+                                Consumo diario
+                            </h2>
 
+                            <p className="text-xs text-gray-500 mt-1">
+                                Barras = consumo · Línea = presupuesto
+                            </p>
 
-                        const protein =
-                            getDayProtein(
-                                key
-                            );
-
-
-                        const budget =
-                            getDynamicDailyBudget(
-                                index
-                            );
+                        </div>
 
 
-                        const dayEntries =
-                            entries.filter(
-                                e =>
-                                    e.date === key
-                            );
+                        <div className="text-xs text-gray-500 text-right">
+
+                            <div className="flex items-center justify-end gap-2 mb-1">
+
+                                <span
+                                    className="w-3 h-3 rounded-sm bg-green"
+                                />
+
+                                <span>
+                                    Consumo
+                                </span>
+
+                            </div>
 
 
-                        const isToday =
-                            key === todayKey;
+                            <div className="flex items-center justify-end gap-2">
+
+                                <span
+                                    className="w-4 h-[2px] bg-gray-500"
+                                />
+
+                                <span>
+                                    Presupuesto
+                                </span>
+
+                            </div>
+
+                        </div>
+
+                    </div>
 
 
-                        const isPast =
-                            isPastDate(
-                                key
-                            );
+                    <HistoryChart
+                        data={
+                            chartData
+                        }
+                        period={
+                            period
+                        }
+                    />
 
 
-                        return (
+                    <div className="mt-4 text-xs text-gray-500 leading-5">
 
-                            <div
+                        La línea representa el presupuesto
+                        diario dinámico que tenías disponible
+                        en cada día según lo consumido
+                        anteriormente durante esa semana.
 
-                                key={key}
+                    </div>
 
-                                onClick={() =>
-                                    onSelectDay(
-                                        key
-                                    )
-                                }
+                </section>
 
-                                className={`
-                                    card
-                                    p-5
-                                    cursor-pointer
-                                    day-row
+            ) : (
 
-                                    ${isToday
-                                        ? "today-day"
-                                        : ""}
+                <section className="card p-8 mb-5 text-center">
 
-                                    ${isPast
-                                        ? "past-day"
-                                        : ""}
-                                `}
+                    <div className="text-4xl mb-3">
+                        📊
+                    </div>
 
-                            >
+                    <div className="font-bold">
+                        No hay registros todavía
+                    </div>
 
-                                <div className="flex justify-between">
+                    <div className="text-sm text-gray-500 mt-2">
+                        Añade comidas para empezar a ver
+                        tu evolución.
+                    </div>
 
-                                    <div>
+                </section>
 
-                                        <div className="flex items-center gap-2">
+            )}
 
-                                            <div className="font-bold">
 
-                                                {DAYS[index]}
+            {/* =================================================
+               DETALLE DIARIO
+            ================================================= */}
+
+            {chartData.length > 0 && (
+
+                <div>
+
+                    <div className="flex justify-between items-center mb-3">
+
+                        <h2 className="text-xl font-bold">
+                            Detalle diario
+                        </h2>
+
+                    </div>
+
+
+                    <div className="space-y-3">
+
+                        {[...chartData]
+                            .reverse()
+                            .map(item => {
+
+                                const protein =
+                                    getDayProtein(
+                                        item.key
+                                    );
+
+                                const dayEntries =
+                                    entries.filter(
+                                        e =>
+                                            e.date ===
+                                            item.key
+                                    );
+
+                                const exceeded =
+                                    item.calories >
+                                    item.budget &&
+                                    item.calories > 0;
+
+                                const isToday =
+                                    item.key ===
+                                    todayKey;
+
+                                const isPast =
+                                    isPastDate(
+                                        item.key
+                                    );
+
+
+                                return (
+
+                                    <div
+                                        key={item.key}
+                                        onClick={() =>
+                                            onSelectDay(
+                                                item.key
+                                            )
+                                        }
+                                        className={`
+                                            card
+                                            p-4
+                                            cursor-pointer
+                                            day-row
+                                            ${isToday
+                                                ? "today-day"
+                                                : ""}
+                                            ${isPast
+                                                ? "past-day"
+                                                : ""}
+                                        `}
+                                    >
+
+                                        <div className="flex justify-between items-center">
+
+                                            <div>
+
+                                                <div className="flex items-center gap-2">
+
+                                                    <div className="font-bold">
+
+                                                        {item.date.toLocaleDateString(
+                                                            "es-ES",
+                                                            {
+                                                                weekday:
+                                                                    "long",
+                                                                day:
+                                                                    "numeric",
+                                                                month:
+                                                                    "short"
+                                                            }
+                                                        )}
+
+                                                    </div>
+
+
+                                                    {isToday && (
+
+                                                        <span className="text-[9px] px-2 py-1 rounded-full bg-green/10 green font-bold">
+
+                                                            HOY
+
+                                                        </span>
+
+                                                    )}
+
+                                                </div>
+
+
+                                                <div className="text-xs text-gray-500 mt-1">
+
+                                                    {dayEntries.length}
+                                                    {" "}
+                                                    {dayEntries.length === 1
+                                                        ? "registro"
+                                                        : "registros"}
+
+                                                    {" · P "}
+                                                    {Math.round(
+                                                        protein
+                                                    )}
+                                                    {" g"}
+
+                                                </div>
 
                                             </div>
 
 
-                                            {isToday && (
+                                            <div className="text-right">
 
-                                                <span className="text-[10px] px-2 py-1 rounded-full bg-green/10 green font-bold">
+                                                <div className={`font-extrabold ${
+                                                    exceeded
+                                                        ? "text-red-500"
+                                                        : "green"
+                                                }`}>
 
-                                                    HOY
+                                                    {Math.round(
+                                                        item.calories
+                                                    ).toLocaleString(
+                                                        "es-ES"
+                                                    )}
 
-                                                </span>
+                                                    {" kcal"}
 
-                                            )}
+                                                </div>
+
+
+                                                <div className="text-xs text-gray-500 mt-1">
+
+                                                    presupuesto{" "}
+
+                                                    {Math.round(
+                                                        item.budget
+                                                    ).toLocaleString(
+                                                        "es-ES"
+                                                    )}
+
+                                                </div>
+
+                                            </div>
 
                                         </div>
 
 
-                                        <div className="text-xs text-gray-500 mt-1 day-date">
+                                        {/* COMPARACIÓN */}
 
-                                            {formatDate(
-                                                date
-                                            )}
+                                        <div className="mt-3">
+
+                                            <div className="h-2 rounded-full progress-track overflow-hidden">
+
+                                                <div
+                                                    className={`h-full rounded-full ${
+                                                        exceeded
+                                                            ? "bg-red-500"
+                                                            : "bg-green"
+                                                    }`}
+                                                    style={{
+                                                        width:
+                                                            `${clamp(
+                                                                item.calories /
+                                                                Math.max(
+                                                                    item.budget,
+                                                                    1
+                                                                ) *
+                                                                100,
+                                                                0,
+                                                                100
+                                                            )}%`
+                                                    }}
+                                                />
+
+                                            </div>
+
+                                        </div>
+
+
+                                        <div className="flex justify-between mt-2 text-xs">
+
+                                            <span className="text-gray-500">
+
+                                                {exceeded
+                                                    ? `${Math.round(
+                                                        item.calories -
+                                                        item.budget
+                                                    )} kcal por encima`
+                                                    : `${Math.round(
+                                                        item.budget -
+                                                        item.calories
+                                                    )} kcal disponibles`}
+
+                                            </span>
+
+
+                                            <span className="text-gray-400">
+
+                                                {formatDate(
+                                                    item.date
+                                                )}
+
+                                            </span>
 
                                         </div>
 
                                     </div>
 
+                                );
 
-                                    <div className="text-right">
+                            })}
 
-                                        <div className="font-bold">
+                    </div>
 
-                                            {Math.round(
-                                                calories
-                                            )}
+                </div>
 
-                                            {" kcal"}
+            )}
 
-                                        </div>
-
-
-                                        <div className="text-xs text-gray-500">
-
-                                            presupuesto{" "}
-
-                                            {Math.round(
-                                                budget
-                                            )}
-
-                                        </div>
-
-                                    </div>
-
-                                </div>
+        </main>
+    );
+}
 
 
-                                <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+/* =========================================================
+   GRÁFICA DEL HISTORIAL
+========================================================= */
 
-                                    <div className="bg-gray-50 rounded-xl p-3">
+function HistoryChart({
 
-                                        <div className="text-gray-500 text-xs">
-                                            Proteína
-                                        </div>
+    data,
+    period
 
-                                        <div className="font-bold mt-1">
+}) {
 
-                                            {protein}
-                                            {" g"}
+    /*
+     * En móvil:
+     *
+     * Semana -> 420 px
+     * Mes -> aproximadamente 900 px
+     * Total -> 1100 px o más
+     *
+     * Esto permite que cada día tenga suficiente
+     * espacio y que el usuario pueda deslizar.
+     */
 
-                                        </div>
+    const minWidth =
+        period === "week"
+            ? 390
+            : period === "month"
+                ? Math.max(
+                    800,
+                    data.length * 34
+                )
+                : Math.max(
+                    1000,
+                    data.length * 30
+                );
 
-                                    </div>
+
+    const width =
+        Math.max(
+            390,
+            minWidth
+        );
+
+    const height =
+        270;
 
 
-                                    <div className="bg-gray-50 rounded-xl p-3">
+    const padding = {
 
-                                        <div className="text-gray-500 text-xs">
-                                            Registros
-                                        </div>
+        top: 25,
+        right: 15,
+        bottom: 45,
+        left: 45
 
-                                        <div className="font-bold mt-1">
+    };
 
-                                            {dayEntries.length}
 
-                                        </div>
+    const chartWidth =
+        width -
+        padding.left -
+        padding.right;
 
-                                    </div>
+    const chartHeight =
+        height -
+        padding.top -
+        padding.bottom;
 
-                                </div>
 
-                            </div>
+    const maxValue =
+        Math.max(
+            ...data.map(
+                item =>
+                    Math.max(
+                        item.calories,
+                        item.budget
+                    )
+            ),
+            1000
+        );
+
+
+    const roundedMax =
+        Math.ceil(
+            maxValue / 500
+        ) * 500;
+
+
+    const yTicks = 4;
+
+
+    function getX(index) {
+
+        if (data.length === 1) {
+
+            return (
+                padding.left +
+                chartWidth / 2
+            );
+        }
+
+        return (
+            padding.left +
+            (
+                index /
+                (data.length - 1)
+            ) *
+            chartWidth
+        );
+    }
+
+
+    function getY(value) {
+
+        return (
+            padding.top +
+            chartHeight -
+            (
+                value /
+                roundedMax
+            ) *
+            chartHeight
+        );
+    }
+
+
+    const budgetPoints =
+        data.map(
+            (item, index) =>
+                `${getX(index)},${getY(item.budget)}`
+        ).join(" ");
+
+
+    return (
+
+        <div className="chart-scroll">
+
+            <svg
+                width={width}
+                height={height}
+                viewBox={`0 0 ${width} ${height}`}
+            >
+
+                {/* =================================================
+                   GRID
+                ================================================= */}
+
+                {Array.from({
+                    length:
+                        yTicks + 1
+                }).map(
+                    (_, index) => {
+
+                        const value =
+                            roundedMax -
+                            (
+                                index /
+                                yTicks
+                            ) *
+                            roundedMax;
+
+                        const y =
+                            getY(value);
+
+
+                        return (
+
+                            <g
+                                key={
+                                    `grid-${index}`
+                                }
+                            >
+
+                                <line
+                                    x1={
+                                        padding.left
+                                    }
+                                    x2={
+                                        width -
+                                        padding.right
+                                    }
+                                    y1={y}
+                                    y2={y}
+                                    stroke="#e8eeea"
+                                    strokeWidth="1"
+                                />
+
+
+                                <text
+                                    x="4"
+                                    y={y + 4}
+                                    fontSize="9"
+                                    fill="#9aa39e"
+                                >
+                                    {Math.round(
+                                        value
+                                    ).toLocaleString(
+                                        "es-ES"
+                                    )}
+                                </text>
+
+                            </g>
 
                         );
 
                     }
                 )}
 
-            </div>
 
-        </main>
+                {/* =================================================
+                   BARRAS
+                ================================================= */}
+
+                {data.map(
+                    (item, index) => {
+
+                        const x =
+                            getX(index);
+
+                        const barWidth =
+                            Math.max(
+                                8,
+                                Math.min(
+                                    24,
+                                    chartWidth /
+                                    Math.max(
+                                        data.length *
+                                        1.7,
+                                        1
+                                    )
+                                )
+                            );
+
+
+                        const barX =
+                            x -
+                            barWidth /
+                            2;
+
+
+                        const barY =
+                            getY(
+                                item.calories
+                            );
+
+
+                        const barHeight =
+                            Math.max(
+                                1,
+                                padding.top +
+                                chartHeight -
+                                barY
+                            );
+
+
+                        const exceeded =
+                            item.calories >
+                            item.budget;
+
+
+                        return (
+
+                            <g
+                                key={
+                                    `bar-${item.key}`
+                                }
+                            >
+
+                                <rect
+                                    x={barX}
+                                    y={barY}
+                                    width={barWidth}
+                                    height={barHeight}
+                                    rx="5"
+                                    fill={
+                                        exceeded
+                                            ? "#ef4444"
+                                            : "#20a35a"
+                                    }
+                                    opacity={
+                                        item.calories === 0
+                                            ? 0.12
+                                            : 0.85
+                                    }
+                                />
+
+
+                                {/* Valor cuando hay espacio */}
+
+                                {item.calories > 0 &&
+                                    period === "week" && (
+
+                                    <text
+                                        x={x}
+                                        y={
+                                            Math.max(
+                                                13,
+                                                barY - 5
+                                            )
+                                        }
+                                        textAnchor="middle"
+                                        fontSize="8"
+                                        fontWeight="600"
+                                        fill="#59635d"
+                                    >
+                                        {Math.round(
+                                            item.calories
+                                        )}
+                                    </text>
+
+                                )}
+
+                            </g>
+
+                        );
+
+                    }
+                )}
+
+
+                {/* =================================================
+                   LÍNEA DE PRESUPUESTO
+                ================================================= */}
+
+                <polyline
+                    points={
+                        budgetPoints
+                    }
+                    fill="none"
+                    stroke="#4b5563"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                />
+
+
+                {/* =================================================
+                   PUNTOS DEL PRESUPUESTO
+                ================================================= */}
+
+                {data.map(
+                    (item, index) => (
+
+                        <circle
+                            key={
+                                `budget-${item.key}`
+                            }
+                            cx={
+                                getX(index)
+                            }
+                            cy={
+                                getY(
+                                    item.budget
+                                )
+                            }
+                            r={
+                                period === "week"
+                                    ? 3
+                                    : 2
+                            }
+                            fill="#4b5563"
+                        />
+
+                    )
+                )}
+
+
+                {/* =================================================
+                   EJE X
+                ================================================= */}
+
+                {data.map(
+                    (item, index) => {
+
+                        /*
+                         * En mes y total mostramos
+                         * menos etiquetas para evitar
+                         * que se superpongan.
+                         */
+
+                        let showLabel =
+                            true;
+
+                        if (
+                            period === "month"
+                        ) {
+
+                            showLabel =
+                                index % 3 === 0 ||
+                                index ===
+                                data.length - 1;
+
+                        }
+
+
+                        if (
+                            period === "total"
+                        ) {
+
+                            showLabel =
+                                index === 0 ||
+                                index ===
+                                data.length - 1 ||
+                                index % 7 === 0;
+
+                        }
+
+
+                        if (!showLabel) {
+                            return null;
+                        }
+
+
+                        return (
+
+                            <text
+                                key={
+                                    `label-${item.key}`
+                                }
+                                x={
+                                    getX(index)
+                                }
+                                y={
+                                    height -
+                                    18
+                                }
+                                textAnchor="middle"
+                                fontSize="9"
+                                fill="#7b857f"
+                            >
+
+                                {period === "week"
+                                    ? item.date.toLocaleDateString(
+                                        "es-ES",
+                                        {
+                                            weekday:
+                                                "short"
+                                        }
+                                    ).replace(
+                                        ".",
+                                        ""
+                                    )
+                                    : formatChartDate(
+                                        item.date
+                                    )}
+
+                            </text>
+
+                        );
+
+                    }
+                )}
+
+            </svg>
+
+        </div>
     );
 }
 
@@ -2391,9 +3228,7 @@ function Settings({
 
     useEffect(() => {
 
-        setLocal(
-            settings
-        );
+        setLocal(settings);
 
     }, [settings]);
 
@@ -2479,7 +3314,6 @@ function Settings({
                     Mi plan
                 </h1>
 
-
                 <p className="text-gray-500 mt-2">
                     Configura tu presupuesto nutricional
                 </p>
@@ -2487,9 +3321,7 @@ function Settings({
             </header>
 
 
-            {/* =================================================
-               OBJETIVOS
-            ================================================= */}
+            {/* OBJETIVOS */}
 
             <section className="card p-5 mb-4">
 
@@ -2499,22 +3331,16 @@ function Settings({
 
 
                 <label className="block text-sm text-gray-500 mb-2">
-
                     Presupuesto semanal de calorías
-
                 </label>
 
 
                 <input
-
                     type="number"
-
                     inputMode="numeric"
-
                     value={
                         local.caloriesWeekly
                     }
-
                     onChange={e =>
                         setLocal({
                             ...local,
@@ -2522,29 +3348,21 @@ function Settings({
                                 e.target.value
                         })
                     }
-
                     className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold mb-5"
-
                 />
 
 
                 <label className="block text-sm text-gray-500 mb-2">
-
                     Objetivo diario de proteína
-
                 </label>
 
 
                 <input
-
                     type="number"
-
                     inputMode="numeric"
-
                     value={
                         local.proteinDaily
                     }
-
                     onChange={e =>
                         setLocal({
                             ...local,
@@ -2552,17 +3370,13 @@ function Settings({
                                 e.target.value
                         })
                     }
-
                     className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
-
                 />
 
             </section>
 
 
-            {/* =================================================
-               FUNCIONAMIENTO
-            ================================================= */}
+            {/* FUNCIONAMIENTO */}
 
             <section className="card p-5 mb-4">
 
@@ -2636,9 +3450,7 @@ function Settings({
             </section>
 
 
-            {/* =================================================
-               BACKUP
-            ================================================= */}
+            {/* BACKUP */}
 
             <section className="card p-5 mb-4">
 
@@ -2657,17 +3469,12 @@ function Settings({
 
 
                 <button
-
                     onClick={
                         saveBackup
                     }
-
                     className="backup-button w-full bg-green text-white py-4 rounded-2xl font-bold mb-3"
-
                 >
-
                     ↓ Guardar backup
-
                 </button>
 
 
@@ -2675,19 +3482,13 @@ function Settings({
 
                     ↑ Cargar backup
 
-
                     <input
-
                         type="file"
-
                         accept=".json,application/json"
-
                         onChange={
                             loadBackup
                         }
-
                         className="hidden"
-
                     />
 
                 </label>
@@ -2695,41 +3496,19 @@ function Settings({
             </section>
 
 
-            {/* =================================================
-               GUARDAR
-            ================================================= */}
-
             <button
-
-                onClick={
-                    save
-                }
-
+                onClick={save}
                 className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mb-4"
-
             >
-
                 Guardar configuración
-
             </button>
 
 
-            {/* =================================================
-               BORRAR
-            ================================================= */}
-
             <button
-
-                onClick={
-                    resetAll
-                }
-
+                onClick={resetAll}
                 className="w-full bg-white text-red-500 border border-red-100 py-4 rounded-2xl font-semibold"
-
             >
-
                 Borrar registros
-
             </button>
 
         </main>
@@ -2821,8 +3600,6 @@ function AddModal({
 
             <div className="bg-white w-full max-w-[480px] rounded-t-[30px] p-6">
 
-                {/* HEADER */}
-
                 <div className="flex justify-between items-center mb-6">
 
                     <div>
@@ -2840,70 +3617,50 @@ function AddModal({
 
 
                         <h2 className="text-2xl font-extrabold">
-
                             Añadir comida
-
                         </h2>
 
                     </div>
 
 
                     <button
-
                         onClick={
                             onClose
                         }
-
                         className="w-10 h-10 rounded-full bg-gray-100 text-xl"
-
                     >
-
                         ×
-
                     </button>
 
                 </div>
 
 
-                {/* FORM */}
-
                 <form
-
                     onSubmit={
                         submit
                     }
-
                     className="space-y-4"
-
                 >
 
                     <div>
 
                         <label className="block text-sm text-gray-500 mb-2">
-
                             Alimento / comida
-
                         </label>
 
 
                         <input
-
                             autoFocus
-
                             value={
                                 name
                             }
-
                             onChange={e =>
                                 setName(
                                     e.target.value
                                 )
                             }
-
                             placeholder="Ej. Pechuga de pollo"
-
                             className="w-full border border-gray-200 rounded-2xl px-4 py-4"
-
                         />
 
                     </div>
@@ -2912,34 +3669,24 @@ function AddModal({
                     <div>
 
                         <label className="block text-sm text-gray-500 mb-2">
-
                             Calorías
-
                         </label>
 
 
                         <input
-
                             type="number"
-
                             inputMode="decimal"
-
                             min="0"
-
                             value={
                                 calories
                             }
-
                             onChange={e =>
                                 setCalories(
                                     e.target.value
                                 )
                             }
-
                             placeholder="500"
-
                             className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
-
                         />
 
                     </div>
@@ -2948,49 +3695,34 @@ function AddModal({
                     <div>
 
                         <label className="block text-sm text-gray-500 mb-2">
-
                             Proteína (g)
-
                         </label>
 
 
                         <input
-
                             type="number"
-
                             inputMode="decimal"
-
                             min="0"
-
                             value={
                                 protein
                             }
-
                             onChange={e =>
                                 setProtein(
                                     e.target.value
                                 )
                             }
-
                             placeholder="40"
-
                             className="w-full border border-gray-200 rounded-2xl px-4 py-4 text-lg font-semibold"
-
                         />
 
                     </div>
 
 
                     <button
-
                         type="submit"
-
                         className="w-full bg-green text-white py-4 rounded-2xl font-bold text-lg mt-3"
-
                     >
-
                         Añadir
-
                     </button>
 
                 </form>
@@ -3018,30 +3750,23 @@ function NavButton({
     return (
 
         <button
-
             onClick={
                 onClick
             }
-
             className={`flex flex-col items-center justify-center gap-1 w-24 ${
                 active
                     ? "green"
                     : "text-gray-500"
             }`}
-
         >
 
             <span className="text-3xl leading-none">
-
                 {icon}
-
             </span>
 
 
             <span className="text-xs font-medium">
-
                 {label}
-
             </span>
 
         </button>
